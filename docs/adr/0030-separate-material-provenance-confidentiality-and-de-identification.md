@@ -1,0 +1,3 @@
+# Separate material provenance, confidentiality, and de-identification
+
+V1 represents whether material is Synthetic or Real, its Public, Internal, Confidential, or Restricted classification, and its De-identification Posture as independent dimensions rather than one `data_class` value. Real Material never becomes Synthetic merely because it was de-identified, and Rights Posture remains independent; processing, provider, retention, evaluation, and disclosure eligibility must evaluate the applicable dimensions together. This accepts additional typed fields and policy checks to prevent a single overloaded classification from granting an invalid AI, retention, reuse, or disclosure path.

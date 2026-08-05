@@ -1,0 +1,3 @@
+# Separate internal controlled export from externally authorized delivery
+
+The product separates Internal Controlled Export from Externally Authorized Delivery. An Individual Banker may export exact Revisions and control records for inspection, native Office editing, backup, or reimport without thereby authorizing external circulation; recipient access or an external-purpose delivery package requires a matching External-Use Decision. This preserves banker-native work while preventing a download event from silently becoming disclosure authority, and it keeps authorization, delivery creation, and actual external use as distinct events.

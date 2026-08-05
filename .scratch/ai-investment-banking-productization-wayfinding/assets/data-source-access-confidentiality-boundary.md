@@ -309,9 +309,9 @@ Record, at minimum:
 - Claim/Fact/Assumption and source-reliance changes;
 - Impact Assessment, recalculation/regeneration/re-review/circulation-block results;
 - export, download, account closure, and deletion completion; and
-- any exceptional provider/operator access, including user authorization and duration.
+- any exceptional subprocessor access and any attempted or denied product-operator content access, including applicable authorization and duration.
 
-The provider supplies no routine human banker review and therefore has no standing reason to inspect Deal Materials. Exceptional support access must be explicit, least-privileged, time-bounded, and audited.
+The product supplies no routine human banker review and V1 implements no product support role, impersonation or content-level break-glass path. Any exceptional subprocessor access must be explicit, least-privileged, time-bounded, contractually verified, disclosed and audited where the provider exposes the required evidence.
 
 ## 8. Customer-authorized connector priority
 

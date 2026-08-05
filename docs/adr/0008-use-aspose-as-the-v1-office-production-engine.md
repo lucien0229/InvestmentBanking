@@ -1,0 +1,3 @@
+# Use Aspose as the V1 Office production engine
+
+V1 uses the licensed Aspose Python via .NET product family for server-side XLSX generation and formula calculation, PPTX generation and rendering, DOCX generation and pagination, and PDF Reader Copy production. Every engine, font, template, and container version is pinned and changes trigger the affected Reference Deal, formula, visual-difference, and Microsoft 365 compatibility suites; Aspose success alone cannot expand the Capability Manifest beyond the separately validated Microsoft 365 support matrix. This accepts document-engine lock-in to obtain one server-supported production family while keeping published compatibility evidence independent from the vendor's claims.

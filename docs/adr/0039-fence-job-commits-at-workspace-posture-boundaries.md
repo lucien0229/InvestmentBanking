@@ -1,0 +1,3 @@
+# Fence Job commits at Workspace posture boundaries
+
+V1 binds every Deal-scoped Job Scope to the current Workspace posture version and revalidates that version before accepting a result. Pause advances the version immediately, stops new claims, and prevents running work from committing a new domain result after the boundary; Archive becomes effective only after every domain-mutating Job is terminal or safely canceled, while already-committed history and already-completed irreversible external effects remain truthful. This accepts bounded canceled work and provider cost so a Paused or Archived Deal cannot acquire hidden post-transition state and workers never receive grandfathered write authority.

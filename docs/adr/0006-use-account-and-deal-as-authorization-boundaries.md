@@ -1,0 +1,3 @@
+# Use Account and Deal as authorization boundaries
+
+Account is the V1 tenant, commercial, and data-ownership boundary, and Deal is the mandatory subordinate authorization scope for all Deal work. Authorization is enforced in the application policy layer and again through database row policies, while object storage, Jobs, caches, indexes, provider requests, exports, and audit records carry the same Account and Deal scope; External Recipient access uses an independent exact-Revision grant rather than Account or Deal Workspace membership. This preserves one-Individual-Banker V1 scope without binding ownership to an authentication-provider user or making a later Team migration require re-keying every Deal.

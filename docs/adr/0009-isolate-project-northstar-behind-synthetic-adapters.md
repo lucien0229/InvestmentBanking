@@ -1,0 +1,3 @@
+# Isolate Project Northstar behind synthetic adapters
+
+Project Northstar reuses the production Web, API, domain-command, and state-transition code but operates through a dedicated synthetic Account, isolated data permissions, read-only fixtures, and deterministic provider adapters. Anonymous proof sessions cannot upload real files, invoke production AI, OCR, rendering, payment, or Recipient Access paths, or address production Deal objects, and their temporary synthetic state cannot become a live Deal. This avoids a second demonstration-only domain implementation without exposing the public surface to confidential-data or provider-abuse paths.

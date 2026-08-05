@@ -1,0 +1,3 @@
+# Use Clerk for V1 authentication
+
+V1 uses Clerk for authentication, passkeys, required multifactor enrollment, recovery factors, session identity, and fresh-factor evidence, while the product remains authoritative for Account ownership, Deal authorization, Product Entitlements, Recipient Access, and every business permission. Sensitive mutations require a product-issued, short-lived, single-use Sensitive Action Grant bound to the Clerk session, actor, action, resource, and expiry; Clerk organizations and user identifiers do not become the product tenancy model. This accepts an authentication-provider dependency to avoid building identity and recovery flows while keeping replaceable identity mapping separate from durable domain ownership.

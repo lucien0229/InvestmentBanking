@@ -1,0 +1,3 @@
+# Use selective business-effective time
+
+V1 does not impose a universal bitemporal-table framework. Source observations, Process Events, Deal stage transitions, Human Decisions, Bid versions, rights, retention, and access grants record both the applicable business-effective, occurred, submitted, or received time and the time the product recorded them; other objects use immutable versions, append-only material history, and explicit current pointers. This accepts domain-specific temporal columns and queries to avoid the pervasive range constraints, temporal joins, migrations, and false precision of applying valid-time and system-time intervals to every relation.
