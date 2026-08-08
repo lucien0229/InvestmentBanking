@@ -4,7 +4,7 @@
 
 **Status:** Confirmed integration baseline with explicit deferred launch decisions
 
-**Date:** 2026-08-05
+**Date:** 2026-08-08
 
 **Scope:** Third-party and internal-system integration contracts for the first sellable release
 
@@ -50,7 +50,7 @@ When provider documentation, SDK behavior, or a dashboard setting conflicts with
 
 Third-party and managed dependencies:
 
-- Clerk;
+- Supabase Auth;
 - Supabase Pro PostgreSQL, Storage, Queues/PGMQ, FTS, pgvector, backups, and PITR;
 - Stripe Checkout, Billing, Tax, Invoices, Customer Portal, Radar, refunds, disputes, and Webhooks;
 - the fixed HelloX AI Provider Route;
@@ -86,7 +86,7 @@ V1 has no live:
 - accounting, general-ledger, revenue-recognition, or ERP connector;
 - Account-configured AI endpoint, API key, BYOK, or cross-provider AI fallback;
 - generic outbound Deal-action adapter;
-- browser-held provider secret or browser-direct business-provider call; Clerk's public authentication flow and the scoped quarantine TUS path remain the two explicit browser/provider exceptions;
+- browser-held provider secret or browser-direct business-provider call; Supabase's public authentication flow and the scoped quarantine TUS path remain the two explicit browser/provider exceptions;
 - product microservice network, Kafka, Redis, or general event bus; or
 - support, founder, or Deployment Operator content-access integration.
 
@@ -109,10 +109,10 @@ EML, CSV, JSON, ZIP, licensed-data exports, and Public Web Evidence enter only t
 
 ~~~mermaid
 flowchart LR
-    B["Banker browser"] -->|"Clerk session; /api/v1"| API["Fastify control plane"]
+    B["Banker browser"] -->|"Supabase session; /api/v1"| API["Fastify control plane"]
     R["Recipient browser"] -->|"Recipient Session"| API
-    B -->|"Clerk token + scoped TUS Upload Session"| QS["Supabase quarantine Storage"]
-    B -->|"public authentication flow"| CL["Clerk"]
+    B -->|"Supabase token + scoped TUS Upload Session"| QS["Supabase quarantine Storage"]
+    B -->|"public authentication flow"| SA["Supabase Auth"]
     B -->|"Object Grant + bound session"| GW["Protected Object Gateway"]
     R -->|"Object Grant + Recipient Session"| GW
 
@@ -141,12 +141,11 @@ flowchart LR
     GW --> KMS
     GW --> DB
 
-    API --> CL
+    API --> SA
     API --> STR["Stripe"]
     API --> RS["Resend"]
     MP --> PM["First-party measurement ledger"]
 
-    CL -->|"signed Webhook"| API
     STR -->|"signed Webhook"| API
     RS -->|"signed Webhook"| API
 
@@ -166,7 +165,7 @@ The arrows indicate permitted protocol direction, not blanket network access. Ea
 | PGMQ → Worker | outbound internal | Worker / claim procedure | queue identity plus PostgreSQL | claimed Job Scope | lease expiry and safe requeue |
 | Coordinator → Supervisor | outbound host-local | approved coordinator / Supervisor | versioned JSON over Unix socket | fixed execution profile only | affected Job Step fails or retries |
 | Gateway → DB/Storage/KMS | outbound managed | Gateway | TLS provider APIs | current Object Grant and domain state | protected stream blocks |
-| Clerk | bidirectional | API and Clerk Webhook endpoint | HTTPS/JWT/signed Webhook | authentication evidence only | authentication or sensitive action blocks |
+| Supabase Auth | bidirectional | Web, API, narrow administration path | HTTPS/SSR Cookie/JWT/JWKS/Admin API | authentication evidence only | authentication blocks; sensitive action additionally requires fresh Passkey evidence |
 | Supabase Pro | bidirectional | scoped runtimes | TLS PostgreSQL/HTTPS Storage | authoritative product rows and encrypted objects | no split-brain fallback |
 | Stripe | bidirectional | commerce adapter and Webhook endpoint | HTTPS/signed Webhook | verified evidence reconciled into Product Entitlement | last confirmed entitlement; no speculative grant |
 | HelloX | outbound | Light Worker | fixed HTTPS API profile | AI Proposal only | same-route eligible fallback or block |
@@ -239,7 +238,6 @@ Public endpoints are fixed by the API Spec:
 
 ~~~text
 POST /webhooks/stripe
-POST /webhooks/clerk
 POST /webhooks/resend
 ~~~
 
@@ -258,16 +256,15 @@ Webhook delivery order is never trusted. A handler that needs missing or current
 
 The exact raw-payload retention policy is explicitly deferred in Section 18. The confirmed contract requires a raw-payload digest and permits, but does not yet require, a protected raw-payload reference. This deferral never makes the canonical provider-evidence contract optional for a processable event.
 
-Each Inbox Event records a closed replay posture: `exact_replay_available`, `current_object_reconciliation_only`, or `not_recoverable`. A supported processable event normally uses its persisted canonical provider-evidence contract for exact semantic replay without requiring the raw signed bytes. When the adapter cannot define a sufficient canonical contract, it must use `current_object_reconciliation_only` or remain disabled; an authenticated current-object lookup is not historical event replay. One-time Clerk or Resend events may be enabled only when their canonical contracts contain every typed field required by the handler.
+Each Inbox Event records a closed replay posture: `exact_replay_available`, `current_object_reconciliation_only`, or `not_recoverable`. A supported processable event normally uses its persisted canonical provider-evidence contract for exact semantic replay without requiring the raw signed bytes. When the adapter cannot define a sufficient canonical contract, it must use `current_object_reconciliation_only` or remain disabled; an authenticated current-object lookup is not historical event replay. One-time Resend events may be enabled only when their canonical contracts contain every typed field required by the handler.
 
 #### 7.3.1 Provider signature profiles
 
-All three endpoints accept HTTPS `POST` with `Content-Type: application/json`, a maximum raw body of 1 MiB, no redirect, and a maximum absolute signed-at clock skew of 300 seconds. Production hosts use synchronized time. A provider SDK may enforce a stricter verified window but cannot widen it.
+Both endpoints accept HTTPS `POST` with `Content-Type: application/json`, a maximum raw body of 1 MiB, no redirect, and a maximum absolute signed-at clock skew of 300 seconds. Production hosts use synchronized time. A provider SDK may enforce a stricter verified window but cannot widen it.
 
 | Provider / route | Required signature headers | Verifier | Durable deduplication identity |
 |---|---|---|---|
 | Stripe `/webhooks/stripe` | `Stripe-Signature` including signed timestamp and one supported signature version | pinned official Stripe SDK against the endpoint-specific test/live secret and unchanged raw body | verified Stripe `event.id` |
-| Clerk `/webhooks/clerk` | `svix-id`, `svix-timestamp`, `svix-signature` | pinned Clerk `verifyWebhook` against the endpoint-specific secret and unchanged raw body | verified `svix-id` |
 | Resend `/webhooks/resend` | `svix-id`, `svix-timestamp`, `svix-signature` | pinned Resend/Svix verifier and endpoint-specific secret | verified `svix-id` |
 
 Missing, duplicated where singular, malformed, unsupported-version, invalid-signature, or stale headers return `400` and create no business event. Secret rotation may accept old and new signatures only during a documented bounded overlap supported by the provider; the accepted key identity is recorded. Provider retries receive a newly verified delivery signature but resolve to the same durable event identity.
@@ -321,7 +318,7 @@ After the call, the adapter:
 ### 8.1 Web to control plane
 
 - Web calls only same-origin `/api/v1` and receives JSON, Problem Details, or SSE.
-- The browser presents the current Clerk session; the API maps provider identity to Actor and Account before applying product authorization.
+- Next.js refreshes the Supabase SSR Session, forwards only the current Access Token, and the API maps provider issuer and subject to Actor and Account before applying product authorization.
 - Web has no Supabase database, queue, KMS, Stripe, HelloX, Document AI, Resend, or Sentry secret.
 - A state-changing route either commits synchronously or returns a durable Job. Web does not infer success from route navigation or optimistic UI state.
 - SSE replays immutable `jobs.job_event` rows using `Last-Event-ID`; it is not a command channel.
@@ -332,7 +329,7 @@ The only browser-direct managed-data path is a resumable upload to the quarantin
 
 1. The API authenticates the Banker, validates Account/Deal or Account-template purpose, file-count/size posture, and entitlement, then creates an immutable two-hour Upload Session.
 2. The session binds one exact non-overwritable quarantine object path, declared media type/size, purpose, Account, optional Deal, and expiry.
-3. The browser uses a fresh Clerk token accepted by the configured Supabase Clerk third-party-auth integration and the TUS resumable endpoint.
+3. The browser uses a fresh Access Token from the same Supabase Session against the TUS resumable endpoint.
 4. Storage RLS permits only the bound quarantine path and creation lifecycle. Browser upsert and overwrite are prohibited.
 5. Upload completion is not Source acceptance. The API finalization command verifies the stored object identity, byte count, digest, Upload Session, and current scope before scheduling safety processing.
 6. Incomplete or rejected quarantine objects follow the confirmed 24-hour deletion rule.
@@ -384,7 +381,7 @@ The socket is mounted only into approved coordinator runtimes and is owned by th
 
 The Gateway accepts only `GET /objects/{protected_object_id}` with an opaque Object Grant, the bound current human session proof, and at most one supported Range.
 
-For an Individual Banker stream, the API authenticates the current Clerk session and issues the five-minute Object Grant bound to that session hash. The Gateway verifies the accompanying bound Clerk JWT networklessly using the configured public key/JWKS snapshot, not a Clerk secret or Clerk network call, then revalidates the hashed Object Grant and current Account, entitlement, object, and product revocation posture in PostgreSQL. The Gateway does not claim a real-time Clerk revocation lookup: a Clerk revocation received by Webhook revokes matching unconsumed Grants earlier, while an undelivered revocation is bounded by the shorter remaining JWT and five-minute Grant lifetime. For an External Recipient stream, it validates the isolated Recipient Session and Recipient Access instead of Clerk.
+For an Individual Banker stream, the API authenticates the current Supabase Session and issues the five-minute Object Grant bound to that session identity. The Gateway verifies the accompanying bound Supabase JWT networklessly using the configured JWKS snapshot, without an Auth administration secret or Auth network call, then revalidates the hashed Object Grant and current Account, entitlement, security epoch, object, and product revocation posture in PostgreSQL. Product-controlled recovery, logout, or restriction advances the security epoch and revokes matching Grants; out-of-band provider revocation remains bounded by the shorter remaining one-hour JWT and five-minute Grant lifetime. For an External Recipient stream, the Gateway validates the isolated Recipient Session and Recipient Access instead of Supabase Auth.
 
 The Gateway then resolves exactly one typed Protected Account Object or Protected Deal Object, unwraps only its DEK through the purpose-specific KMS permission, validates byte identity/integrity, and streams without buffering the whole object. It cannot list objects, create URLs, mutate domain state, execute Jobs, inspect unrelated metadata, or retain plaintext.
 
@@ -431,25 +428,25 @@ The anonymous-attribution and retention/de-identification lifecycle is deferred 
 
 ## 9. External provider contracts
 
-### 9.1 Clerk
+### 9.1 Supabase Auth
 
-**Purpose:** Account authentication, passkeys, MFA, recovery, and session identity. Clerk is not Account, Deal, Product Entitlement, role, or permission authority.
+**Purpose:** Account-side Magic Link onboarding/recovery, required Passkey registration, Passkey login/reauthentication, Session identity, JWT/JWKS validation, and narrow identity administration. Supabase Auth is not Actor, Account, Deal, Product Entitlement, role, Recipient Access, or permission authority.
 
 **Caller and credentials:**
 
-- Web uses the public Clerk frontend configuration.
-- API alone holds the Clerk backend secret where a backend operation is required.
-- API and Gateway may validate session JWTs networklessly with the configured public key/JWKS snapshot; the API performs the current-session check before issuing an Object Grant.
-- Gateway has no Clerk backend secret and no Clerk network egress.
-- Supabase Storage is configured for Clerk third-party authentication only for the scoped quarantine TUS path.
+- Web uses the public Supabase project configuration and Supabase SSR Cookie contract; it forwards only the current Access Token to the API.
+- API and Gateway validate Session JWTs networklessly against pinned algorithm, issuer, audience, expiry, and JWKS expectations. Gateway holds no Auth administration secret and has no Auth network egress.
+- Only the Identity adapter/Retention Executor holds the narrow administration credential required for product-controlled logout, recovery invalidation, and final identity deletion.
+- A fresh Access Token from the same Session authorizes only the scoped quarantine TUS path under Storage RLS; it is not general database or business authority.
+- Supabase Auth generates and verifies the default Magic Link and uses Resend only as production Custom SMTP. There is no Send Email Auth Hook.
 
-**Inbound events:** Only an allowlisted set of identity/session-security events is accepted. A verified event may update `identity.external_identity` or revoke unconsumed Object Grants bound to an exact session hash, but it cannot create Account ownership, Deal access, Product Entitlement, Recipient Access, or a Human Decision. V1 does not maintain a second general Clerk session store merely for the Gateway.
+**Identity and Session contract:** The Product API idempotently creates or links `identity.external_identity → Actor → Account` only after verified authentication and required Passkey registration. V1 adds no general Supabase Auth Hook, Database Webhook, or `auth.users` Trigger for product identity or authority. JWT lifetime remains one hour; inactivity is 12 hours, absolute Session lifetime seven days, and only one Session may be active per user. Password, numeric Email OTP customization, TOTP, and MFA enrollment are disabled. Fresh-Passkey evidence exists only when the verified current Session JWT contains an `amr` entry whose method is `passkey` and whose timestamp is no older than five minutes; JWT issue time, client state, or a `magiclink` entry alone is insufficient.
 
-**Deletion-status identity contract:** Account deletion removes every product Account/Deal relationship and ordinary session immediately but retains the same Clerk identity solely to authenticate its minimal Deletion Status Claimant while deletion/preservation remains unresolved and for 30 days after terminal completion. That identity has no product authority beyond reissuing an exact short-lived Deletion Status Grant. At `status_available_until`, the Retention Executor removes the final product binding and requests/verifies Clerk identity deletion when no other separately lawful product relationship exists; an independently deleted provider identity creates no bearer/operator fallback.
+**Recovery and deletion-status contract:** Magic Link for an existing user authenticates only the product-owned Account Security Restriction and Security Recovery Session; it never grants ordinary Account/Deal access. Account deletion removes every ordinary product relationship and Session immediately but retains the same Supabase issuer-and-subject identity solely for the minimal Deletion Status Claimant until `status_available_until`, then requests and verifies final Supabase Auth identity deletion when no other separately lawful product relationship exists.
 
-**Failure posture:** New authentication and backend identity changes block. A cryptographically valid unexpired session may be evaluated according to the current product revocation state, but sensitive mutations requiring fresh provider evidence fail closed. There is no fallback identity provider.
+**Failure posture:** New authentication and identity administration block. Sensitive mutations and high-risk Audit reads fail closed without a fresh Passkey login no older than five minutes. There is no fallback identity provider and no Magic Link downgrade for sensitive actions.
 
-**Required probes:** JWT algorithm/issuer/audience/authorized-party/expiry validation, key rotation, stale-key behavior, webhook signature and replay, user deletion/unlinking, security-recovery session isolation, deletion-status claimant reauthentication/final provider deletion, session revocation, Supabase third-party auth, TUS RLS, and cross-Account denial.
+**Required probes:** pinned SDK/configuration; experimental Passkey registration, login, removal, recovery, and reauthentication; `amr.method=passkey` timestamp issuance and preservation across refresh; default Magic Link through Resend Custom SMTP; SSR Cookie refresh; JWT algorithm/issuer/audience/expiry and JWKS rotation/staleness; Session inactivity/absolute/single-session behavior; product security-epoch denial; administration credential isolation; user unlinking/final deletion; TUS RLS; and cross-Account denial. Failed Passkey evidence blocks the Confidential production pilot.
 
 ### 9.2 Supabase Pro
 
@@ -475,7 +472,7 @@ The anonymous-attribution and retention/de-identification lifecycle is deferred 
 
 **Failure posture:** Mutations, Job claims, authorization, and protected reads block. Production never writes to a VPS-local fallback database or object store.
 
-**Required probes:** region and project identity, non-owner/`NOBYPASSRLS`/forced-RLS posture for every online role, migration-owner runtime denial, definer/public grants, pooled-context leakage, Clerk-to-Storage auth, TUS resumption/conflict/expiry, non-overwrite behavior, queue duplicate/visibility/recovery behavior, PITR window, logical restore, object restore, FTS/vector deletion, and Deletion Tombstone reapplication.
+**Required probes:** region and project identity, non-owner/`NOBYPASSRLS`/forced-RLS posture for every online role, migration-owner runtime denial, definer/public grants, pooled-context leakage, Supabase Auth-to-Storage RLS, TUS resumption/conflict/expiry, non-overwrite behavior, queue duplicate/visibility/recovery behavior, PITR window, logical restore, object restore, FTS/vector deletion, and Deletion Tombstone reapplication.
 
 ### 9.3 Stripe
 
@@ -617,7 +614,7 @@ Definitions are updated through a host maintenance path separate from Deal proce
 
 ### 9.9 Resend
 
-**Purpose:** non-Account-authentication transactional email, including safe lifecycle notices and product-owned External Recipient link/code delivery. Clerk continues to own Account authentication and recovery.
+**Purpose:** production Custom SMTP transport for Supabase Auth Magic Links plus non-Account-authentication transactional email, including safe lifecycle notices and product-owned External Recipient link/code delivery. Supabase Auth owns Magic Link generation and verification; Resend supplies transport only.
 
 **Caller and credential:** notification adapter only, with separate test/production API keys and sending subdomains.
 
@@ -647,7 +644,7 @@ Sentry issues, dashboards, and alerts are not Audit Events, Product Measurement 
 
 **Purpose:** bounded unauthenticated retrieval for Public Web Evidence.
 
-The Public Fetch Coordinator sends only a validated URL contract to the public-fetch Supervisor profile. The sandbox has no product database, Storage, KMS, AI, Stripe, Clerk, or Deal credential. It may use HTTPS GET only under fixed DNS, redirect, IP-range, port, method, content-type, byte, time, and resource rules. Every redirect and resolved address is revalidated; loopback, private, reserved, link-local, metadata, and credential-bearing URLs are denied.
+The Public Fetch Coordinator sends only a validated URL contract to the public-fetch Supervisor profile. The sandbox has no product database, Storage, KMS, AI, Stripe, Supabase Auth administration, or Deal credential. It may use HTTPS GET only under fixed DNS, redirect, IP-range, port, method, content-type, byte, time, and resource rules. Every redirect and resolved address is revalidated; loopback, private, reserved, link-local, metadata, and credential-bearing URLs are denied.
 
 The sandbox returns staged bytes plus requested/final URL, retrieval time, status, bounded headers, content digest, and safe failure code. The control plane records a versioned immutable Observation and Source Representation only after rights, locator, and content checks. Live page content is Evidence only for the exact Observation and does not become a universal Fact.
 
@@ -669,7 +666,7 @@ Lab success updates no production artifact or Banker state directly. A reviewed 
 
 | Destination | Maximum permitted data | Prohibited examples | Result authority |
 |---|---|---|---|
-| Clerk | identity/security metadata | Deal content, entitlement rules, recipient artifacts | authentication evidence |
+| Supabase Auth | identity, Passkey, Session and security metadata | Deal content, entitlement rules, recipient artifacts | authentication evidence |
 | Supabase PostgreSQL | authoritative product state | direct browser mutation | product tables/procedures by owner |
 | Supabase quarantine | unaccepted uploaded bytes and lifecycle metadata | accepted-source claim before safety gate | bytes only |
 | Supabase protected Storage | application-encrypted objects and manifests | plaintext public URL | typed attachment plus database state |
@@ -691,9 +688,9 @@ Lab success updates no production artifact or Banker state directly. A reviewed 
 
 | Credential | Holder | Must not be held by |
 |---|---|---|
-| Clerk publishable configuration | Web | treated as a secret |
-| Clerk backend secret | API identity adapter | Web, Gateway, Workers, sandboxes |
-| Clerk JWT public key/JWKS snapshot | API and Gateway | used as business authority |
+| Supabase public project/Auth configuration | Web | treated as a secret or business authority |
+| Supabase Auth administration credential | Identity adapter and Retention Executor only | Web, Gateway, Workers, sandboxes |
+| Supabase Auth JWT issuer/audience/JWKS configuration | API and Gateway | used as business authority without product relationship checks |
 | Supabase migration owner | migration runner only | application runtime |
 | Supabase API/domain role | control plane | Web, sandboxes, operator shell by default |
 | Supabase Dispatcher role | Dispatcher | Workers and Web |
@@ -842,7 +839,7 @@ The required operator identity/session mechanism is intentionally deferred in Se
 - Caddy is the only public application ingress.
 - Component networks and host firewall rules deny outbound traffic by default.
 - Fixed-provider runtimes may reach only configured provider hosts plus necessary DNS/certificate infrastructure.
-- Gateway may reach Supabase PostgreSQL/Storage and KMS; Clerk session validation is networkless.
+- Gateway may reach Supabase PostgreSQL/Storage and KMS; Supabase Session validation is networkless and the Gateway holds no Auth administration credential.
 - Sandboxes have either no network or the separate public-fetch HTTPS profile. No sandbox joins an application network.
 - Provider redirects are rejected unless the exact adapter contract permits and revalidates them.
 - DNS rebinding, private/reserved IPs, link-local, metadata services, non-HTTPS schemes, unexpected ports, and credential-bearing URLs are denied on public fetch.
@@ -954,7 +951,7 @@ Before the first Confidential production pilot:
 
 1. Rotate the HelloX credential exposed during design and prove separate test/production credentials.
 2. Provision United States-region Supabase Pro, private schemas/roles, Storage buckets, PGMQ, RLS, PITR, logical backup, object recovery copies, and restore evidence.
-3. Verify Clerk JWT/Webhook behavior and the exact Clerk-to-Supabase TUS/RLS configuration.
+3. Verify the complete Supabase Auth contract in Section 9.1, including experimental Passkey gates, Magic Link through Resend Custom SMTP, SSR/JWT/JWKS, Session limits, recovery, administration isolation, deletion-status identity, and direct TUS/RLS configuration.
 4. Verify Stripe catalog, Tax, invoice, Portal, refund, renewal, Billing Recovery, duplicate/reordered Webhook, Payment Dispute, and entitlement reconciliation behavior.
 5. Approve HelloX and Google Document AI provider capability/data-processing records for every enabled material classification.
 6. Pin and verify Aspose, fonts, ClamAV engine/definitions, rootless Podman profiles, and minimum-VPS limits.
@@ -997,12 +994,14 @@ Implementation uses current primary documentation and records the exact observed
 
 - [Stripe Webhooks](https://docs.stripe.com/webhooks)
 - [Stripe subscription Webhooks](https://docs.stripe.com/billing/subscriptions/webhooks)
-- [Clerk manual JWT verification](https://clerk.com/docs/guides/sessions/manual-jwt-verification)
-- [Clerk Webhooks overview](https://clerk.com/docs/guides/development/webhooks/overview)
-- [Clerk Webhook verification](https://clerk.com/docs/reference/backend/verify-webhook)
+- [Supabase Passkey authentication](https://supabase.com/docs/guides/auth/passkeys)
+- [Supabase passwordless email logins](https://supabase.com/docs/guides/auth/auth-email-passwordless)
+- [Supabase server-side Auth](https://supabase.com/docs/guides/auth/server-side/creating-a-client)
+- [Supabase Auth sessions](https://supabase.com/docs/guides/auth/sessions)
+- [Supabase Auth JWT claims](https://supabase.com/docs/guides/auth/jwt-fields)
+- [Supabase custom SMTP](https://supabase.com/docs/guides/auth/auth-smtp)
 - [Supabase Queues](https://supabase.com/docs/guides/queues)
 - [Supabase resumable TUS uploads](https://supabase.com/docs/guides/storage/uploads/resumable-uploads)
-- [Supabase Clerk third-party authentication](https://supabase.com/docs/guides/auth/third-party/clerk)
 - [Google Document AI processors](https://docs.cloud.google.com/document-ai/docs/processors-list)
 - [Google Document AI IAM](https://docs.cloud.google.com/document-ai/docs/access-control/iam-permissions)
 - [Google Cloud KMS envelope encryption](https://cloud.google.com/kms/docs/envelope-encryption)

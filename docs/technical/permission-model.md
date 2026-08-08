@@ -2,7 +2,7 @@
 
 **Product:** HelloX Investment Banking — Individual-First V1  
 **Status:** Confirmed design contract  
-**Confirmed:** 2026-08-05  
+**Confirmed:** 2026-08-08\
 **Scope:** Human, recipient, runtime, resource, posture, database, storage, and recovery authorization boundaries for V1
 
 ## 1. Purpose
@@ -39,7 +39,7 @@ The specialized documents must implement this matrix without creating a broader 
 The following ADRs directly govern this model:
 
 - [ADR 0006](../adr/0006-use-account-and-deal-as-authorization-boundaries.md): Account and Deal authorization boundaries;
-- [ADR 0010](../adr/0010-use-clerk-for-v1-authentication.md): Clerk authentication and product-owned authorization;
+- [ADR 0041](../adr/0041-use-supabase-auth-for-v1-authentication.md): Supabase Auth authentication and product-owned authorization;
 - [ADR 0013](../adr/0013-do-not-implement-content-support-access-in-v1.md): no support-content access;
 - [ADR 0025](../adr/0025-authorize-workers-through-job-scoped-runtime-principals.md): Job-scoped Worker authority;
 - [ADR 0027](../adr/0027-stream-protected-deal-objects-through-a-dedicated-gateway.md) and [ADR 0034](../adr/0034-stream-typed-account-and-deal-protected-objects-through-one-gateway.md): protected-object streaming;
@@ -81,8 +81,8 @@ There is no positive-authorization cache across requests. Within one transaction
 | Principal | Authentication representation | Positive boundary | Explicit negative boundary |
 |---|---|---|---|
 | Prospective Banker | public request, bounded Project Northstar proof session, or authenticated onboarding identity before Deal authority | public offer, synthetic proof, qualification, Account access/onboarding, Checkout | no real Deal Material, production object ID, live AI/provider work, external delivery, or production Account/Deal query |
-| Individual Banker Actor | valid Clerk Session resolved to the one active V1 Account-owner relationship | own Account and its Deals under exact policy and posture | no Team role delegation, cross-Account access, generic Deal membership, control bypass, provider-admin call, or direct database/storage access |
-| Security Recovery Session | separate short-lived product session after Clerk recovery evidence and ownership-continuity verification | only the recovery allowlist in Section 10 | not an ordinary Banker Session; no Account/Deal content, billing, deletion, Deal work, export, or external-use authority |
+| Individual Banker Actor | valid Supabase Session resolved to the one active V1 Account-owner relationship | own Account and its Deals under exact policy and posture | no Team role delegation, cross-Account access, generic Deal membership, control bypass, provider-admin call, or direct database/storage access |
+| Security Recovery Session | separate short-lived product session after Supabase Magic Link recovery evidence and ownership-continuity verification | only the recovery allowlist in Section 10 | not an ordinary Banker Session; no Account/Deal content, billing, deletion, Deal work, export, or external-use authority |
 | External Recipient | independent Recipient Session after exact link and mailbox-code verification | read one frozen Reader Copy for one exact valid Recipient Access | no Account/Deal membership, discovery, edit, comment, download, onward share authority, Native Artifact, other Revision, or Banker route |
 | Deployment Operator | separately authenticated technical identity, mechanism intentionally deferred in V1 design | deployment and privacy-safe infrastructure recovery boundary only | no product human session, Account role, Deal row/content/decrypt path, impersonation, break-glass, or domain mutation |
 
@@ -107,7 +107,7 @@ V1 has no Account Admin, Owner/Member hierarchy, Team Member, Deal Member, deleg
 
 | Representation | Bound identity and scope | Lifetime / consumption | What it authorizes |
 |---|---|---|---|
-| Clerk Banker Session | provider issuer/subject → Actor → active Account-owner relationship; current Account security epoch | provider/session controlled; rechecked every request | ordinary Banker operations permitted by current policy; not a sensitive mutation by itself |
+| Supabase Banker Session | provider issuer/subject and session ID → Actor → active Account-owner relationship; current Account security epoch | JWT 1 hour; inactivity 12 hours; absolute 7 days; one active Session; rechecked every request | ordinary Banker operations permitted by current policy; not a sensitive mutation by itself |
 | Security Recovery Session | same authentication identity, Actor, exact Account Security Restriction, purpose, security epoch | absolute lifetime ≤15 minutes; invalid after clearance or posture/version change | Section 10 recovery allowlist only |
 | Sensitive Action Grant | Banker or eligible Recovery Session, Actor, action, exact typed resource, command digest, ETag/dependency digest, Idempotency-Key, nonce | fresh factor age ≤5 minutes; Grant expires in 5 minutes; single successful mutation | one exact named sensitive mutation |
 | Recipient Session | exact mailbox proof, Recipient, Recipient Access, Decision, Revision, session hash | idle 15 minutes; absolute 8 hours; invalidated by suspension/revocation/invalidity | isolated read of one exact Reader Copy and its protected stream |
@@ -269,7 +269,7 @@ Recipient Access Resumption is permitted only when no active suspension cause re
 An Account Security Restriction is product-owned state created from an authenticated security action or reconciled security evidence, not directly from an untrusted redirect, email, Webhook field, or browser flag. Entry MUST atomically:
 
 - advance the Account security epoch;
-- deny ordinary Banker Sessions even when the underlying Clerk token remains cryptographically valid;
+- deny ordinary Banker Sessions even when the underlying Supabase JWT remains cryptographically valid;
 - revoke or invalidate every unconsumed Sensitive Action Grant and protected-object grant bound to the prior epoch;
 - suspend every otherwise-active Recipient Access and invalidate its Sessions/stream grants;
 - block new Job claims and invalidate Job Scopes whose operation could read or mutate Account/Deal content; and
@@ -282,7 +282,7 @@ It does not delete or rewrite the Actor, Account-owner relationship, Decision, A
 | Operation | Allowed projection or effect | Additional control |
 |---|---|---|
 | Read restriction status | reason class, opened time, required proof classes, safe next action, current recovery version | no Deal/client/file/recipient content |
-| Prove authentication/ownership continuity | attach verified Clerk recovery evidence and product-owned continuity result | exact challenge, bounded attempts, no provider result as automatic clearance |
+| Prove authentication/ownership continuity | attach verified Supabase Magic Link mailbox-control evidence and product-owned continuity result | exact challenge, bounded attempts, no provider result as automatic clearance |
 | Recover or relink credential | bind a verified provider identity to the same durable Actor | cannot create a new Actor, Account transfer, Team relationship, or owner substitution |
 | Invalidate own sessions or unused grants | revoke identities bound to the same Actor/Account | cannot target another Account or grant new authority |
 | Inspect suspended-access inventory | count plus opaque Access identifier, suspension cause, expiry and posture | no Recipient email, Reader Copy, Deal title, Revision content, or Deliverable bytes |
@@ -311,7 +311,7 @@ Ordinary Human Decisions, Revisions, Deal Business Stage changes, pause/resume, 
 
 ### 11.2 Issuance and atomic consumption
 
-Issuance requires fresh Clerk factor evidence no older than five minutes and binds:
+Issuance requires a fresh Supabase Passkey login no older than five minutes. The current Session JWT must verify and contain an `amr` entry whose method is `passkey` and whose timestamp is no older than five minutes; JWT issue time, client state, or a `magiclink` entry alone is insufficient. Issuance binds:
 
 - exact authenticated session mode and session hash;
 - Actor and Account;
@@ -475,7 +475,7 @@ Writes use purpose-specific procedures when cross-table invariants, Grant consum
 
 ### 16.1 Browser-direct storage exception
 
-The only browser-direct production storage path is an exact, unexpired quarantine TUS Upload Session. Storage RLS binds Clerk identity, Actor, Account, required Deal or the single `account_reusable_template` purpose, exact path, Upload Session, lifecycle, size/count constraints, and fresh bearer token on each TUS request. It permits no list, preview, overwrite/upsert, path change, accepted-object write, protected-object read, or post-expiry transfer.
+The only browser-direct production storage path is an exact, unexpired quarantine TUS Upload Session. Storage RLS binds Supabase Auth identity, Actor, Account, required Deal or the single `account_reusable_template` purpose, exact path, Upload Session, lifecycle, size/count constraints, and a fresh Supabase Bearer token on each TUS request. It permits no list, preview, overwrite/upsert, path change, accepted-object write, protected-object read, or post-expiry transfer.
 
 All accepted Protected Account and Deal Objects are private and application-encrypted. They are reachable only through a typed attachment and the Protected Object Gateway; storage keys, bucket paths, signed provider URLs, encryption metadata, and KMS identities are not product permission.
 
@@ -502,7 +502,7 @@ Deal History is authorized user-facing business history. Audit is a restricted s
 
 ### 17.2 Human Audit access
 
-An eligible Individual Banker may inspect ordinary Account Audit summaries and the subset of details needed to understand their own Account controls. High-risk detail requires Clerk fresh-factor evidence no older than five minutes but does not consume or require a Sensitive Action Grant because it is a read.
+An eligible Individual Banker may inspect ordinary Account Audit summaries and the subset of details needed to understand their own Account controls. High-risk detail requires a fresh Supabase Passkey login no older than five minutes but does not consume or require a Sensitive Action Grant because it is a read.
 
 High-risk classes include:
 
@@ -554,7 +554,7 @@ The claimant is stored outside the normal deletable Account/Deal relationship gr
 
 It contains no display name, unnecessary email, Deal/client/file name, content, artifact, ordinary Actor permission, billing authority, or general Audit link. It cannot enumerate another request. While deletion or a preservation exception remains unresolved, the same authenticated provider identity may obtain another short-lived Grant. After terminal completion, the completion receipt remains available for 30 days; then the claimant is removed and self-service status ends.
 
-The corresponding Clerk identity remains enabled solely as the authentication factor for this claimant until `status_available_until`; every product Account/Deal relationship and ordinary session remains removed. The product stores no duplicate credentials. When the claimant closes, the Retention Executor removes the remaining product identity binding and requests/verifies provider-side identity deletion when no other separately lawful product relationship exists. If the provider identity is independently deleted earlier, no fallback bearer or operator path is created and self-service status cannot be reissued.
+The corresponding Supabase Auth identity remains enabled solely as the authentication factor for this claimant until `status_available_until`; every product Account/Deal relationship and ordinary session remains removed. The product stores no duplicate credentials. When the claimant closes, the Retention Executor removes the remaining product identity binding and requests/verifies Supabase Auth identity deletion through the narrow administration API when no other separately lawful product relationship exists. If the provider identity is independently deleted earlier, no fallback bearer or operator path is created and self-service status cannot be reissued.
 
 ### 18.3 Deletion Status Grant
 
@@ -620,7 +620,7 @@ Permission policy is not customer-editable and is not stored as arbitrary JSON, 
 | Principal/session matrix | every operation family allows only its declared principal/session mode; Banker/Recipient/Recovery/Runtime substitution fails |
 | Account/Deal isolation | cross-Account, cross-Deal, child-ID, history, projection, search, vector, pagination, count, conflict, and timing probes reveal nothing |
 | Posture matrix | every allowed/denied action under Paused, Archived, Closed, Terminated, Post-Term, dispute, security restriction, deletion, and combinations matches Section 9 |
-| Sensitive Action Grant | five-minute fresh factor, exact binding, atomic consumption, idempotent lost-response replay, expiry, mismatch, security epoch and posture invalidation |
+| Sensitive Action Grant | five-minute Passkey reauthentication, exact binding, atomic consumption, idempotent lost-response replay, expiry, mismatch, security epoch and posture invalidation |
 | Recipient | scanner-safe link exchange, OTP abuse limits, exact Revision, no discovery/download, suspension, explicit resumption, session invalidation, stream interruption and first-use idempotency |
 | Security recovery | ordinary session denial, minimal recovery projection, forbidden operation corpus, new Grant requirement, clearance epoch change, no session/access auto-restoration |
 | Job Scope | typed membership, lease/expiry, runtime substitution, pause fence, archive pending, cancellation, stale commit, duplicate effect, unattached-object cleanup |

@@ -2,7 +2,7 @@
 
 Status: Technical Design baseline for the first sellable release
 
-Last updated: 2026-08-05
+Last updated: 2026-08-08
 
 Primary store: United States-region Supabase Pro PostgreSQL
 
@@ -201,13 +201,13 @@ All schemas are private to the Product API and purpose-specific Runtime Principa
 | Table | Core fields | Constraints and lifecycle |
 |---|---|---|
 | `identity.actor` | `id`, `actor_kind`, `display_name`, `status_code`, `security_epoch`, `created_at`, `disabled_at` | Durable product identity; V1 `actor_kind=individual_banker`; temporary recovery does not replace Actor; disabling does not delete history |
-| `identity.external_identity` | `id`, `actor_id`, `provider_code`, `issuer`, `subject`, verified-email fields, `linked_at`, `unlinked_at` | `UNIQUE(provider_code, issuer, subject)`; provider subject is not the Actor or Account ID |
+| `identity.external_identity` | `id`, `actor_id`, `provider_code`, `issuer`, `subject`, verified-email fields, `linked_at`, `unlinked_at` | `UNIQUE(provider_code, issuer, subject)`; Product API creates/links only after verified Supabase authentication and required Passkey registration; no Auth Hook/Trigger creates authority; provider subject is not the Actor or Account ID |
 | `identity.account` | `id`, `status_code`, `security_epoch`, `created_at`, `row_version` | Tenant root; security epoch invalidates prior sessions/grants/scopes; no Deal content in display/log fields |
 | `identity.account_actor` | `id`, `account_id`, `actor_id`, `relationship_code`, `effective_at`, `ended_at` | V1 exactly one active owner/Individual Banker; future Team membership does not require shared credentials |
 | `identity.runtime_principal` | `id`, `principal_code`, `purpose_code`, `credential_version`, `status_code`, `created_at`, `retired_at` | Non-human; no Account membership; purpose-scoped credentials |
 | `identity.account_security_restriction` | `id`, `account_id`, restriction code, source evidence through typed extension, current posture, opened/cleared times, opened/cleared security epochs, row version | One active restriction per Account; entry advances epoch, invalidates ordinary authority, suspends active Recipient Access, and appends history; provider evidence alone cannot clear it |
 | `identity.security_recovery_session` | `id`, restriction ID, account/actor/external identity, session hash, purpose code, issued/expires/revoked/cleared times, bound security epoch, current posture | Recovery-only session with absolute lifetime no more than 15 minutes; no normal Account/Deal authority; clearance invalidates it |
-| `identity.sensitive_action_grant` | `id`, `account_id`, `actor_id`, session kind/hash, bound security epoch, action code, canonical command digest, exact current ETag or immutable dependency digest, bound command Idempotency-Key hash, typed resource FK, nonce hash, `issued_at`, `expires_at`, `consumed_at`, `revoked_at` | Five-minute, single-use; one typed extension row identifies the exact resource; consumption occurs atomically with the matching mutation; security/posture change denies stale Grant |
+| `identity.sensitive_action_grant` | `id`, `account_id`, `actor_id`, session kind/hash, bound security epoch, action code, canonical command digest, exact current ETag or immutable dependency digest, bound command Idempotency-Key hash, typed resource FK, nonce hash, `issued_at`, `expires_at`, `consumed_at`, `revoked_at` | Requires a Supabase Passkey login no older than five minutes; five-minute, single-use; one typed extension row identifies the exact resource; consumption occurs atomically with the matching mutation; security/posture change denies stale Grant |
 | `identity.protected_object_stream_grant` | `id`, `account_id`, optional `deal_id`, principal kind/identity, bound human-session hash, exact Protected Object, typed immutable attachment, applicable Revision, purpose/operation/range posture, security/workspace/access versions, token hash, issued/expires/revoked times | Short-lived exact stream capability; no reusable URL, object discovery, general Account/Deal read, or domain-write authority; active posture change invalidates every still-live Grant |
 
 Sensitive Action Grant target extensions are explicit, for example `sensitive_grant_deal`, `sensitive_grant_revision`, `sensitive_grant_external_use`, `sensitive_grant_recipient_access`, `sensitive_grant_security_restriction`, and `sensitive_grant_deletion`. A generic authoritative `resource_type/resource_id` pair is prohibited.
@@ -974,7 +974,7 @@ erDiagram
 | `integration.webhook_inbox_event` | `id`, provider code, provider event ID/type, signature/key identity, bounded raw-payload digest, canonical provider-evidence contract/version/digest and schema-governed payload or protected canonical reference, optional protected raw-payload reference, received/verified times, replay posture, processing state, result link | Unique provider/event identity; persisted before `200`; a processable event requires a complete canonical contract, while an ignored event may retain only its verified envelope; replay posture is exactly `exact_replay_available`, `current_object_reconciliation_only`, or `not_recoverable`; invalid signatures are not business events and cannot directly grant entitlement or human authority |
 | `integration.webhook_processing_attempt` | `id`, Inbox Event ID, attempt ordinal, exact adapter/version, started/completed times, outcome, stable failure code, retry time | Immutable attempts; at-least-once processing with idempotent domain effects |
 
-Stripe's `commerce.provider_event` is the product-semantic payment-event record linked from a verified Inbox Event; the Inbox is not a second entitlement authority. Clerk and Resend events likewise enter typed product handlers only after verification and durable persistence.
+Stripe's `commerce.provider_event` is the product-semantic payment-event record linked from a verified Inbox Event; the Inbox is not a second entitlement authority. Resend events likewise enter typed product handlers only after verification and durable persistence. Supabase Auth has no general Webhook/Inbox path in V1; verified login and narrow administration results enter through the Product API identity contract.
 
 ### 13.6 Outbound provider attempts
 
@@ -1142,7 +1142,7 @@ Deletion stages are:
 
 Partial or failed deletion remains in durable recovery and cannot report `completed`. Account/Deal top-level deletion is orchestrated; unconditional cascade is prohibited across retained/audited boundaries. Controlled `ON DELETE CASCADE` is allowed only for exclusively owned leaf rows that require no independent proof after the deletion perimeter is frozen.
 
-Deletion acceptance creates the Claimant and initial Grant in the same transaction that removes normal access and freezes the Deletion Scope. The Claimant uses no FK that can re-create or retain deleted Account/Deal/content; its irreversible request binding joins only to the privacy-minimized surviving deletion projection/tombstone. Later Grant issuance first authenticates the same provider issuer/subject, compares the keyed digest, and reveals no request existence on mismatch. The Clerk identity remains authentication-only without an Account relationship until `status_available_until`; a final Retention Task removes the product binding and requests/verifies provider identity deletion when no other separately lawful product relationship exists.
+Deletion acceptance creates the Claimant and initial Grant in the same transaction that removes normal access and freezes the Deletion Scope. The Claimant uses no FK that can re-create or retain deleted Account/Deal/content; its irreversible request binding joins only to the privacy-minimized surviving deletion projection/tombstone. Later Grant issuance first authenticates the same provider issuer/subject, compares the keyed digest, and reveals no request existence on mismatch. The Supabase Auth identity remains authentication-only without an Account relationship until `status_available_until`; a final Retention Task removes the product binding and requests/verifies Supabase Auth identity deletion through the narrow administration API when no other separately lawful product relationship exists.
 
 A restore process checks every Deletion Tombstone and reapplies the deletion perimeter before restored data can become accessible. A restore that resurrects a tombstoned scope fails verification.
 
@@ -1422,7 +1422,7 @@ Archive and Post-Term Access are not deletion. Neither permits new substantive w
 
 | Principal | Database posture |
 |---|---|
-| Individual Banker | Product API maps Clerk session to Actor and Account; business procedures apply exact ownership, entitlement, Deal, preflight, and sensitive-action checks |
+| Individual Banker | Product API maps a verified Supabase Session to Actor and Account; business procedures apply exact ownership, entitlement, Deal, preflight, security-epoch, and sensitive-action checks |
 | Security Recovery Session | No database login; API recovery role establishes only exact restriction/Actor/Account context and the closed recovery procedure allowlist |
 | External Recipient | No Account database role and no direct table access; Recipient API/Gateway uses exact Recipient Session and Access scope |
 | Deletion Status Claimant | No database login or Account relationship; API status role uses same-identity proof and one exact short-lived Deletion Status Grant |

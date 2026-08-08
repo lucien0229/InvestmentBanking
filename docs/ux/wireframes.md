@@ -2,7 +2,7 @@
 
 Status: confirmed
 
-Confirmed on: 2026-08-03
+Confirmed on: 2026-08-08
 
 ## Purpose
 
@@ -345,7 +345,7 @@ Unless a frame states a narrower value, every frame inherits the following final
 +--------------------------------------------------------+
 ```
 
-**State projection:** create, sign in, verify, recovery, reauthentication, session expired and safe denial reuse this narrow shell and preserve the authorized return context without exposing its payload.
+**State projection:** create, sign in, verify, recovery, Passkey registration/replacement, reauthentication, session expired and safe denial reuse this narrow shell and preserve the authorized return context without exposing its payload. The first verified default Magic Link opens mandatory Passkey registration before ordinary access. For an existing user, Magic Link fallback opens only the Account Security Restriction and Security Recovery Session; it never exposes Account/Deal content. Returning sign-in and sensitive-action reauthentication use Passkey. V1 presents no password, numeric Email OTP, TOTP or MFA control. External Recipient link/code verification remains a separate product-managed flow outside Supabase Auth.
 
 ### WF-CHK-01 — Checkout durable task shell
 
@@ -1150,12 +1150,12 @@ Batch file selection may occur only in Safe receive. Authority, safety, Compatib
 
 ### WF-DEL-01 — Deletion confirmation and status
 
-**Frame contract:** Deal or Account deletion route; Individual Banker; 1440/390/768. Goal is to remove normal access through a protected destructive action and inspect subsequent deletion stages. Visible exact scope, access loss, revocation, active/backup handling and preservation exceptions remain explicit. Primary action requires reauthentication and typed identity; cancel is secondary; instant false completion is prohibited. Traces UF-33–UF-34.
+**Frame contract:** Deal or Account deletion route; Individual Banker; 1440/390/768. Goal is to remove normal access through a protected destructive action and inspect subsequent deletion stages. Visible exact scope, access loss, revocation, active/backup handling and preservation exceptions remain explicit. Primary action requires a Passkey login no older than five minutes, a single-use Sensitive Action Grant and typed identity; cancel is secondary; instant false completion is prohibited. Traces UF-33–UF-34.
 
 ```text
 +--------------------------------------------------------------------------+
 | H1 Delete Deal and remove normal access                                  |
-| Reauthentication {completed}                                             |
+| Passkey reauthentication {completed within 5 minutes}                    |
 | Exact scope: Deal Northstar Energy and listed dependent records          |
 | Immediate access loss / access revocation / active deletion / backups    |
 | Minimum payment, security or legal-preservation records                  |
@@ -1332,7 +1332,7 @@ STATUS
 
 ### WF-SM-06 — Cancellation and destructive-action projection
 
-**Frame contract:** Account cancellation or Deal/Account deletion; Individual Banker; 390/768. Goal is to complete explicitly permitted exit tasks with the same consequence and reauthentication controls as desktop. Primary action names the exact result; typed identity remains required for deletion. No material Deal work becomes available. Traces UF-32–UF-34, UF-38.
+**Frame contract:** Account cancellation or Deal/Account deletion; Individual Banker; 390/768. Goal is to complete explicitly permitted exit tasks with the same consequence, fresh-Passkey and single-use Sensitive Action Grant controls as desktop. Primary action names the exact result; typed identity remains required for deletion. No material Deal work becomes available. Traces UF-32–UF-34, UF-38.
 
 ```text
 +--------------------------------------+
@@ -1662,7 +1662,7 @@ flowchart LR
 - Failed Review focuses an error-summary heading whose links move focus to exact fields.
 - Conditional fields announce insertion without moving focus unexpectedly.
 - A material Control Review stays a full page with a logical Evidence → alternatives → impact → input → result order.
-- Typed deletion confirmation permits paste; exact identity comparison and reauthentication provide the safety control.
+- Typed deletion confirmation permits paste; exact identity comparison, fresh-Passkey evidence and a single-use Sensitive Action Grant provide the safety control.
 
 ### Viewers, comparison and Lineage
 

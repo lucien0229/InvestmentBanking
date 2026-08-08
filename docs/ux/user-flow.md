@@ -1,7 +1,7 @@
 # User Flow — Controlled Sell-Side Auction Execution Workspace V1
 
 Status: confirmed  
-Confirmed on: 2026-08-02
+Confirmed on: 2026-08-08
 
 ## Purpose
 
@@ -134,11 +134,13 @@ flowchart TD
 
 1. Before account creation, the user reviews exact pricing, two-Active-Deal capacity, allowances, add-ons, support, guarantee, cancellation, Post-Term Access, export and deletion terms.
 2. The user previews purchase authority, intended use, supported inputs/templates, rights, confidentiality and likely processing compatibility without uploading confidential content.
-3. If likely eligible, the user creates or accesses an account.
-4. Checkout shows the exact amount due now, renewal term and amount, taxes as applicable, add-ons, guarantee and refund conditions.
-5. The user confirms payment with a supported personal or company card.
-6. Successful payment creates one entitlement and two available Active Deal slots exactly once.
-7. The user receives a receipt and downloadable invoice record.
+3. If likely eligible, the user submits an email address and receives Supabase Auth's default Magic Link through the production email transport.
+4. On first access, verified mailbox control opens only Passkey registration; at least one Passkey is required before an ordinary Account Session or Account/Deal route is available.
+5. A returning user signs in with a Passkey. V1 offers no password, numeric Email OTP, TOTP or MFA enrollment.
+6. Checkout shows the exact amount due now, renewal term and amount, taxes as applicable, add-ons, guarantee and refund conditions.
+7. The user confirms payment with a supported personal or company card.
+8. Successful payment creates one entitlement and two available Active Deal slots exactly once.
+9. The user receives a receipt and downloadable invoice record.
 
 **Branches and recovery:**
 
@@ -146,13 +148,13 @@ flowchart TD
 - Payment fails → preserve plan, qualification and checkout state; return to the payment step.
 - Duplicate processor event → do not duplicate charge, entitlement or capacity; expose the resolved payment state.
 - Duplicate charge → detect and refund under the deterministic billing contract.
-- Account access failure → route through self-serve recovery and then return to the durable checkout or product checkpoint.
+- Existing user uses Magic Link fallback → open only Account Security Restriction and the isolated Security Recovery Session; show no Account/Deal content; verify continuity, invalidate prior Sessions and Sensitive Action Grants, register a replacement Passkey as needed, and require a new Passkey login before returning to the durable checkout or product checkpoint. Recipient Access is not restored automatically.
 
 ### UF-04 — Authenticated resume dispatcher
 
 ```mermaid
 flowchart TD
-    I["Authenticated entry"] --> DL{"Exact authenticated deep link?"}
+    I["Authenticated Supabase Session entry"] --> DL{"Exact authenticated deep link?"}
     DL -->|yes| O["Authorize account, Deal, object and version"]
     O -->|allowed| EO["Open exact object and recovery context"]
     O -->|not allowed or stale| DENY["Safe denial and valid next action"]
@@ -524,7 +526,7 @@ The recipient sees no Deal navigation, membership, other Revision, editing, shar
 
 1. Show exact deletion scope, lifecycle timing, retention exceptions, affected Recipient Access and an optional Internal Controlled Export path.
 2. Export is strongly offered but never required.
-3. Require reauthentication and typed confirmation of the exact Deal.
+3. Require a Passkey login no older than five minutes, a single-use Sensitive Action Grant and typed confirmation of the exact Deal.
 4. On submission, immediately remove normal access and revoke all Recipient Access for that Deal.
 5. Deletion is not self-service reversible.
 6. Provide a privacy-safe deletion receipt and lifecycle status without Deal content.
@@ -533,7 +535,7 @@ The recipient sees no Deal navigation, membership, other Revision, editing, shar
 ### UF-34 — Delete the account
 
 1. Show subscription consequence, all Deals, all Recipient Access, invoice/payment-record treatment, retention exceptions and optional export paths.
-2. Require reauthentication and typed account confirmation.
+2. Require a Passkey login no older than five minutes, a single-use Sensitive Action Grant and typed account confirmation.
 3. On submission, cancel applicable future billing, remove normal access and revoke all Recipient Access immediately.
 4. Account deletion is not self-service reversible and cannot silently preserve a recoverable copy.
 5. Provide privacy-safe lifecycle evidence; retain only records that the stated contract or applicable obligations require.

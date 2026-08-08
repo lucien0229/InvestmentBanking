@@ -2,7 +2,7 @@
 
 Status: confirmed
 
-Confirmed on: 2026-08-03
+Confirmed on: 2026-08-08
 
 ## Purpose
 
@@ -214,7 +214,7 @@ There is no generic `Approve AI`, `Approve`, `Confirm` or `Are you sure?` action
 | 1 — reversible | Local view preferences and reversible attention state | Execute inline, announce result and offer Undo where meaningful |
 | 2 — state-changing | Changes that create a new version or can be corrected through controlled history | Show exact scope and result preview, then require explicit submit |
 | 3 — material control | Human Decisions, External-Use Decisions, stage and consequential lifecycle changes | Dedicated Control Review with Evidence, impact, rationale and immutable receipt |
-| 4 — destructive | Deal or account deletion | Reauthentication, exact scope, typed object identity, final warning and durable receipt |
+| 4 — destructive | Deal or account deletion | Passkey login no older than five minutes, single-use Sensitive Action Grant, exact scope, typed object identity, final warning and durable receipt |
 
 ### Form and draft behavior
 
@@ -422,12 +422,14 @@ Required states are:
 - sign in;
 - verify identity or email;
 - recover account;
-- reset or replace an applicable credential;
+- register or replace a Passkey;
 - reauthentication;
 - session expired; and
 - access denied.
 
-The configured credential, passkey, one-time-link or MFA method is an implementation decision. The UX contract requires:
+The Account-side mechanism is fixed. Supabase Auth's default Magic Link verifies mailbox control for first access, and the user must register at least one Passkey before ordinary Account or Deal access. V1 provides no password, numeric Email OTP, TOTP or MFA enrollment. For an existing user, Magic Link is recovery-only: it opens the dedicated Account Security Restriction and Security Recovery Session, never ordinary Account or Deal content. Recovery invalidates prior Sessions and Sensitive Action Grants and ends in a new Passkey login. Sensitive-action reauthentication uses a Passkey login no older than five minutes and the product-owned Sensitive Action Grant. The ordinary Session expires after 12 hours of inactivity or seven days absolute and only one Session may be active per user.
+
+The UX contract requires:
 
 - no company-email requirement;
 - a generic response that does not reveal whether an account or protected object exists;
@@ -539,7 +541,7 @@ Owns notification history, delivery preferences, digest and snooze. Notification
 
 ### Account & Security
 
-Owns named Individual identity, configured authentication methods, recovery, sessions, reauthentication and security events. It contains no Deal roles or Team membership.
+Owns named Individual identity, required Passkey registration and replacement, Magic Link recovery, sessions, Passkey reauthentication and security events. It contains no password, numeric Email OTP, TOTP, MFA, Deal roles or Team membership.
 
 When an Account Security Restriction is active, ordinary authenticated routes resolve to a dedicated recovery shell rather than exposing Account or Deal content. The shell shows only the privacy-safe restriction state, required identity/ownership proof, session/grant invalidation controls, suspended-Access counts and opaque identifiers, and the exact clearance action. Clearance requires fresh authentication, ends the Recovery Session, and returns to a new ordinary login; it never restores prior sessions or Recipient Access automatically.
 
@@ -1086,7 +1088,7 @@ Lifecycle actions live at `/app/deals/{deal-id}/controls/lifecycle`. The page di
 | Terminate | Termination reason, event and unresolved work | Terminated outcome; history preserved |
 | Archive | Read-only effect, running/queued/waiting/blocked Jobs, finish-or-cancel choice, capacity release and Recipient Access reminder | Archive remains pending until every domain-mutating Job finishes or safely cancels, then enters Archived record posture with no grandfathered commit |
 | Reactivate | Capacity, new changes and current Preflight posture | Same Deal identity becomes Active if permitted |
-| Delete Deal | Reauthentication, exact scope, typed Deal identity and retention disclosure | Normal access removed and deletion lifecycle begins |
+| Delete Deal | Passkey login no older than five minutes, single-use Sensitive Action Grant, exact scope, typed Deal identity and retention disclosure | Normal access removed and deletion lifecycle begins |
 
 Archive copy:
 
@@ -1136,7 +1138,7 @@ Recipient Access is a navigation-free single-task surface:
 3. Exact Revision Viewer; or
 4. Unavailable State.
 
-The verification contract is fixed: a fragment-carried one-time link secret is explicitly exchanged, an email code proves mailbox control, and a separate Recipient Session cookie carries the resulting narrow session. Only the provider-specific email delivery and framework implementation remain deferred. The UX always rechecks recipient identity, active Access, matching External-Use Decision, exact Revision, expiry, revocation and invalidation before content appears.
+The verification contract is fixed and remains outside Supabase Auth: a fragment-carried one-time link secret is explicitly exchanged, an email code proves mailbox control, and a separate Recipient Session cookie carries the resulting narrow session. Only the provider-specific email delivery and framework implementation remain deferred. The UX always rechecks recipient identity, active Access, matching External-Use Decision, exact Revision, expiry, revocation and invalidation before content appears.
 
 The Viewer exposes only:
 
@@ -1261,7 +1263,7 @@ Primary navigation is reduced to:
 | Existing Internal Controlled Export access | Supported |
 | Create new Internal Controlled Export | Visible, blocked with desktop handoff |
 | Subscription cancellation | Supported |
-| Deal or Account deletion | Supported with full reauthentication/confirmation |
+| Deal or Account deletion | Supported with fresh-Passkey, Sensitive Action Grant and typed confirmation |
 | Source upload or reimport | Visible, blocked with desktop handoff |
 | Native Artifact editing | Native application/desktop only |
 | Material Human Decision | Visible, blocked with desktop handoff |
@@ -1303,7 +1305,7 @@ All customer-facing surfaces target WCAG 2.2 AA. Purchase, Paid Preflight, Sourc
 - Failed Review focuses the error-summary heading; summary links move focus to the field.
 - Error text states the problem and valid correction, not color or icon alone.
 - Conditional fields announce their insertion without unexpectedly moving focus.
-- Destructive typed confirmation does not disable paste solely as a friction device; exact-value comparison and reauthentication provide the safety control.
+- Destructive typed confirmation does not disable paste solely as a friction device; exact-value comparison, fresh-Passkey evidence and a single-use Sensitive Action Grant provide the safety control.
 
 ### Status and live updates
 
@@ -1378,7 +1380,7 @@ The following English copy is normative except where bracketed content must be s
 
 The UX behavior is complete without inventing the following values. They must be supplied by technical design and verified acceptance evidence before the relevant interface or claim is enabled:
 
-- authentication credential, MFA and provider implementation;
+- production Site URL, Passkey relying-party ID and allowed origins, pinned Supabase SDK/configuration, Resend Custom SMTP settings and production-shaped Auth evidence;
 - payment, tax, invoice and refund providers;
 - exact file, archive, packet, concurrency and timeout limits;
 - parsing, OCR, table, chart and visual-coverage engines;

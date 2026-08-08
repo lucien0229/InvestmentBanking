@@ -2,13 +2,13 @@
 
 Status: confirmed
 
-Confirmed on: 2026-08-03
+Confirmed on: 2026-08-08
 
 ## Purpose
 
 This document defines where V1 information lives and how an eligible user reaches it. It establishes the customer-facing surface map, navigation hierarchy, page and route model, canonical object locations, object relationships, role visibility, lifecycle modes, search and cross-link behavior, and desktop-to-small-screen projection.
 
-It turns the confirmed User Journey Map and User Flow into a stable information structure. It is not a component specification, wireframe, visual design, field schema, API design, database design, authentication-vendor decision, or Operator Console design.
+It turns the confirmed User Journey Map and User Flow into a stable information structure. It is not a component specification, wireframe, visual design, field schema, API design, database design, authentication-vendor evaluation or configuration guide, or Operator Console design.
 
 ## Authority and scope
 
@@ -42,7 +42,7 @@ This document excludes:
 - final interface copy;
 - responsive breakpoints and detailed accessibility interactions;
 - visual design, brand, typography, color and motion;
-- authentication, billing, storage, model, parsing or infrastructure vendors;
+- vendor selection and low-level configuration for authentication, billing, storage, model, parsing or infrastructure;
 - database, API, queue, schema and permission implementation; and
 - production code or implementation tickets.
 
@@ -190,7 +190,7 @@ Account Access
 ├── Sign In
 ├── Verify Identity or Email
 ├── Recover Account
-├── Reset Password
+├── Register or Replace Passkey
 ├── Reauthentication
 ├── Session Expired
 └── Access Denied
@@ -203,7 +203,7 @@ Required information behavior:
 - return a successful Banker to the authenticated dispatcher;
 - return a successful External Recipient to the isolated Recipient Access check;
 - provide safe denial and recovery when identity, entitlement or target authorization fails; and
-- avoid binding the IA to a particular authentication provider, MFA method or session implementation.
+- keep business routes independent of provider screens while implementing the confirmed Supabase Auth Magic Link, required Passkey, restricted-recovery and Session contract.
 
 An eligible purchase return target continues into the authenticated Checkout and entitlement path:
 
@@ -267,7 +267,7 @@ Deals does not provide cross-Deal financial comparison, Buyer aggregation, Evide
 | Usage & Plan | Entitlement, Active Deal capacity, allowances, add-ons and capacity actions | Deal readiness or job truth |
 | Billing & Invoices | Subscription term, payment status, invoices, Guarantee/refund status and cancellation entry | Purchase authority for a Source or external-use authority |
 | Notifications | Notification history, delivery preferences, digest/snooze and safe deep links | Process Event truth or Deal task state |
-| Account & Security | Named Individual identity, access recovery, sessions and account-security actions | Deal roles, Team membership or professional authority |
+| Account & Security | Named Individual identity, Passkey registration/replacement, Magic Link recovery, Sessions and account-security actions | Password/TOTP/MFA, Deal roles, Team membership or professional authority |
 | Data, Export & Deletion | Account-level export/deletion information, Post-Term clock and account deletion | Deal-level Internal Controlled Export contents or External-Use Decisions |
 | Help & Support | Self-serve documentation and asynchronous product/account support | Banker review, manual Deal work or implementation service |
 
@@ -782,7 +782,7 @@ Deal Controls
     └── Delete Deal
 ```
 
-Archived banners and Deals may provide contextual Archive/Reactivate entries that return to the same lifecycle control. Subscription cancellation belongs to Usage & Plan or Billing & Invoices. Account deletion belongs to Data, Export & Deletion. Protected irreversible actions require reauthentication and an exact scope; detailed confirmation behavior belongs to the UX Spec.
+Archived banners and Deals may provide contextual Archive/Reactivate entries that return to the same lifecycle control. Subscription cancellation belongs to Usage & Plan or Billing & Invoices. Account deletion belongs to Data, Export & Deletion. Protected irreversible actions require a Passkey login no older than five minutes, a single-use Sensitive Action Grant and an exact scope; detailed confirmation behavior belongs to the UX Spec.
 
 ## Search and filtering
 

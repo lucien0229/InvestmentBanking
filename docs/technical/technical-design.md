@@ -4,7 +4,7 @@
 
 **Status:** Confirmed technical baseline
 
-**Date:** 2026-08-05
+**Date:** 2026-08-08
 
 **Scope:** Cross-cutting implementation baseline for the Technical Design stage
 
@@ -100,7 +100,7 @@ flowchart LR
     C --> A["Fastify API and control plane"]
     C --> G["Protected Object Gateway"]
 
-    B -->|"Clerk token + scoped TUS"| QS["Supabase quarantine bucket"]
+    B -->|"Supabase token + scoped TUS"| QS["Supabase quarantine bucket"]
 
     W --> A
     A --> DB["Supabase Pro PostgreSQL"]
@@ -134,7 +134,7 @@ flowchart LR
     LW --> DB
     HW --> DB
 
-    A --> CL["Clerk"]
+    A --> SA["Supabase Auth"]
     A --> STR["Stripe"]
     A --> RE["Resend"]
 
@@ -150,7 +150,7 @@ flowchart LR
 | Component | Technology | Responsibility | Explicitly does not own |
 |---|---|---|---|
 | Web | Next.js App Router, React, TypeScript | Authenticated UI, server-rendered shell, public proof/pricing pages, accessibility, API client, Checkout redirects | Durable domain transactions, provider credentials, long-running work |
-| API / control plane | Fastify, TypeScript | /api/v1, Clerk identity mapping, authorization, commands, queries, SSE, Webhooks, state machines, entitlements, idempotency, Outbox | File parsing, Office rendering, AI judgment, unrestricted object reads |
+| API / control plane | Fastify, TypeScript | /api/v1, Supabase identity mapping, authorization, commands, queries, SSE, Webhooks, state machines, entitlements, idempotency, Outbox | File parsing, Office rendering, AI judgment, unrestricted object reads |
 | Protected Object Gateway | Narrow private streaming runtime | Revalidate an exact stream scope, read immutable ciphertext, unwrap the exact DEK, stream authorized plaintext | Domain mutation, object listing, reusable public URLs |
 | Outbox Dispatcher | TypeScript long-running process | Claim committed Outbox rows and publish safe Job/event identities to PGMQ | Deal content, provider calls, domain transitions |
 | Measurement Projector | TypeScript long-running process | Consume privacy-safe measurement emissions, append deduplicated Product Measurement Events, rebuild bounded projections | Deal content, domain transitions, entitlement, Audit or telemetry authority |
@@ -206,7 +206,7 @@ The modules below are code boundaries within one control plane, not separately d
 
 | Module | Authoritative responsibilities |
 |---|---|
-| Identity | Map Clerk identity to Actor; enforce MFA/fresh-factor evidence; issue Sensitive Action Grant |
+| Identity | Map Supabase identity to Actor; enforce Passkey enrollment, recovery mode, Session posture and fresh-Passkey evidence; issue Sensitive Action Grant |
 | Account and Commerce | Account ownership, Product Entitlement, term, capacity, Usage Ledger, Stripe event projection |
 | Deal Lifecycle | Deal identity, stage, Active/Paused/Archived/Closed/Terminated posture, Post-Term behavior |
 | Paid Preflight | authority, rights, confidentiality, processing path, compatibility, Output Ceiling |
@@ -354,7 +354,7 @@ PostgreSQL FTS is the default search path. pgvector may store task-approved embe
 - OpenAPI generated from the canonical TypeScript contract source and checked against generated clients.
 - Server-Sent Events for Job notification.
 - TUS for resumable direct quarantine upload.
-- Provider-signed Webhooks for Stripe, Clerk where applicable, and Resend.
+- Provider-signed Webhooks for Stripe and Resend.
 - No GraphQL, general WebSocket, browser-to-AI call, browser service credential, or browser direct database mutation.
 
 ### 7.2 Representative API surface
@@ -381,13 +381,17 @@ Commands use nouns only where creating a resource is truthful; state transitions
 
 ### 7.3 Authentication and authorization
 
-Banker requests carry a Clerk session. The API validates signature, issuer, audience, expiry, session posture, and required MFA/fresh-factor evidence, then maps the Clerk subject to the product Actor. Durable ownership never uses the Clerk user ID as an Account or Deal ID.
+Banker requests carry a Supabase Session. Next.js stores and refreshes it through the Supabase SSR Cookie contract and forwards only the current Access Token to Fastify. The API validates algorithm, signature, issuer, audience, expiry, session posture, and required fresh-Passkey evidence, then maps provider issuer and subject through `identity.external_identity` to the durable product Actor. Supabase subject, session, email, or metadata never becomes an Account, Deal, role, or business permission.
 
-Supabase Auth is not used as a second customer identity system. Supabase's Clerk Third-Party Auth integration validates the same Clerk session only for the narrowly permitted direct TUS Storage path; all other browser business access goes through the Product API.
+First access uses the default Magic Link delivered through Resend Custom SMTP and remains onboarding-only until at least one Passkey is registered. An existing user without a usable Passkey receives only the product-owned Security Recovery Session; ordinary Account/Deal access resumes only after recovery clearance and a new Passkey login. V1 enables no password, numeric Email OTP customization, TOTP, MFA enrollment, general Supabase Auth Hook/Webhook, or second ordinary product Session.
+
+The same fresh Supabase Bearer is accepted only for the narrowly permitted direct TUS Storage path. Every other browser business operation goes through the Product API. Supabase Session configuration keeps the one-hour JWT, refresh rotation and authentication-code defaults, with a 12-hour inactivity timeout, seven-day absolute lifetime and one active Session per user.
+
+Fresh-Passkey evidence comes only from a verified current Session JWT `amr` entry whose method is `passkey` and whose timestamp is no older than five minutes. JWT issue time, browser state, or a `magiclink` entry alone cannot satisfy the fresh-authentication gate. The pinned experimental Passkey probe must prove issuance and refresh preserve this contract before the gate is enabled.
 
 Sensitive mutations require a single-use Sensitive Action Grant bound to:
 
-- Clerk session;
+- Supabase Session and fresh Passkey authentication time;
 - Actor;
 - exact typed command and canonical command digest;
 - exact resource and current ETag or immutable dependency IDs;
@@ -479,7 +483,7 @@ sequenceDiagram
     B->>A: "Create Upload Session with declared metadata"
     A->>D: "Check Actor, purpose, Account/Deal scope, limits, entitlement"
     A-->>B: "Exact immutable object path and expiry"
-    B->>S: "TUS chunks with Clerk session"
+    B->>S: "TUS chunks with Supabase Session"
     S-->>B: "Upload complete"
     B->>A: "Finalize Upload Session"
     A->>D: "Freeze session and create Quarantined Upload"
@@ -1162,14 +1166,14 @@ Cross-tenant resource access returns 404. IDs are not permissions. Queue message
 
 | Dependency | Purpose | Data boundary | Failure posture |
 |---|---|---|---|
-| Clerk | authentication, passkeys, MFA, recovery, session identity | identity/security metadata; no Deal content | auth unavailable; existing unexpired sessions follow Clerk verification, sensitive mutations block |
+| Supabase Auth | Magic Link onboarding/recovery, Passkeys, Session identity, JWT/JWKS, identity administration | identity/security metadata; no Deal content | auth unavailable; ordinary authentication blocks, and sensitive mutations block without current Passkey evidence |
 | Supabase Pro | PostgreSQL, Storage, PGMQ, FTS, pgvector, PITR | authoritative product and encrypted Deal data in US region | mutations/jobs block; no local production split-brain fallback |
 | Stripe | Checkout, Billing, Tax, Invoices, restricted Customer Portal, Radar, Webhooks | Account/order/price identity; no Deal payload | entitlement remains last confirmed state; ambiguous payment does not grant capacity |
 | HelloX | fixed AI provider route | minimum task-specific content after profile and Preflight gate | validated same-route model fallback or blocked; never another provider |
 | Google Document AI | OCR and Layout Parser | selected compatible pages/regions only | native coverage retained; affected scope waiting/blocked |
 | Google Cloud KMS | wrap/unwrap per-object DEKs; sign Artifact Manifests and Audit Checkpoints | key identity, DEKs, and exact canonical signing input; no general Deal content | acceptance/read/signing blocks; ciphertext remains intact |
 | Aspose | server-side Office/PDF production | locally processed Deal bytes inside worker | affected artifact Job fails; no desktop Office production fallback |
-| Resend | non-auth transactional email | email address, template/event ID, safe deep link; no Deal payload | product state commits independently; same-key retry stops at the 24-hour provider boundary, then unresolved possibly accepted delivery becomes terminally ambiguous |
+| Resend | Supabase Custom SMTP plus non-auth transactional email | email address, auth or product template/event ID, safe link; no Deal payload | authentication email failure blocks onboarding/recovery; product state for non-auth notices commits independently under its existing delivery contract |
 | Sentry US | privacy-safe exception/performance/release health | allowlisted Operational Telemetry only | local structured diagnostics continue; product state unaffected |
 | Microsoft 365 lab | compatibility truth | synthetic/reference fixtures only | Capability Manifest expansion blocks |
 | ClamAV | malware scanning | quarantined bytes on VPS worker | incomplete scan fails closed |
@@ -1188,8 +1192,8 @@ Cross-tenant resource access returns 404. IDs are not permissions. Queue message
 
 ### 14.2 Resend contract
 
-- Clerk owns authentication and recovery email.
-- Resend sends non-auth transactional messages.
+- Supabase Auth generates and verifies default Magic Links; Resend transports them through production Custom SMTP without a Send Email Auth Hook.
+- Resend also sends non-auth transactional messages and product-owned External Recipient link/code delivery.
 - Test and production use separate keys and sending subdomains.
 - SPF, DKIM, and DMARC are configured before production.
 - Open and click tracking are disabled.
@@ -1222,7 +1226,7 @@ Secrets are separated by environment and purpose:
 
 - HelloX;
 - Supabase component credentials;
-- Clerk;
+- Supabase Auth administration and Custom SMTP configuration;
 - Stripe;
 - Resend;
 - Google Document AI/KMS identity;
@@ -1387,7 +1391,7 @@ Monitored signals include:
 - API latency, 5xx, auth failures, denial spikes;
 - queue age, Job state distribution, Lease loss, retry and failure rate;
 - worker heartbeat, CPU, memory, disk, file descriptors, and temp-space use;
-- Supabase, HelloX, Google Document AI/KMS, Stripe, Clerk, and Resend latency/failure;
+- Supabase Auth/data services, HelloX, Google Document AI/KMS, Stripe, and Resend latency/failure;
 - AI contract failure, locator failure, compatibility regression;
 - backup lag, restore evidence, retention deadline, deletion backlog;
 - Recipient Access failures and unusual rate;
@@ -1474,7 +1478,7 @@ Except for the explicitly deferred Deployment Operator identity/session mechanis
 2. Complete HelloX synthetic probes for model listing, supported request profile, strict structured output, vision, usage, errors, limits, region, retention, training, and access.
 3. Approve a provider capability and data-processing record before any Confidential or Restricted Deal Material AI egress.
 4. Provision US Supabase Pro with seven-day PITR and verify non-owner `NOBYPASSRLS` runtime roles, forced RLS, validating transaction context, fixed-search-path procedures, migration-owner separation, and pooled-context reset before the first Confidential pilot.
-5. Verify Clerk Third-Party Auth with Storage RLS and TUS against the exact production configuration.
+5. Pin and verify Supabase Auth SSR/JWT/JWKS, default Magic Link through Resend Custom SMTP, required Passkey registration, restricted recovery, fresh-Passkey Sensitive Action Grants, Session limits, identity administration, and direct Storage RLS/TUS against the exact production configuration. Passkey failure blocks the Confidential pilot and never downgrades sensitive operations to Magic Link alone.
 6. Approve the exact Google Document AI US processor/version and its retention, access, and data-processing record before Confidential OCR.
 7. Acquire and pin Aspose licenses, fonts, runtimes, and container versions.
 8. Establish the exact Windows Microsoft 365 Current Channel compatibility build and Reference Deal lab.
@@ -1523,7 +1527,7 @@ Interactive operator-triggered production recovery remains disabled until its se
 | Concern | Governing ADRs |
 |---|---|
 | Control plane, history, deployment, runtimes | 0002, 0003, 0004, 0005, 0023 |
-| Authorization, identity, production data, support boundary | 0006, 0010, 0011, 0013, 0025, 0037, 0038, 0040 |
+| Authorization, identity, production data, support boundary | 0006, 0011, 0013, 0025, 0037, 0038, 0040, 0041 |
 | Office, compatibility, Aspose | 0007, 0008 |
 | Project Northstar | 0009 |
 | AI route and AI authority | 0012, 0020, 0021 |
@@ -1553,7 +1557,12 @@ Implementation and verification should use the current primary documentation, wi
 - [Supabase Queues / PGMQ](https://supabase.com/docs/guides/queues/pgmq)
 - [Supabase backups and PITR](https://supabase.com/docs/guides/platform/backups)
 - [Supabase resumable TUS uploads](https://supabase.com/docs/guides/storage/uploads/resumable-uploads)
-- [Supabase Clerk Third-Party Auth](https://supabase.com/docs/guides/auth/third-party/clerk)
+- [Supabase Passkey authentication](https://supabase.com/docs/guides/auth/passkeys)
+- [Supabase passwordless email logins](https://supabase.com/docs/guides/auth/auth-email-passwordless)
+- [Supabase server-side Auth](https://supabase.com/docs/guides/auth/server-side/creating-a-client)
+- [Supabase Auth sessions](https://supabase.com/docs/guides/auth/sessions)
+- [Supabase Auth JWT claims](https://supabase.com/docs/guides/auth/jwt-fields)
+- [Supabase custom SMTP](https://supabase.com/docs/guides/auth/auth-smtp)
 - [Supabase Storage S3 compatibility and limitations](https://supabase.com/docs/guides/storage/s3/compatibility)
 - [Google Document AI processor list](https://docs.cloud.google.com/document-ai/docs/processors-list)
 - [Google Document AI limits](https://docs.cloud.google.com/document-ai/limits)

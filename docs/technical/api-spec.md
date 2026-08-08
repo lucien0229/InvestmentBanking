@@ -2,7 +2,7 @@
 
 **Product:** Controlled Sell-Side Auction Execution Workspace V1  
 **Status:** Approved design contract  
-**Confirmed:** 2026-08-05  
+**Confirmed:** 2026-08-08\
 **Protocol:** First-party JSON HTTP API, SSE, TUS coordination, protected-object streaming, and provider Webhooks
 
 ## 1. Purpose
@@ -47,7 +47,7 @@ When two documents appear to conflict, each governs its concern and the conflict
 - durable Job query, SSE, cancellation, retry, and rerun linkage;
 - Upload Session creation, direct TUS coordination, incremental finalization, and cancellation;
 - Protected Object Stream Grant and browser-facing Protected Object Gateway contract;
-- Stripe, Clerk, and Resend Webhook ingress;
+- Stripe and Resend Webhook ingress;
 - retention, deletion, History, Audit, and public integrity-key discovery;
 - common schemas, errors, pagination, consistency, idempotency, concurrency, caching, tracing, rate limiting, and evolution.
 
@@ -103,15 +103,15 @@ When two documents appear to conflict, each governs its concern and the conflict
 
 | Surface | Base path | Consumer | Authentication |
 |---|---|---|---|
-| Banker Product API | `/api/v1` | first-party Web and Next.js | Clerk Session |
-| Security Recovery API | `/api/v1/security-recovery-sessions` and exact restriction routes | first-party recovery surface | Clerk identity plus Security Recovery Session where issued |
-| Deletion Status API | `/api/v1/deletion-status-grants` and exact Deletion Request status route | former Account/Deal owner | same Clerk identity plus Deletion Status Grant |
+| Banker Product API | `/api/v1` | first-party Web and Next.js | Supabase Session |
+| Security Recovery API | `/api/v1/security-recovery-sessions` and exact restriction routes | first-party recovery surface | Supabase Magic Link identity plus Security Recovery Session where issued |
+| Deletion Status API | `/api/v1/deletion-status-grants` and exact Deletion Request status route | former Account/Deal owner | same Supabase issuer/subject plus Deletion Status Grant |
 | Recipient API | `/api/v1/recipient` | isolated Recipient Web surface | Recipient challenge or Recipient Session |
-| Job SSE | `/api/v1/jobs/{job_id}/events` | Banker EventSource | Clerk Session |
+| Job SSE | `/api/v1/jobs/{job_id}/events` | Banker EventSource | Supabase Session |
 | Protected Object Gateway | `/objects/{protected_object_id}` | controlled first-party viewer/download client | Object Grant plus bound human session |
-| Provider Webhooks | `/webhooks/{provider}` | Stripe, Clerk, Resend | provider signature |
+| Provider Webhooks | `/webhooks/{provider}` | Stripe, Resend | provider signature |
 | Public integrity registry | `/.well-known/integrity-keys.json` | offline verifiers and product clients | public |
-| Direct quarantine upload | provider TUS endpoint returned by Upload Session | first-party browser | fresh Clerk Bearer token plus Storage RLS |
+| Direct quarantine upload | provider TUS endpoint returned by Upload Session | first-party browser | fresh Supabase Bearer token plus Storage RLS |
 
 Caddy is the only persistent application ingress. Web and `/api/v1` share the same public scheme, host, and port. Production `/api/v1` emits no CORS permission. The exact Upload-Session-bound Supabase TUS hostname is the only intentional browser cross-origin object-store path and is governed by [ADR 0033](../adr/0033-allow-purpose-scoped-account-template-quarantine-uploads.md).
 
@@ -119,27 +119,29 @@ Caddy is the only persistent application ingress. Web and `/api/v1` share the sa
 
 ### 6.1 Banker Session
 
-The browser uses Clerk's same-origin `__session` Cookie. The API validates:
+Next.js stores and refreshes the Supabase Session through the Supabase SSR Cookie contract. The API validates:
 
-- token type, signature, issuer, audience, expiry, not-before, and authorized party;
-- current session posture and fresh-factor age where required;
-- Clerk subject-to-product Actor mapping;
+- token type, pinned signature algorithm/key, issuer, authenticated audience/role, expiry, issued-at, optional not-before, subject, session ID, non-anonymous posture, and required authentication-method entry where fresh Passkey evidence is required;
+- current session posture, session ID and fresh-Passkey age where required;
+- Supabase issuer-and-subject-to-product Actor mapping;
 - active Account relationship and applicable Product Entitlement;
 - Deal, object, version, and command authority.
 
-Clerk subject, session, email, or organization identifiers are not Account or Deal IDs. Supabase Auth is not a second product identity system.
+Supabase subject, session, email, `user_metadata`, `app_metadata`, or project identifiers are not Actor, Account, Deal, role, or permission IDs. The Product API alone idempotently creates or links `external_identity → Actor → Account` after verified authentication and required Passkey registration; no Auth Hook, Database Webhook, or `auth.users` Trigger creates product authority.
 
-Next.js server-to-API calls use a server-obtained Clerk Session Token in `Authorization: Bearer`; the Web process does not forward the browser's entire Cookie header. Fastify uses Clerk's framework-independent request authentication contract and trusts forwarded host/scheme metadata only from the exact Caddy proxy hop.
+Next.js server-to-API calls use the current Supabase Access Token in `Authorization: Bearer`; the Web process does not forward the browser's entire Cookie header. Fastify verifies the JWT against pinned algorithm, issuer, audience, expiry and JWKS expectations and trusts forwarded host/scheme metadata only from the exact Caddy proxy hop. JWT lifetime is one hour; inactivity timeout is 12 hours, absolute Session lifetime seven days, and only one Session may be active per user.
+
+First access uses Supabase's default Magic Link delivered through Resend Custom SMTP. A confirmed user MUST register at least one Passkey before an ordinary Banker Session or Account/Deal route is allowed. V1 enables no password, numeric Email OTP customization, TOTP, MFA enrollment, Send Email Auth Hook, or second ordinary product Session.
 
 ### 6.1.1 Security Recovery Session
 
-When an Account Security Restriction is open, the API rejects the ordinary Banker authorization sequence even if the Clerk token is otherwise valid. After current Clerk recovery evidence and product-owned Actor/ownership-continuity verification, `POST /api/v1/security-recovery-sessions` may create a separate opaque `__Host-security_recovery_session` Cookie with `HttpOnly`, `Secure`, `SameSite=Strict`, `Path=/api/v1`, and no `Domain`. Its absolute lifetime is no more than 15 minutes. The database stores only the session hash and binds the exact restriction, Actor, Account security epoch, purpose, issue/expiry, and revocation posture. Although the Cookie accompanies other `/api/v1` requests, the session-mode allowlist rejects every route except the named recovery operations and recovery-scoped Sensitive Action Grant issuance.
+When an Account Security Restriction is open, the API rejects the ordinary Banker authorization sequence even if the Supabase JWT remains cryptographically valid. An existing user's Magic Link authenticates only recovery; after verified mailbox control and product-owned Actor/ownership-continuity verification, `POST /api/v1/security-recovery-sessions` may create a separate opaque `__Host-security_recovery_session` Cookie with `HttpOnly`, `Secure`, `SameSite=Strict`, `Path=/api/v1`, and no `Domain`. Its absolute lifetime is no more than 15 minutes. The database stores only the session hash and binds the exact restriction, Actor, Account security epoch, purpose, issue/expiry, and revocation posture. Although the Cookie accompanies other `/api/v1` requests, the session-mode allowlist rejects every route except the named recovery operations and recovery-scoped Sensitive Action Grant issuance.
 
 The Recovery Session may call only the operations declared in Section 22.2 and the [Permission Model](permission-model.md). Clearing the restriction invalidates it. It never becomes a Banker Session, and no ordinary Session, Grant, Job Scope, or Recipient Access is restored by clearance.
 
 ### 6.1.2 Deletion Status Grant
 
-Deletion acceptance returns an initial short-lived Deletion Status Grant. Later `POST /api/v1/deletion-status-grants` authenticates the same Clerk issuer/subject against the minimal surviving claimant and issues another Grant without restoring Account/Deal authority. Exact status reads present `Deletion-Status-Grant: {opaque-token}`. The token is hash-stored, read-only, exact-request-bound, expires no later than 15 minutes, and is never placed in a URL, Cookie, referrer, log, or durable browser application state.
+Deletion acceptance returns an initial short-lived Deletion Status Grant. Later `POST /api/v1/deletion-status-grants` authenticates the same Supabase issuer/subject against the minimal surviving claimant and issues another Grant without restoring Account/Deal authority. Exact status reads present `Deletion-Status-Grant: {opaque-token}`. The token is hash-stored, read-only, exact-request-bound, expires no later than 15 minutes, and is never placed in a URL, Cookie, referrer, log, or durable browser application state.
 
 ### 6.2 CSRF and origin policy
 
@@ -152,7 +154,7 @@ Deletion acceptance returns an initial short-lived Deletion Status Grant. Later 
 
 ### 6.3 Recipient Session
 
-Recipient identity is product-managed and separate from Clerk. Recipient routes accept only the exact challenge context or Recipient Session defined in Section 16. A Clerk Session cannot become Recipient authority, and a Recipient Session cannot become Account authority.
+Recipient identity is product-managed and separate from Supabase Auth. Recipient routes accept only the exact challenge context or Recipient Session defined in Section 16. A Supabase Session cannot become Recipient authority, and a Recipient Session cannot become Account authority.
 
 ### 6.4 Runtime and provider identities
 
@@ -164,7 +166,7 @@ Every protected request reauthorizes the complete scope. No route trusts the UI 
 
 ### 7.1 Banker authorization sequence
 
-1. authenticate Clerk Session;
+1. authenticate Supabase Session;
 2. resolve durable Actor;
 3. resolve the Actor's active Account relationship;
 4. verify session mode, Account security epoch, Product Entitlement, commercial/security/deletion posture and the exact permission allowlist;
@@ -637,7 +639,7 @@ Recipient-facing routes never distinguish `recipient_access_invalid`, `recipient
 POST /api/v1/sensitive-action-grants
 ~~~
 
-The request binds action, typed exact resource, canonical command digest, the current ETag when the target is mutable or exact immutable dependency digest otherwise, and Idempotency-Key. The Clerk fresh-factor age MUST be no more than five minutes. The Grant expires five minutes after issuance.
+The request binds action, typed exact resource, canonical command digest, the current ETag when the target is mutable or exact immutable dependency digest otherwise, and Idempotency-Key. A fresh Supabase Passkey login MUST be no older than five minutes. The product accepts that evidence only from the verified current Session JWT's `amr` entry whose method is `passkey` and whose timestamp is no older than five minutes; the verified `session_id` is part of the Grant binding. JWT issue time, client state, or a `magiclink` entry alone does not qualify. The Grant expires five minutes after issuance.
 
 The response returns the opaque token once. The database stores only its hash and typed scope. The command presents:
 
@@ -713,7 +715,7 @@ UI labels may use hyphenated prose, but the wire contract uses `snake_case`.
 
 The SSE stream:
 
-- authenticates through the same-origin Clerk Session;
+- authenticates through the same-origin Supabase Session;
 - uses the durable Job-local sequence as SSE `id`;
 - without `Last-Event-ID`, sends current `job_snapshot` before later live events;
 - with `Last-Event-ID`, replays later authorized durable events in sequence and then sends a non-regressing current `job_snapshot` before switching to live delivery;
@@ -747,7 +749,7 @@ The request declares batch purpose and, per file, a client temporary ID, filenam
 
 ### 18.2 Direct transfer
 
-The browser obtains a fresh Clerk Session Token for every TUS `POST`, `HEAD`, and `PATCH`. It does not send Clerk Cookies to Supabase, does not use `x-upsert`, and cannot list, replace, change path, or write after expiry. Storage RLS binds Actor, Account, the required Deal for Deal Material or the explicit Account-template purpose, Upload Session, exact path, and open lifecycle.
+The browser obtains a fresh Supabase Access Token for every TUS `POST`, `HEAD`, and `PATCH`. It does not send the SSR Cookie to Storage, does not use `x-upsert`, and cannot list, replace, change path, or write after expiry. Storage RLS binds Supabase Auth identity, Actor, Account, the required Deal for Deal Material or the explicit Account-template purpose, Upload Session, exact path, and open lifecycle.
 
 ### 18.3 Incremental finalization
 
@@ -792,7 +794,6 @@ Webhook paths are outside `/api/v1`:
 
 ~~~text
 POST /webhooks/stripe
-POST /webhooks/clerk
 POST /webhooks/resend
 ~~~
 
@@ -834,7 +835,7 @@ Every command that may reserve a file, logical-page, storage, Full-Workflow Oper
 
 Unless an operation states otherwise:
 
-- Banker operations require a valid Clerk Session and current endpoint-specific authorization;
+- Banker operations require a valid Supabase Session and current endpoint-specific authorization;
 - side-effecting Banker POST operations require `Idempotency-Key`;
 - mutable-primary commands require `If-Match`;
 - sensitive operations require `Sensitive-Action-Grant`;
@@ -874,7 +875,7 @@ Project Northstar commands reuse the same production command schemas, validators
 |---|---|---|---|
 | `get_current_account` | `GET /api/v1/account` | — | `200 Account` |
 | `get_authenticated_resume` | `GET /api/v1/resume` | optional privacy-safe return intent | `200 ResumeProjection` with one reauthorized canonical destination |
-| `create_security_recovery_session` | `POST /api/v1/security-recovery-sessions` | current Clerk recovery evidence and exact product recovery continuation; ordinary Account content authority not required | `201 SecurityRecoverySessionProjection`; sets recovery Cookie |
+| `create_security_recovery_session` | `POST /api/v1/security-recovery-sessions` | current Supabase Magic Link mailbox-control evidence and exact product recovery continuation; ordinary Account content authority not required | `201 SecurityRecoverySessionProjection`; sets recovery Cookie |
 | `get_account_security_restriction` | `GET /api/v1/account/security-restriction` | Security Recovery Session | `200 AccountSecurityRestriction` privacy-safe projection |
 | `create_account_security_authority_invalidation` | `POST /api/v1/account/security-restriction/authority-invalidations` | exact same-Actor session/unused-Grant classes; Security Recovery Session; Sensitive Grant | `201 SecurityAuthorityInvalidation` |
 | `create_account_security_restriction_clearance` | `POST /api/v1/account/security-restriction/clearances` | exact completed identity/ownership proof, restriction ETag; Security Recovery Session; Sensitive Grant | `201 AccountSecurityRestrictionClearance`; clears recovery Cookie but restores no prior authority |
@@ -913,7 +914,7 @@ Project Northstar commands reuse the same production command schemas, validators
 | `get_notification_preferences` | `GET /api/v1/account/notification-preferences` | — | `200 NotificationPreferences` |
 | `create_notification_preference_update` | `POST /api/v1/account/notification-preference-updates` | `NotificationPreferenceUpdate`; `If-Match` Notification Preferences | `200 NotificationPreferences` |
 | `create_sensitive_action_grant` | `POST /api/v1/sensitive-action-grants` | `SensitiveActionGrantCreate` | `201 SensitiveActionGrant` with one-time token |
-| `create_deletion_status_grant` | `POST /api/v1/deletion-status-grants` | `DeletionStatusGrantCreate` with exact request identity; same current Clerk issuer/subject as surviving claimant | `201 DeletionStatusGrant` with one-time token |
+| `create_deletion_status_grant` | `POST /api/v1/deletion-status-grants` | `DeletionStatusGrantCreate` with exact request identity; same current Supabase issuer/subject as surviving claimant | `201 DeletionStatusGrant` with one-time token |
 | `create_account_data_export` | `POST /api/v1/account/data-exports` | `AccountDataExportCreate`; Sensitive Grant | `202 Job` |
 | `get_account_data_export` | `GET /api/v1/account/data-exports/{export_id}` | — | `200 AccountDataExport` |
 | `create_account_data_export_object_grant` | `POST /api/v1/account/data-exports/{export_id}/object-grants` | exact completed export object; Sensitive Grant | `201 ProtectedObjectStreamGrant` |
@@ -1273,7 +1274,7 @@ The first successful protected stream for the frozen Reader Copy emits the exact
 | `create_job_cancellation` | `POST /api/v1/jobs/{job_id}/cancellations` | cancellation reason; `If-Match` Job | `201 JobCancellation` |
 | `create_job_retry` | `POST /api/v1/jobs/{job_id}/retries` | failed-retryable Job and exact same logical inputs; `If-Match` Job | `200 Job` with a new Attempt in the same Job |
 | `get_deal_history` | `GET /api/v1/deals/{deal_id}/history` | event/object type, Actor/Principal, Origin, result, date, and current/history posture filters | `200 DealHistoryEvent[]` |
-| `get_account_audit_log` | `GET /api/v1/account/audit-events` | actor/action/object/date filters; current Clerk fresh-factor read gate for high-risk detail | `200 AuditEvent[]` |
+| `get_account_audit_log` | `GET /api/v1/account/audit-events` | actor/action/object/date filters; current Supabase Passkey reauthentication gate for high-risk detail | `200 AuditEvent[]` |
 | `list_account_audit_checkpoints` | `GET /api/v1/account/audit-checkpoints` | date/key filters | `200 AuditCheckpoint[]` |
 | `get_account_audit_checkpoint` | `GET /api/v1/account/audit-checkpoints/{checkpoint_id}` | — | `200 AuditCheckpoint` with signed commitment and integrity-key link |
 | `get_retention_posture` | `GET /api/v1/account/retention-posture` | — | `200 RetentionPosture` |
@@ -1288,7 +1289,6 @@ The first successful protected stream for the frozen Reader Copy emits the exact
 | `stream_protected_object` | `GET /objects/{protected_object_id}` | `Authorization: ObjectGrant …`; optional single `Range` | `200` or `206` bytes |
 | `list_integrity_keys` | `GET /.well-known/integrity-keys.json` | optional `purpose`, `kid` | `200` purpose-separated JWK registry |
 | `receive_stripe_webhook` | `POST /webhooks/stripe` | raw signed Stripe payload | `200` after durable Inbox persist; otherwise `503` |
-| `receive_clerk_webhook` | `POST /webhooks/clerk` | raw signed Clerk payload | `200` after durable Inbox persist; otherwise `503` |
 | `receive_resend_webhook` | `POST /webhooks/resend` | raw signed Resend payload | `200` after durable Inbox persist; otherwise `503` |
 
 Object grants are short-lived, purpose-bound, principal-bound, object-bound, and operation-bound. They are not share links and cannot authorize JSON API calls.
@@ -1392,7 +1392,7 @@ The client cannot choose `setup_mode`. The server derives expanded First Deal Gu
 
 The Deal variant fixes `purpose` to its closed Deal intake/reimport catalog and uses the matching Deal Operation Preview. The Account variant fixes `purpose` to `account_reusable_template`, accepts exactly one file plus a rights/clean-template declaration and compatibility intent, uses an Account Operation Preview, and rejects Source Material, Source Record, live Deal, or promotion identifiers.
 
-`UploadSession` contains its Account, optional Deal, closed purpose, `expires_at`, `max_files`, `max_total_bytes`, and per-file entries with `server_file_id`, `tus_url`, non-secret `tus_headers`, `offset`, `state`, and `problem`. `tus_headers` never contains `Authorization`, Cookie, a Clerk token, or another reusable credential; the browser obtains the fresh Clerk Bearer separately before every TUS request. The server may reject a file declaration before transfer. A finalization result is an `ItemOutcome` per requested file and may therefore be partially successful.
+`UploadSession` contains its Account, optional Deal, closed purpose, `expires_at`, `max_files`, `max_total_bytes`, and per-file entries with `server_file_id`, `tus_url`, non-secret `tus_headers`, `offset`, `state`, and `problem`. `tus_headers` never contains `Authorization`, Cookie, a Supabase token, or another reusable credential; the browser obtains the fresh Supabase Bearer separately before every TUS request. The server may reject a file declaration before transfer. A finalization result is an `ItemOutcome` per requested file and may therefore be partially successful.
 
 ### 23.5 Source and Evidence schemas
 
@@ -1579,7 +1579,7 @@ An endpoint may return another registry code when a cross-cutting gate fails. It
 
 The V1 API must not expose:
 
-- browser-direct PostgreSQL, Supabase Data API, object-store paths other than the exact Upload-Session-bound quarantine TUS path, AI-provider, Stripe, Resend, or Clerk administrative calls;
+- browser-direct PostgreSQL, Supabase Data API, object-store paths other than the exact Upload-Session-bound quarantine TUS path, AI-provider, Stripe, Resend, or Supabase Auth administrative calls;
 - generic `PATCH`, `PUT`, `DELETE`, `/commands`, `/execute`, or arbitrary field mutation;
 - generic query DSLs, arbitrary `expand`, GraphQL, WebSocket, or browser-direct queue protocols;
 - raw provider errors, secrets, signed storage URLs, encryption material, internal prompts, raw model reasoning, or hidden audit data;
@@ -1592,8 +1592,8 @@ The V1 API must not expose:
 
 These items require implementation evidence before launch but do not reopen the confirmed API design:
 
-- verify Clerk cookie and bearer handling against the selected framework versions using `authenticateRequest()` and production-shaped probes;
-- verify exact Clerk, Stripe, and Resend signature algorithms and replay windows against pinned provider SDK versions;
+- verify Supabase SSR Cookie and Bearer handling, JWT/JWKS validation, Session limits, Magic Link, required experimental Passkey registration/login/recovery/reauthentication, security-epoch revocation, and Admin API isolation against pinned SDK/configuration and production-shaped probes;
+- verify exact Stripe and Resend signature algorithms and replay windows against pinned provider SDK versions;
 - load-test the configured request, SSE, upload, Recipient, and expensive-operation rate limits and record the exact quotas in the Integration Spec;
 - verify TUS header refresh, upload expiry, digest validation, and quarantine isolation against the selected Supabase runtime;
 - verify SSE replay retention and proxy buffering behavior in the production topology;

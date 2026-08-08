@@ -4,7 +4,7 @@
 
 **Status:** Confirmed architecture baseline
 
-**Date:** 2026-08-05
+**Date:** 2026-08-08
 
 **Scope:** System modules, runtime and trust boundaries, dependencies, communication paths, deployment topology, failure boundaries, and evolution constraints
 
@@ -89,7 +89,7 @@ flowchart LR
     ER["External Recipient"] --> HX
     OP["Deployment Operator"] -->|"privacy-safe operations only"| HX
 
-    HX --> CL["Clerk"]
+    HX --> SA["Supabase Auth"]
     HX --> SB["Supabase Pro"]
     HX --> ST["Stripe"]
     HX --> AI["HelloX AI route"]
@@ -100,13 +100,13 @@ flowchart LR
     HX --> PW["Public HTTPS sources"]
     HX --> M3["Microsoft 365 compatibility lab"]
 
-    CL -. "identity, MFA, recovery" .-> HX
+    SA -. "Magic Link, Passkey, session identity" .-> HX
     SB -. "PostgreSQL, Storage, PGMQ, PITR" .-> HX
     ST -. "payment events" .-> HX
     AI -. "proposal-only model output" .-> HX
     GD -. "selected OCR/Layout result" .-> HX
     GK -. "DEK wrapping and signatures" .-> HX
-    RS -. "non-auth transactional delivery" .-> HX
+    RS -. "Auth SMTP and transactional delivery" .-> HX
     SE -. "allowlisted operational telemetry" .-> HX
 ~~~
 
@@ -139,7 +139,7 @@ The nine Deal Workspace domains—Overview, Action Center, Sources, Evidence & D
 
 | Module | Owns | Must not own |
 |---|---|---|
-| Identity | Actor mapping, authentication posture, Sensitive Action Grants | Account ownership or Deal authority inferred from Clerk IDs |
+| Identity | Actor mapping, Supabase Session/recovery posture, Passkey reauthentication, Sensitive Action Grants | Account ownership or Deal authority inferred from Supabase IDs or metadata |
 | Account and Commerce | Account, Product Entitlement, Usage Ledger, Stripe projection | Source rights or professional readiness |
 | Deal Lifecycle | Deal identity, Business Stage, posture, current Deal state | Source or Deliverable truth hidden in a global status |
 | Paid Preflight | authority, rights, confidentiality, processing path, compatibility, Output Ceiling | Payment or file upload treated as authority |
@@ -207,7 +207,7 @@ flowchart TB
     end
 
     subgraph Providers["Approved provider boundaries"]
-        CL["Clerk"]
+        SA["Supabase Auth"]
         ST["Stripe"]
         HX["HelloX AI route"]
         GD["Google Document AI"]
@@ -299,7 +299,7 @@ Separate runtimes may reuse code or immutable images. They never reuse credentia
 |---|---|---|---|
 | Public ingress | Caddy | Internet 80/443 only | Exact Web, API, and Gateway upstreams |
 | Web delivery | Web blue/green | Caddy only | API and allowlisted telemetry endpoint |
-| Control plane | API blue/green, Dispatcher | Caddy for API/Webhooks; private runtime calls | Supabase, Clerk, Stripe, Resend, exact internal runtimes |
+| Control plane | API blue/green, Dispatcher | Caddy for API/Webhooks; private runtime calls | Supabase Auth/data services, Stripe, Resend, exact internal runtimes |
 | Product measurement | Measurement Projector | PGMQ and exact replay/rebuild invocation | PostgreSQL and allowlisted telemetry only |
 | Job coordination | Light/Heavy/Public Fetch coordinators | PGMQ/claim procedures and private control messages | Exact provider or Supervisor boundary per role |
 | Privileged file data plane | Protected Object Gateway | Caddy/API-authorized stream route only | Supabase Storage, narrow authorization procedure, KMS unwrap |
@@ -308,7 +308,7 @@ Separate runtimes may reuse code or immutable images. They never reuse credentia
 | No-egress sandbox | File/Office/parser execution | Supervisor-provided exact input | No network |
 | Public-fetch sandbox | Public HTML fetch/render | Supervisor-provided validated URL contract | Public HTTPS only; private/reserved/link-local/metadata ranges denied |
 | Managed data | Supabase PostgreSQL and Storage | Component-specific TLS identities | Provider-managed internal paths only |
-| Provider egress | HelloX, Document AI, KMS, Clerk, Stripe, Resend, Sentry | Component-specific calls | Provider responses/Webhooks under contract |
+| Provider egress | HelloX, Document AI, KMS, Supabase Auth administration, Stripe, Resend, Sentry | Component-specific calls | Provider responses/Webhooks under contract |
 
 ### 8.2 Egress enforcement
 
@@ -354,7 +354,7 @@ Separate runtimes may reuse code or immutable images. They never reuse credentia
 | Browser → Caddy → Web | HTTPS document/navigation requests | UI projection only |
 | Browser → Caddy → API | `/api/v1` JSON HTTP | API validates session, policy, idempotency, and concurrency |
 | Web → API | Same-origin server/client API calls | Web holds no durable business authority |
-| Browser → Supabase quarantine | Fresh Clerk Bearer + exact purpose-scoped TUS Upload Session | Storage RLS permits one Account-template or Deal path and lifecycle only; the sole browser-direct object-store exception under ADR 0033 |
+| Browser → Supabase quarantine | Fresh Supabase Bearer + exact purpose-scoped TUS Upload Session | Storage RLS permits one Account-template or Deal path and lifecycle only; the sole browser-direct object-store exception under ADR 0033 |
 | Browser → Caddy → Protected Object Gateway | API-authorized exact stream scope | Gateway rechecks current object/session posture before decrypting |
 | Provider → Caddy → API | Signed Webhook | Signature and idempotency establish provider event identity, not user authority |
 
@@ -390,7 +390,7 @@ sequenceDiagram
     B->>A: Create exact Upload Session
     A->>D: Check Actor, Deal, Preflight, entitlement, limits
     A-->>B: Exact TUS path and expiry
-    B->>Q: Resumable upload with Clerk session
+    B->>Q: Resumable upload with Supabase Session
     B->>A: Finalize Upload Session
     A->>D: Freeze session; create quarantine Job + Outbox
     H->>D: Claim Job Scope
@@ -723,7 +723,7 @@ Telemetry excludes Source Material, AI content, provider raw responses, filename
 
 | Dependency | Calling runtime | Data boundary | Failure posture |
 |---|---|---|---|
-| Clerk | API; Gateway performs networkless public-key validation only | Identity and security metadata; no Deal content; no Gateway Clerk secret or egress | Auth or sensitive mutation blocks according to session posture |
+| Supabase Auth | Next.js, API, narrow identity-administration path; Gateway performs networkless JWKS validation only | Identity and security metadata; no Deal content; no Gateway administration secret or Auth network egress | Auth blocks; sensitive mutation additionally blocks without current Passkey evidence |
 | Supabase Pro | API, scoped runtimes, Executors, Gateway | Authoritative rows and encrypted objects in US region | No local production split-brain fallback |
 | Stripe | API Webhook/commerce adapter | Account, order, price, tax, invoice identity; no Deal payload | Last confirmed entitlement; ambiguity grants nothing |
 | HelloX AI route | Light Worker only | Minimum task-specific content after profile, material-classification, and rights gate | Same-route validated fallback or block |
@@ -731,7 +731,7 @@ Telemetry excludes Source Material, AI content, provider raw responses, filename
 | Google Cloud KMS | Light Worker, Heavy Worker, Gateway, Signers, recovery path by exact purpose | DEK wrapping/unwrapping and signature bytes; no general Deal content | Acceptance/read/signing blocks; ciphertext/history remains |
 | Aspose | Disposable no-egress processing sandbox | Exact claimed file/job scope | Affected artifact Job fails; no desktop production fallback |
 | ClamAV | Heavy safety path | Quarantined bytes only | Incomplete scan fails closed |
-| Resend | Notification adapter | Email, safe event/template ID, authenticated deep link | State commits; same-key retry only inside the 24-hour provider window, then unresolved possibly accepted delivery becomes terminally ambiguous |
+| Resend | Supabase Custom SMTP and notification adapter | Email, auth or product template/event ID, authenticated safe link | Authentication mail failure blocks onboarding/recovery; non-auth state follows the existing delivery-ambiguity contract |
 | Sentry US | Telemetry pipeline | Allowlisted privacy-safe operational metadata only | Local diagnostics continue |
 | Microsoft 365 lab | Isolated lab workflow | Synthetic/rights-cleared Reference Deal fixtures only | Capability Manifest expansion blocks |
 | Public HTTPS source | Public-fetch sandbox only | Unauthenticated bounded retrieval under rights posture | Observation blocks or remains live-only; no bypass |
@@ -783,7 +783,7 @@ The following are prohibited in V1:
 | Concern | Governing decisions |
 |---|---|
 | Control plane, history, deployment, runtimes | ADR 0002, 0003, 0004, 0005, 0023 |
-| Authorization, identity, data service, operator boundary | ADR 0006, 0010, 0011, 0013, 0025, 0037, 0038, 0040 |
+| Authorization, identity, data service, operator boundary | ADR 0006, 0011, 0013, 0025, 0037, 0038, 0040, 0041 |
 | Office, compatibility, production engine | ADR 0007, 0008 |
 | Project Northstar | ADR 0009 |
 | AI route, authority, provider evidence | ADR 0012, 0020, 0021 |
