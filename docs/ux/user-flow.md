@@ -63,6 +63,7 @@ This document must not:
 6. A successful parser, model run, build, render, Review or check clears only the condition it proves.
 7. No single progress percentage or global `ready`, `approved` or `complete` status represents the Deal.
 8. Every state-changing command returns an accepted, rejected or conflict result and exposes the durable state when work becomes asynchronous.
+9. When an action requires a Sensitive Action Grant, a missing or stale Grant preserves the reviewed inputs and exact pending command, routes the user through a Passkey login no older than five minutes, issues one single-use Grant bound to the returned Session, Actor, action, exact resource, canonical command digest, current ETag or immutable dependency digest and Idempotency-Key, and resumes only that unchanged command. A changed binding or precondition returns to the Control Review for a new Grant; cancellation or failed reauthentication creates no mutation.
 
 ## End-to-end flow spine
 
@@ -408,8 +409,10 @@ Readiness for an exact Revision and stated use is one of:
 3. Ordinary readiness blockers do not prohibit export for inspection, native editing, backup or reimport.
 4. Hard rights, confidentiality, isolation, corruption, quarantine or unbound-Revision conditions block export and show the smallest recovery action.
 5. Export validation binds exact files, hashes, manifest, lineage, applicable Decisions, missing items and declared exclusions.
-6. The user confirms Internal Controlled Export.
-7. The product supplies the files and receipt without modifying the Native Artifact merely to add a warning or watermark.
+6. The user confirms the exact Internal Controlled Export command.
+7. If its Sensitive Action Grant is missing or stale, preserve that reviewed export command, require a Passkey login no older than five minutes and return through the exact-command resumption contract in invariant 9.
+8. The product issues and consumes the single-use Grant only with the accepted unchanged export command; a changed Revision, scope, manifest, precondition or command returns to export review rather than reusing the Grant.
+9. The product supplies the files and receipt without modifying the Native Artifact merely to add a warning or watermark.
 
 **Feedback:** export does not clear blockers, create an External-Use Decision, authorize circulation or record an External-Use Event.
 
@@ -427,16 +430,21 @@ Readiness for an exact Revision and stated use is one of:
 1. Only an exact `circulation-candidate` Revision may enter Decision preparation.
 2. The user inspects exact artifact hashes, Native/Reader parity, QC, unresolved limitations, audience/recipient, purpose, channel/time, confidentiality, rights, conditions and invalidation triggers.
 3. Any mismatch or missing required record blocks prospective authorization.
-4. The Individual Banker judges Professional Usability and records the typed External-Use Decision.
-5. The Decision authorizes only the exact object/Revision and stated scope; it does not transmit anything or record actual use.
+4. The Individual Banker judges Professional Usability and submits the exact typed External-Use Decision command.
+5. If its Sensitive Action Grant is missing or stale, preserve that reviewed Decision command, require a Passkey login no older than five minutes and return through the exact-command resumption contract in invariant 9.
+6. The product issues and consumes the single-use Grant only with the accepted unchanged Decision command; any changed Revision, artifact, recipient/audience, purpose, condition, precondition or command returns to the Control Review for a new Grant.
+7. The recorded Decision authorizes only the exact object/Revision and stated scope; it does not transmit anything or record actual use.
 
 ### UF-24 — Create Externally Authorized Delivery or Recipient Access
 
 1. The user selects a valid External-Use Decision and permitted delivery mode.
 2. The product rechecks exact Revision/hash, recipient/audience, purpose, conditions, expiry, revocation and active invalidation state.
-3. On success, create either an external-purpose delivery package or authenticated Recipient Access.
-4. Creation is recorded separately from authorization and from actual external use.
-5. In V1, Recipient Access is online, read-only and non-downloadable.
+3. The user submits the exact Externally Authorized Delivery or Recipient Access command.
+4. If its Sensitive Action Grant is missing or stale, preserve that reviewed delivery/access command, require a Passkey login no older than five minutes and return through the exact-command resumption contract in invariant 9.
+5. The product issues and consumes the single-use Grant only with the accepted unchanged command; any changed Decision, Revision/hash, recipient/audience, purpose, condition, expiry, permission, precondition or command returns to the exact unmet gate and requires a new Grant.
+6. On success, create either an external-purpose delivery package or authenticated Recipient Access.
+7. Creation is recorded separately from authorization and from actual external use.
+8. In V1, Recipient Access is online, read-only and non-downloadable.
 
 **Failure branches:** changed Revision, recipient, audience, purpose, rights, confidentiality, expired/withdrawn Decision, failed parity or missing record → do not create delivery; return to the exact unmet gate.
 

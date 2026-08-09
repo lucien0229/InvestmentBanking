@@ -116,6 +116,7 @@ Unless a frame states a narrower value, every frame inherits the following final
 - No screen exposes a global chatbot, AI skill menu, aggregate confidence score, master readiness score or generic `Approve AI` action.
 - A transient toast may acknowledge a command but is never the only Job, error, Decision, export or deletion record.
 - Exact object/version identity remains visible during Review, comparison, export, external authorization and Recipient Access.
+- Every Sensitive Action Grant frame includes the inherited branch `Grant missing or stale → preserve safe Draft and exact pending command → Passkey login no older than five minutes → verify unchanged binding/preconditions → issue single-use Grant → resume`; cancellation or mismatch returns to the owning review without mutation, and the opaque Grant token is never displayed.
 - Loading does not remove the page heading or accepted state.
 - Material errors preserve the durable checkpoint and state the smallest recovery action.
 - Color is never required to distinguish state; these frames rely on text, order and grouping.
@@ -345,7 +346,7 @@ Unless a frame states a narrower value, every frame inherits the following final
 +--------------------------------------------------------+
 ```
 
-**State projection:** create, sign in, verify, recovery, Passkey registration/replacement, reauthentication, session expired and safe denial reuse this narrow shell and preserve the authorized return context without exposing its payload. The first verified default Magic Link opens mandatory Passkey registration before ordinary access. For an existing user, Magic Link fallback opens only the Account Security Restriction and Security Recovery Session; it never exposes Account/Deal content. Returning sign-in and sensitive-action reauthentication use Passkey. V1 presents no password, numeric Email OTP, TOTP or MFA control. External Recipient link/code verification remains a separate product-managed flow outside Supabase Auth.
+**State projection:** create, sign in, verify, recovery, Passkey registration/replacement, reauthentication, session expired and safe denial reuse this narrow shell and preserve the authorized return context without exposing its payload. The first verified default Magic Link opens mandatory Passkey registration before ordinary access. For an existing user, Magic Link fallback opens only the Account Security Restriction and Security Recovery Session; it never exposes Account/Deal content. Returning sign-in and sensitive-action reauthentication use Passkey. Successful sensitive-action reauthentication returns to the exact preserved review and resumes only its unchanged pending command after single-use Grant issuance; a changed binding or precondition returns to review without mutation. V1 presents no password, numeric Email OTP, TOTP or MFA control. External Recipient link/code verification remains a separate product-managed flow outside Supabase Auth.
 
 ### WF-CHK-01 — Checkout durable task shell
 
@@ -460,7 +461,7 @@ EMPTY
 
 ### WF-ACT-04 — Data, Export, Deletion and Post-Term
 
-**Frame contract:** Banker Account → Data, Export & Deletion; exact route slug implementation-deferred; Individual Banker; active, canceling or Post-Term Account; 1440/390/768. Goal is inspection, Account-level export/deletion and Post-Term exit. Visible information includes exact clock, allowed actions and deletion receipts. Primary actions are exact-scope export or deletion review; new Deal work and external delivery are prohibited in Post-Term. Traces UF-32–UF-34.
+**Frame contract:** Banker Account → Data, Export & Deletion; exact route slug implementation-deferred; Individual Banker; active, canceling or Post-Term Account; 1440/390/768. Goal is inspection, Account-level export/deletion and Post-Term exit. Visible information includes exact clock, allowed actions and deletion receipts. Primary actions are exact-scope export or deletion review; creating the Account data export inherits the fresh-Passkey and single-use Sensitive Action Grant exact-return branch, while deletion retains its stronger typed-confirmation control. New Deal work and external delivery are prohibited in Post-Term. Traces UF-32–UF-34.
 
 ```text
 +--------------------------------------------------------------------------+
@@ -471,7 +472,7 @@ EMPTY
 | Account data summary          | Existing export and receipt records       |
 | Retention / backup timing     | Deletion request status                   |
 |                                                                          |
-| [Review account deletion] (Open Deal exports)                             |
+| [Review account data export] [Review account deletion] (Open Deal exports)|
 +--------------------------------------------------------------------------+
 ```
 
@@ -1040,7 +1041,7 @@ Batch file selection may occur only in Safe receive. Authority, safety, Compatib
 
 ### WF-EXT-01 — External-Use Decision
 
-**Frame contract:** exact eligible Revision Control Review; Individual Banker; desktop; 1440/1180. Goal is to authorize one circulation-candidate Revision for a stated recipient/audience, purpose, channel/time and conditions. Visible hashes, parity, QC, limitations, readiness and blockers remain exact. Primary action is `Authorize this Revision for the stated external use`; cancel is secondary; delivery creation and actual use are not implied. Traces UF-23.
+**Frame contract:** exact eligible Revision Control Review; Individual Banker; desktop; 1440/1180. Goal is to authorize one circulation-candidate Revision for a stated recipient/audience, purpose, channel/time and conditions. Visible hashes, parity, QC, limitations, readiness and blockers remain exact. Primary action is `Authorize this Revision for the stated external use`; a missing or stale Grant preserves this exact review, traverses the inherited fresh-Passkey branch and resumes only the unchanged Decision command. Cancel is secondary; delivery creation and actual use are not implied. Traces UF-23.
 
 ```text
 +----------------------------------------------------------+---------------------------+
@@ -1052,6 +1053,7 @@ Batch file selection may occur only in Safe receive. Authority, safety, Compatib
 | Supporting authority and disclosure basis                 | Invalidation triggers     |
 +----------------------------------------------------------+---------------------------+
 | Required fields / rationale / specialist conditions                                  |
+| Sensitive action: fresh Passkey and single-use exact-bound Grant required             |
 | [Authorize this Revision for the stated external use] (Cancel)                        |
 +--------------------------------------------------------------------------------------+
 | Success creates a Decision receipt only. No delivery or use has occurred.             |
@@ -1060,7 +1062,7 @@ Batch file selection may occur only in Safe receive. Authority, safety, Compatib
 
 ### WF-EXT-02 — Externally Authorized Delivery and Recipient Access creation
 
-**Frame contract:** matching External-Use Decision route; Individual Banker; desktop; 1440/1180. Goal is to create an exact Externally Authorized Delivery or Recipient Access path after authorization. Visible Revision, recipient, purpose, conditions, expiry and permissions are re-displayed. Primary action creates delivery/access; return to Decision is secondary; broader Deal access and implied recipient use are prohibited. Traces UF-24, UF-26.
+**Frame contract:** matching External-Use Decision route; Individual Banker; desktop; 1440/1180. Goal is to create an exact Externally Authorized Delivery or Recipient Access path after authorization. Visible Revision, recipient, purpose, conditions, expiry and permissions are re-displayed. Primary action creates delivery/access; a missing or stale Grant preserves this exact command, traverses the inherited fresh-Passkey branch and resumes only while the Decision and every bound field/precondition remain unchanged. Return to Decision is secondary; broader Deal access and implied recipient use are prohibited. Traces UF-24, UF-26.
 
 ```text
 +--------------------------------------------------------------------------+
@@ -1069,7 +1071,7 @@ Batch file selection may occur only in Safe receive. Authority, safety, Compatib
 | Deliverable / exact Revision / hashes                                    |
 | Recipient identity | purpose | conditions | expiry                       |
 | Permissions: read-only | non-downloadable | revocable                    |
-|                                                                          |
+| Sensitive action: fresh Passkey and single-use exact-bound Grant required|
 | [Create exact Recipient Access] (Return to authorization)                |
 +--------------------------------------------------------------------------+
 | Created access is not proof of access. Actual use is a separate event.   |
@@ -1096,7 +1098,7 @@ Batch file selection may occur only in Safe receive. Authority, safety, Compatib
 
 ### WF-EXP-01 — Internal Controlled Export
 
-**Frame contract:** exact object/Revision or History export review; Individual Banker; desktop creation, small-screen existing access only; 1440/390. Goal is to create or inspect a portable internal copy without implying external authority. Visible exact objects, hashes, posture, restrictions, included/excluded records, intended internal use and manifest remain explicit. Primary action on desktop is `Create internal controlled export`; existing download/inspection is secondary; external circulation and small-screen creation are prohibited. Traces UF-21 and ADR 0001.
+**Frame contract:** exact object/Revision or History export review; Individual Banker; desktop creation, small-screen existing access only; 1440/390. Goal is to create or inspect a portable internal copy without implying external authority. Visible exact objects, hashes, posture, restrictions, included/excluded records, intended internal use and manifest remain explicit. Primary action on desktop is `Create internal controlled export`; a missing or stale Grant preserves this exact export review, traverses the inherited fresh-Passkey branch and resumes only while every bound Revision, artifact, manifest, exclusion and precondition remains unchanged. Existing download/inspection is secondary; external circulation and small-screen creation are prohibited. Traces UF-21 and ADR 0001.
 
 ```text
 +----------------------------------------------------------+---------------------------+
@@ -1106,6 +1108,7 @@ Batch file selection may occur only in Safe receive. Authority, safety, Compatib
 | Rights and confidentiality restrictions                  | Intended internal use     |
 | Control records / manifest / reimport relationship        | Manifest version          |
 +----------------------------------------------------------+---------------------------+
+| Sensitive action: fresh Passkey and single-use exact-bound Grant required             |
 | [Create internal controlled export] (Cancel)                                          |
 +--------------------------------------------------------------------------------------+
 | This does not authorize external circulation.                                         |
@@ -1431,7 +1434,7 @@ flowchart TD
     PE --> EV
 ```
 
-**Control points:** Internal export never authorizes circulation. Authorization, delivery creation and actual use are distinct durable events. An external edit returns through comparison, Impact Assessment and a new Revision.
+**Control points:** Internal export never authorizes circulation. WF-EXP-01, WF-EXT-01 and WF-EXT-02 each traverse the same fresh-Passkey, single-use Sensitive Action Grant and unchanged-command return gate before their distinct mutation. Authorization, delivery creation and actual use are distinct durable events. An external edit returns through comparison, Impact Assessment and a new Revision.
 
 ### SB-05 — Lifecycle, Post-Term and bounded small-screen
 

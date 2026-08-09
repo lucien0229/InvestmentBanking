@@ -213,7 +213,7 @@ There is no generic `Approve AI`, `Approve`, `Confirm` or `Are you sure?` action
 |---|---|---|
 | 1 — reversible | Local view preferences and reversible attention state | Execute inline, announce result and offer Undo where meaningful |
 | 2 — state-changing | Changes that create a new version or can be corrected through controlled history | Show exact scope and result preview, then require explicit submit |
-| 3 — material control | Human Decisions, External-Use Decisions, stage and consequential lifecycle changes | Dedicated Control Review with Evidence, impact, rationale and immutable receipt |
+| 3 — material control | Human Decisions, External-Use Decisions, stage and consequential lifecycle changes | Dedicated Control Review with Evidence, impact, rationale and immutable receipt; actions inside the Sensitive Action Grant perimeter additionally use the shared reauthentication and exact-return contract |
 | 4 — destructive | Deal or account deletion | Passkey login no older than five minutes, single-use Sensitive Action Grant, exact scope, typed object identity, final warning and durable receipt |
 
 ### Form and draft behavior
@@ -438,6 +438,18 @@ The UX contract requires:
 - successful dispatch to the exact authorized Banker or Recipient route; and
 - a safe fallback to Deals or Recipient Access when the original target is no longer valid.
 
+### Sensitive-action reauthentication and exact return
+
+Account or Deal data export, Internal Controlled Export, External-Use Decision, Externally Authorized Delivery or Recipient Access creation, applicable revocation/resumption, deletion and product-controlled security/recovery mutations use one shared interaction contract:
+
+1. The user first reviews the exact action, resource, version or immutable dependency, current preconditions and command-specific inputs on its owning page or Control Review.
+2. On submit, a missing or stale Sensitive Action Grant preserves the safe Draft, reviewed inputs, authorized return target and Idempotency-Key, then opens Passkey reauthentication without displaying protected payload in the access shell.
+3. A successful Passkey login no older than five minutes returns to the same review. The product reconstructs and verifies the canonical command digest and current ETag or immutable dependency digest, then issues one single-use Grant bound to the returned Session, Actor, action, exact resource, command and preconditions.
+4. Only the unchanged pending command resumes. A changed action, resource, version, input, ETag/digest, Idempotency-Key or authorization posture invalidates the pending submission and returns focus to the changed field or Control Review summary for explicit review and a new Grant.
+5. Cancellation, failed reauthentication or Grant issuance failure preserves the safe Draft and creates no mutation. The Grant is consumed only with the accepted mutation; a lost accepted response is recovered with the same Idempotency-Key and opens the durable receipt instead of repeating the action.
+
+The UI may show `Fresh Passkey required`, `Reauthentication complete` or `Reviewed scope changed — review again`; it never displays, stores in Draft state or invites copying of the opaque Grant token.
+
 Standard access copy:
 
 - Generic email response: `If this address can continue, we sent the next step.`
@@ -547,7 +559,7 @@ When an Account Security Restriction is active, ordinary authenticated routes re
 
 ### Data, Export & Deletion
 
-Owns account-level export/deletion information, Post-Term clock, account deletion and deletion receipts. Deal-level Internal Controlled Exports remain under the exact Deal and History & Portability.
+Owns account-level export/deletion information, Post-Term clock, account deletion and deletion receipts. Creating an Account or Deal data export is an all-or-nothing sensitive action over an exact frozen scope and current preconditions; it uses the shared reauthentication and exact-return contract. Deal-level Internal Controlled Exports remain under the exact Deal and History & Portability.
 
 ### Help & Support
 
@@ -1021,7 +1033,7 @@ Only an eligible circulation-candidate exact Revision may enter this Control Rev
 | `Authority basis` | Yes | Decision-maker's authority for this use |
 | `Invalidation triggers` | Yes | Source, Revision, audience, purpose, time or condition changes |
 
-The review displays Native/Reader parity, QC, unresolved limitations, Package Readiness and active blockers. Submit is `Authorize this Revision for the stated external use`.
+The review displays Native/Reader parity, QC, unresolved limitations, Package Readiness and active blockers. Submit is `Authorize this Revision for the stated external use`. Submission uses the shared reauthentication and exact-return contract; a stale or missing Grant preserves this exact review, and any changed bound field or precondition requires explicit re-review and a new Grant.
 
 Success copy:
 
@@ -1030,7 +1042,7 @@ Success copy:
 
 #### Externally Authorized Delivery and Recipient Access
 
-Delivery creation is available only from a matching active External-Use Decision. The form re-displays exact Revision, recipient, purpose, conditions, expiry and permissions.
+Delivery creation is available only from a matching active External-Use Decision. The form re-displays exact Revision, recipient, purpose, conditions, expiry and permissions. Creating an Externally Authorized Delivery or Recipient Access uses the shared reauthentication and exact-return contract; a changed Decision, Revision, recipient, purpose, condition, expiry, permission or precondition requires explicit re-review and a new Grant.
 
 V1 Recipient Access is authenticated, recipient-specific, read-only, non-downloadable, expiring and revocable. Creation does not prove that the recipient accessed the content.
 
@@ -1060,7 +1072,7 @@ The export review displays:
 
 Ordinary readiness blockers may remain visible on an Internal Controlled Export, but rights, confidentiality, isolation, corruption or required-record failures block the affected export.
 
-Submit is `Create internal controlled export`.
+Submit is `Create internal controlled export`. Submission uses the shared reauthentication and exact-return contract; the export command resumes only when its exact Revisions, artifacts, manifest, intended use, declared exclusions and current preconditions remain unchanged.
 
 Success copy:
 
@@ -1404,6 +1416,7 @@ The experience conforms to this UX Spec only when it can demonstrate all of the 
 - every durable object/version has a full canonical page and safe return path;
 - the complete First Deal Guide uses real Deal objects, reaches First Unmistakable Value, creates the first permitted Internal Controlled Export and requires explicit graduation;
 - fields, Drafts, validation and Control Reviews preserve exact scope and authority;
+- every Sensitive Action Grant flow preserves its safe Draft and exact pending command through Passkey reauthentication, resumes only an unchanged command and returns changed bindings to explicit review;
 - long-running work exposes independent durable Job states and recovery;
 - Evidence, AI proposal, deterministic result and Human Decision remain visibly distinct;
 - Package content, QC/readiness, authorization, delivery and actual use remain separate;
