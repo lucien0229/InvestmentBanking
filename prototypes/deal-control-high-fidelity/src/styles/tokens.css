@@ -1,0 +1,54 @@
+:root {
+  --bg: oklch(98% 0.005 250);
+  --surface: oklch(100% 0 0);
+  --fg: oklch(22% 0.02 240);
+  --muted: oklch(50% 0.018 240);
+  --border: oklch(90% 0.008 240);
+  --accent: oklch(58% 0.16 145);
+
+  --font-display: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', system-ui, sans-serif;
+  --font-body: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+
+  --status-info: oklch(55% 0.12 250);
+  --status-warning: oklch(62% 0.13 75);
+  --status-critical: oklch(54% 0.18 28);
+  --status-success: color-mix(in oklch, var(--accent) 66%, var(--fg));
+  --status-info-ink: oklch(34% 0.12 250);
+  --status-warning-ink: oklch(35% 0.08 72);
+  --status-critical-ink: oklch(36% 0.16 28);
+  --status-success-ink: color-mix(in oklch, var(--accent) 50%, var(--fg));
+
+  --bg-subtle: color-mix(in oklch, var(--fg) 2.5%, var(--bg));
+  --surface-raised: color-mix(in oklch, var(--surface) 96%, var(--bg));
+  --fg-subtle: color-mix(in oklch, var(--fg) 72%, var(--muted));
+  --accent-soft: color-mix(in oklch, var(--accent) 12%, var(--surface));
+  --accent-ink: color-mix(in oklch, var(--fg) 92%, var(--accent));
+  --accent-action: color-mix(in oklch, var(--accent) 80%, var(--surface));
+  --accent-action-hover: color-mix(in oklch, var(--accent) 64%, var(--surface));
+  --info-soft: color-mix(in oklch, var(--status-info) 11%, var(--surface));
+  --warning-soft: color-mix(in oklch, var(--status-warning) 13%, var(--surface));
+  --critical-soft: color-mix(in oklch, var(--status-critical) 10%, var(--surface));
+  --success-soft: color-mix(in oklch, var(--status-success) 10%, var(--surface));
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  --radius-control: 6px;
+  --radius-panel: 8px;
+  --radius-dialog: 10px;
+  --radius-pill: 999px;
+  --shadow-overlay: 0 12px 32px color-mix(in oklch, var(--fg) 12%, transparent);
+
+  --global-bar-height: 56px;
+  --deal-bar-height: 60px;
+  --sidebar-width: 224px;
+  --inspector-width: 316px;
+  --content-max: 1440px;
+  color-scheme: light;
+}

@@ -1,0 +1,137 @@
+import {
+  Activity,
+  ArchiveRestore,
+  Boxes,
+  BriefcaseBusiness,
+  ClipboardCheck,
+  FileStack,
+  Gauge,
+  GitBranch,
+  ListChecks,
+} from 'lucide-react';
+import type { DeliverableRecord, NavigationItem, SourceRecord } from '../types/domain';
+
+export const dealBasePath = '/app/deals/project-northstar';
+
+export const navigationItems: NavigationItem[] = [
+  { label: 'Overview', shortLabel: 'Overview', path: `${dealBasePath}/overview`, icon: Gauge, dataOdId: 'nav-overview' },
+  { label: 'Action Center', shortLabel: 'Actions', path: `${dealBasePath}/actions`, icon: ListChecks, dataOdId: 'nav-actions' },
+  { label: 'Sources', shortLabel: 'Sources', path: `${dealBasePath}/sources`, icon: FileStack, dataOdId: 'nav-sources' },
+  { label: 'Evidence & Decisions', shortLabel: 'Evidence', path: `${dealBasePath}/evidence-decisions`, icon: ClipboardCheck, dataOdId: 'nav-evidence-decisions' },
+  { label: 'Analysis', shortLabel: 'Analysis', path: `${dealBasePath}/analysis`, icon: Activity, dataOdId: 'nav-analysis' },
+  { label: 'Auction Process', shortLabel: 'Process', path: `${dealBasePath}/auction-process`, icon: BriefcaseBusiness, dataOdId: 'nav-auction-process' },
+  { label: 'Execution Package', shortLabel: 'Package', path: `${dealBasePath}/execution-package`, icon: Boxes, dataOdId: 'nav-execution-package' },
+  { label: 'Review & Readiness', shortLabel: 'Review', path: `${dealBasePath}/review-readiness`, icon: GitBranch, dataOdId: 'nav-review-readiness' },
+  { label: 'History & Portability', shortLabel: 'History', path: `${dealBasePath}/history-portability`, icon: ArchiveRestore, dataOdId: 'nav-history-portability' },
+];
+
+export const sourceRecords: SourceRecord[] = [
+  {
+    id: 'SR-001',
+    fileName: 'Draft_CIM_v3.pdf',
+    kind: 'PDF',
+    version: 'v3',
+    locator: 'display page 18 · Table 4',
+    reliance: 'Conflicted',
+    relianceTone: 'warning',
+    coverage: 'Text and tables parsed',
+    updated: '2026-08-03 14:11',
+  },
+  {
+    id: 'SR-002',
+    fileName: 'Management_Model_v7.xlsx',
+    kind: 'XLSX',
+    version: 'v7',
+    locator: 'Operating Case!F42 / Balance Sheet!F28',
+    reliance: 'Limited reliance',
+    relianceTone: 'warning',
+    coverage: 'Formulas, values, and cell locators parsed',
+    updated: '2026-08-03 14:16',
+  },
+  {
+    id: 'SR-003',
+    fileName: 'QoE_Adjustments_v2.xlsx',
+    kind: 'XLSX',
+    version: 'v2',
+    locator: 'Summary!B12:F38',
+    reliance: 'Reliable',
+    relianceTone: 'success',
+    coverage: 'Structure and formulas parsed',
+    updated: '2026-08-02 18:42',
+  },
+  {
+    id: 'SR-004',
+    fileName: 'Buyer_Universe_approved.xlsx',
+    kind: 'XLSX',
+    version: 'v1',
+    locator: 'Approved Buyers!A4:H36',
+    reliance: 'Reliable',
+    relianceTone: 'success',
+    coverage: 'Structure parsed',
+    updated: '2026-08-02 16:25',
+  },
+];
+
+export const baseDeliverables: DeliverableRecord[] = [
+  {
+    id: 'DEL-001',
+    name: 'Analysis & Valuation Workbook',
+    format: 'XLSX',
+    applicability: 'Always required',
+    applicabilityTone: 'info',
+    revision: '0.3',
+    readiness: 'Blocked by material conflict',
+    readinessTone: 'critical',
+    readerCopy: 'PDF generated',
+  },
+  {
+    id: 'DEL-002',
+    name: 'Auction Control Workbook',
+    format: 'XLSX',
+    applicability: 'Always required',
+    applicabilityTone: 'info',
+    revision: '0.2',
+    readiness: 'Analysis ready',
+    readinessTone: 'success',
+    readerCopy: 'PDF generated',
+  },
+  {
+    id: 'DEL-003',
+    name: 'Teaser',
+    format: 'PPTX',
+    applicability: 'Required in Preparation',
+    applicabilityTone: 'info',
+    revision: '0.2',
+    readiness: 'Working draft',
+    readinessTone: 'neutral',
+    readerCopy: 'PDF generated',
+  },
+  {
+    id: 'DEL-004',
+    name: 'CIM',
+    format: 'PPTX',
+    applicability: 'Required in Preparation',
+    applicabilityTone: 'info',
+    revision: '0.3',
+    readiness: 'Re-review required',
+    readinessTone: 'warning',
+    readerCopy: 'PDF generated',
+  },
+  {
+    id: 'DEL-005',
+    name: 'Bid Evaluation & Recommendation Memo',
+    format: 'DOCX',
+    applicability: 'Not required at this stage',
+    applicabilityTone: 'neutral',
+    revision: '—',
+    readiness: 'Not missing',
+    readinessTone: 'neutral',
+    readerCopy: 'Not applicable',
+  },
+];
+
+export const syntheticBuyerRows = [
+  { buyer: 'Aster Ridge Partners', type: 'Financial buyer', status: 'Approved for first round', nda: 'Drafting', access: 'Not granted', updated: '2026-08-03' },
+  { buyer: 'Lighthouse Industrial', type: 'Strategic buyer', status: 'Candidate', nda: 'Not started', access: 'Not granted', updated: '2026-08-02' },
+  { buyer: 'Northfield Capital', type: 'Financial buyer', status: 'Approved for first round', nda: 'Executed', access: 'Granted', updated: '2026-08-04' },
+];

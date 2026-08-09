@@ -13,3 +13,7 @@ Use the five canonical triage labels: `needs-triage`, `needs-info`, `ready-for-a
 ### Domain docs
 
 This is a single-context repo using root `CONTEXT.md` and `docs/adr/`. See `docs/agents/domain.md`.
+
+### Confirmed design input
+
+The confirmed high-fidelity prototype is under `prototypes/deal-control-high-fidelity/`. Any applicable planning, ticketing, implementation, testing, review, or QA task must consume it according to `docs/agents/design-inputs.md`.
