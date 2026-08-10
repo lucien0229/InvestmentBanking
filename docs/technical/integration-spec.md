@@ -25,7 +25,7 @@ It does not redefine product behavior, database ownership, public API resources,
 
 Authority is concern-specific:
 
-- the approved [productization specification](../../.scratch/ai-investment-banking-productization-wayfinding/spec.md) owns product scope and acceptance criteria;
+- the approved [productization specification](../../.scratch/controlled-sell-side-auction-execution-workspace-v1/spec.md) owns product scope and acceptance criteria;
 - [CONTEXT.md](../../CONTEXT.md) owns canonical domain terms;
 - accepted [ADRs](../adr) own hard-to-reverse architecture decisions;
 - [Technical Design](technical-design.md) owns the cross-cutting implementation baseline;

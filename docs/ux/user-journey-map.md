@@ -14,7 +14,7 @@ It is a User Journey Map, not a User Flow, Information Architecture, route speci
 
 The journey is derived from:
 
-1. the current [V1 product specification](../../.scratch/ai-investment-banking-productization-wayfinding/spec.md);
+1. the current [V1 product specification](../../.scratch/controlled-sell-side-auction-execution-workspace-v1/spec.md);
 2. the canonical [Domain Context](../../CONTEXT.md);
 3. the confirmed [V1 Productization Blueprint](../../.scratch/ai-investment-banking-productization-wayfinding/assets/v1-productization-blueprint.md);
 4. the validated [Self-Serve Deal Workspace First-Value Journey](../../.scratch/ai-investment-banking-productization-wayfinding/assets/self-serve-first-value-journey-verdict.md); and

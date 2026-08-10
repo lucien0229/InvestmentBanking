@@ -13,7 +13,7 @@ It turns the confirmed User Journey Map into executable steps, decisions, branch
 
 This flow is governed by, in order:
 
-1. the confirmed [V1 Product Specification](../../.scratch/ai-investment-banking-productization-wayfinding/spec.md);
+1. the confirmed [V1 Product Specification](../../.scratch/controlled-sell-side-auction-execution-workspace-v1/spec.md);
 2. the canonical language in [CONTEXT.md](../../CONTEXT.md);
 3. the confirmed [User Journey Map](user-journey-map.md);
 4. [ADR 0001 — Separate internal controlled export from externally authorized delivery](../adr/0001-separate-internal-export-from-external-delivery.md); and

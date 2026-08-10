@@ -24,7 +24,7 @@ It is not a configurable role-management system. V1 has fixed principal kinds an
 
 Authority is concern-specific:
 
-1. the approved [Product Specification](../../.scratch/ai-investment-banking-productization-wayfinding/spec.md) owns product scope and behavior;
+1. the approved [Product Specification](../../.scratch/controlled-sell-side-auction-execution-workspace-v1/spec.md) owns product scope and behavior;
 2. [CONTEXT.md](../../CONTEXT.md) owns canonical domain terms and distinctions;
 3. accepted [ADRs](../adr) own hard-to-reverse architecture decisions;
 4. approved documents under [docs/ux](../ux) own user-visible tasks and control reviews;

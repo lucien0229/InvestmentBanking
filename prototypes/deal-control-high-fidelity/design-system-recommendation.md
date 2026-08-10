@@ -13,7 +13,7 @@ recommended_design_system_title: Tech / utility — Datadog / GitHub
 
 ### 已由权威资料确认
 
-- 核心问题：个人投行家需要把持续变化的管理材料、财务文件、尽调记录、买方/流程信息、报价和专业判断，转化为当前分析、可编辑银行家原生文件、审查决定与受控外部使用；变化必须能追踪到受影响的事实、计算、单元格、页面、审查、就绪结论与授权。证据：`.scratch/ai-investment-banking-productization-wayfinding/spec.md:5-21`。
+- 核心问题：个人投行家需要把持续变化的管理材料、财务文件、尽调记录、买方/流程信息、报价和专业判断，转化为当前分析、可编辑银行家原生文件、审查决定与受控外部使用；变化必须能追踪到受影响的事实、计算、单元格、页面、审查、就绪结论与授权。证据：`.scratch/controlled-sell-side-auction-execution-workspace-v1/spec.md:5-21`。
 - 主要用户：海外精品投行、小中型并购顾问机构或独立交易顾问中的执行型个人投行家，具备高专业度、可独立购买并负责日常卖方拍卖执行。证据：同上 `:23-27`。
 - 产品形态：独立 Web App；持久化 Deal Workspace 是唯一业务权威，不是聊天机器人、一次性生成器、AI 技能菜单或静态文件库。证据：同上 `:23-39`；`docs/ux/information-architecture.md:49-60,82-92`。
 - 核心业务链：Deal Setup / Paid Preflight → 精确 Source Packet → 可观察受控处理 → Evidence 检查 → 类型化 Human Decision / 更正 → 确定性校验 → Impact Assessment → Native / Reader 结果、QC 与 Package Readiness → Internal Controlled Export → 持续修订。证据：`docs/ux/wireframes.md:1354-1415` 与正式 UX Spec。
@@ -124,4 +124,3 @@ recommended_design_system_title: Tech / utility — Datadog / GitHub
 | 1280px 表格拥挤 | 关键列被截断 | 默认列按任务优先级裁剪；保留列管理和 Inspector；数字不换行，长文本允许自然换行 |
 | 小屏误导用户完成高风险动作 | 不安全或不可审查 | 1024px 以下提供只读检查与桌面安全交接；Material Decision、上传、外部授权等保持可见但不可提交 |
 | 原型语言与正式 V1 英文规范不一致 | 不能直接作为生产文案 | 保留 canonical English ID/route；将 zh-CN 文案视为本次演示本地化层，生产实施前执行英文文案验收 |
-

@@ -14,7 +14,7 @@ It turns the confirmed User Journey Map, User Flow, and Information Architecture
 
 This UX Spec is governed by, in order:
 
-1. the confirmed [V1 Product Specification](../../.scratch/ai-investment-banking-productization-wayfinding/spec.md);
+1. the confirmed [V1 Product Specification](../../.scratch/controlled-sell-side-auction-execution-workspace-v1/spec.md);
 2. the canonical [Domain Context](../../CONTEXT.md);
 3. the confirmed [User Journey Map](user-journey-map.md);
 4. the confirmed [User Flow](user-flow.md);

@@ -32,7 +32,7 @@ It does not define the provider's undocumented behavior, replace deterministic f
 
 Authority is concern-specific:
 
-- the approved [product specification](../../.scratch/ai-investment-banking-productization-wayfinding/spec.md) and confirmed product assets own product scope and behavior;
+- the approved [product specification](../../.scratch/controlled-sell-side-auction-execution-workspace-v1/spec.md) and confirmed product assets own product scope and behavior;
 - accepted [ADRs](../adr) own hard architecture decisions within their stated concern;
 - [CONTEXT.md](../../CONTEXT.md) owns canonical domain language and distinctions;
 - the approved [UX Spec](../ux/ux-spec.md) owns user-visible task behavior;
@@ -980,7 +980,7 @@ Until the applicable obligation is evidenced, the affected Task Definition remai
 - [Technical Design](technical-design.md)
 - [System Architecture](system-architecture.md)
 - [UX Spec](../ux/ux-spec.md)
-- [Product specification](../../.scratch/ai-investment-banking-productization-wayfinding/spec.md)
+- [Product specification](../../.scratch/controlled-sell-side-auction-execution-workspace-v1/spec.md)
 - [ADR 0012 — Fix AI egress to the HelloX route](../adr/0012-fix-ai-egress-to-the-hellox-route.md)
 - [ADR 0016 — Use composite version-bound Native Locators](../adr/0016-use-composite-version-bound-native-locators.md)
 - [ADR 0019 — Prohibit promoting live Deal Material into reusable templates](../adr/0019-prohibit-promoting-live-deal-material-into-reusable-templates.md)

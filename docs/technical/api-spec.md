@@ -17,7 +17,7 @@ Implementation will define canonical TypeScript contracts and generate OpenAPI 3
 
 Authority is concern-specific rather than one misleading global list:
 
-1. the approved [Product Specification](../../.scratch/ai-investment-banking-productization-wayfinding/spec.md) and resolved product issues own product scope and behavior;
+1. the approved [Product Specification](../../.scratch/controlled-sell-side-auction-execution-workspace-v1/spec.md) and resolved product issues own product scope and behavior;
 2. [CONTEXT.md](../../CONTEXT.md) owns canonical domain language and distinctions;
 3. accepted [ADRs](../adr) own hard architecture decisions within their stated concern;
 4. approved [User Flow](../ux/user-flow.md), [Information Architecture](../ux/information-architecture.md), [UX Spec](../ux/ux-spec.md), and [Wireframes](../ux/wireframes.md) own user-visible task behavior;
