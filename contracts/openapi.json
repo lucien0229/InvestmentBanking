@@ -1,0 +1,87 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "HelloX Investment Banking V1 API",
+    "version": "1.0.0"
+  },
+  "servers": [{ "url": "/" }],
+  "paths": {
+    "/api/v1/session/bootstrap": {
+      "post": {
+        "operationId": "bootstrap_session",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MagicLinkBootstrap" } } } },
+        "responses": {
+          "202": { "description": "Magic Link requested", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MagicLinkBootstrapAccepted" } } } },
+          "400": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/api/v1/session/bootstrap/verify": {
+      "post": {
+        "operationId": "verify_magic_link",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MagicLinkVerification" } } } },
+        "responses": {
+          "200": { "description": "Mailbox verified", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SessionPosture" } } } },
+          "401": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/api/v1/session/passkey/register": {
+      "post": {
+        "operationId": "register_passkey",
+        "responses": {
+          "201": { "description": "Passkey registered", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SessionPosture" } } } },
+          "403": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/api/v1/session/passkey/authenticate": {
+      "post": {
+        "operationId": "authenticate_passkey",
+        "responses": {
+          "200": { "description": "Passkey-backed session", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SessionPosture" } } } },
+          "403": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/overview": {
+      "get": {
+        "operationId": "get_deal_overview",
+        "parameters": [{ "name": "deal_id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": {
+          "200": { "description": "Deal Overview", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DealOverviewProjection" } } } },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "description": "Resource not visible in current scope", "content": { "application/problem+json": { "schema": { "$ref": "#/components/schemas/Problem" } } } }
+        }
+      }
+    },
+    "/api/v1/account/audit-events": {
+      "get": {
+        "operationId": "list_account_audit_events",
+        "parameters": [{ "name": "deal_id", "in": "query", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": {
+          "200": { "description": "Privacy-minimized Audit Events", "content": { "application/json": { "schema": { "type": "object", "required": ["events"], "properties": { "events": { "type": "array", "items": { "$ref": "#/components/schemas/AuditEvent" } } } } } } },
+          "401": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "MagicLinkBootstrap": { "type": "object", "required": ["email"], "additionalProperties": false, "properties": { "email": { "type": "string", "format": "email" } } },
+      "MagicLinkVerification": { "type": "object", "required": ["token"], "additionalProperties": false, "properties": { "token": { "type": "string", "minLength": 16 } } },
+      "MagicLinkBootstrapAccepted": { "type": "object", "required": ["status"], "properties": { "status": { "const": "magic_link_sent" }, "test_verification_token": { "type": "string" } } },
+      "SessionPosture": { "type": "object", "required": ["status", "posture"], "properties": { "status": { "type": "string" }, "posture": { "type": "string" } } },
+      "DealOverviewProjection": { "type": "object", "required": ["account", "deal", "workspace", "displayed_state", "authorization"], "additionalProperties": false, "properties": { "account": { "$ref": "#/components/schemas/AccountProjection" }, "deal": { "$ref": "#/components/schemas/DealProjection" }, "workspace": { "$ref": "#/components/schemas/WorkspaceProjection" }, "displayed_state": { "$ref": "#/components/schemas/DisplayedState" }, "authorization": { "$ref": "#/components/schemas/AuthorizationProjection" } } },
+      "AuditEvent": { "type": "object", "required": ["id", "code", "outcome", "object_kind", "object_id", "created_at"], "properties": { "id": { "type": "string" }, "code": { "type": "string" }, "outcome": { "type": "string" }, "object_kind": { "type": "string" }, "object_id": { "type": ["string", "null"] }, "created_at": { "type": "string" } } },
+      "Problem": { "type": "object", "required": ["type", "title", "status", "code", "detail", "instance", "outcome", "retryable", "recovery_action"], "additionalProperties": false, "properties": { "type": { "type": "string", "format": "uri-reference" }, "title": { "type": "string" }, "status": { "type": "integer" }, "code": { "type": "string" }, "detail": { "type": "string" }, "instance": { "type": "string" }, "outcome": { "type": "string" }, "retryable": { "type": "boolean" }, "recovery_action": { "type": "string" } } },
+      "AccountProjection": { "type": "object", "required": ["display_name"], "additionalProperties": false, "properties": { "display_name": { "type": "string" } } },
+      "DealProjection": { "type": "object", "required": ["id", "name", "client_label", "transaction_subject", "mandate_objective"], "additionalProperties": false, "properties": { "id": { "type": "string", "format": "uuid" }, "name": { "type": "string" }, "client_label": { "type": "string" }, "transaction_subject": { "type": "string" }, "mandate_objective": { "type": "string" } } },
+      "WorkspaceProjection": { "type": "object", "required": ["id", "posture", "posture_version", "current_pointers"], "additionalProperties": false, "properties": { "id": { "type": "string" }, "posture": { "type": "string" }, "posture_version": { "type": "integer" }, "current_pointers": { "type": "object", "additionalProperties": { "type": "string" } } } },
+      "DisplayedState": { "type": "object", "required": ["stage", "materiality", "source_posture", "next_controlled_action"], "additionalProperties": false, "properties": { "stage": { "type": "string" }, "materiality": { "type": "string" }, "source_posture": { "type": "string" }, "next_controlled_action": { "type": "string" } } },
+      "AuthorizationProjection": { "type": "object", "required": ["account_scope", "deal_scope", "session_posture"], "additionalProperties": false, "properties": { "account_scope": { "type": "string", "format": "uuid" }, "deal_scope": { "type": "string", "format": "uuid" }, "session_posture": { "const": "passkey_backed_session" } } }
+    },
+    "responses": { "Problem": { "description": "RFC 9457 problem", "content": { "application/problem+json": { "schema": { "$ref": "#/components/schemas/Problem" } } } } }
+  }
+}

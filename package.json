@@ -1,0 +1,43 @@
+{
+  "name": "hellox-investment-banking-v1",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "build": "npm run contracts:generate && tsc --noEmit && npm run web:build",
+    "contracts:generate": "node scripts/generate-contract.mjs",
+    "contracts:check": "node scripts/check-contract.mjs",
+    "db:migrate": "tsx scripts/migrate.ts",
+    "db:seed": "tsx scripts/seed.ts",
+    "db:up": "docker compose up -d postgres",
+    "db:down": "docker compose down",
+    "dev:api": "APP_ENV=development tsx apps/api/src/server.ts",
+    "dev:web": "next dev apps/web -p 3000",
+    "web:build": "next build apps/web",
+    "test": "npm run contracts:check && npm run db:migrate && npm run db:seed && tsx --test tests/*.test.ts tests/**/*.test.ts",
+    "test:unit": "tsx --test tests/unit/**/*.test.ts",
+    "test:http": "tsx --test tests/http/**/*.test.ts",
+    "test:browser": "bash scripts/browser-blackbox.sh"
+  },
+  "dependencies": {
+    "@fastify/cookie": "^11.0.2",
+    "@supabase/supabase-js": "2.105.0",
+    "fastify": "^5.6.1",
+    "next": "^15.5.6",
+    "pg": "^8.16.3",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@types/node": "^24.6.0",
+    "@types/pg": "^8.15.5",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.5",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  },
+  "overrides": {
+    "postcss": "8.5.26"
+  }
+}
