@@ -62,4 +62,4 @@ Not verified and intentionally not claimed: production control-plane persistence
 
 ## Integration update — 2026-08-31
 
-The Ticket 02 implementation commit `010c658` and tracker closure commit `eadc9d4` are now on `main`. The main worktree is clean at `d860c18`; no push, PR, cleanup, or Ticket 03/04 change was made. The originating implementation worktree is detached at `c6f7f55` and clean.
+The Ticket 02 implementation commit `010c658` and tracker closure commit `eadc9d4` are now on `main`. The main worktree is clean after this integration; no push, PR, cleanup, or Ticket 03/04 change was made. The originating implementation worktree is detached at `c6f7f55` and clean.
