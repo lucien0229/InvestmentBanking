@@ -44,6 +44,54 @@
         }
       }
     },
+    "/api/v1/public/project-northstar": {
+      "get": { "operationId": "get_project_northstar", "responses": { "200": { "description": "Synthetic Project Northstar proof", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SyntheticProof" } } } } } }
+    },
+    "/api/v1/public/project-northstar/states/{proof_state}": {
+      "get": { "operationId": "get_project_northstar_state", "parameters": [{ "name": "proof_state", "in": "path", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Synthetic proof state", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SyntheticProof" } } } }, "404": { "$ref": "#/components/responses/Problem" } } }
+    },
+    "/api/v1/public/project-northstar/recorded": {
+      "get": { "operationId": "get_project_northstar_recorded", "responses": { "200": { "description": "Accessible recorded proof alternative", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RecordedProof" } } } } } }
+    },
+    "/api/v1/public/project-northstar/sessions": {
+      "post": { "operationId": "create_synthetic_proof_session", "requestBody": { "required": false, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SyntheticProofSessionCreate" } } } }, "responses": { "201": { "description": "Synthetic proof session", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SyntheticProofSession" } } } }, "400": { "$ref": "#/components/responses/Problem" }, "403": { "$ref": "#/components/responses/Problem" }, "429": { "$ref": "#/components/responses/Problem" } } }
+    },
+    "/api/v1/public/project-northstar/sessions/{session_id}": {
+      "get": { "operationId": "get_synthetic_proof_session", "parameters": [{ "name": "session_id", "in": "path", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Resumable synthetic proof state", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SyntheticProofSession" } } } }, "401": { "$ref": "#/components/responses/Problem" }, "404": { "$ref": "#/components/responses/Problem" } } }
+    },
+    "/api/v1/public/project-northstar/sessions/{session_id}/observations": {
+      "post": { "operationId": "create_synthetic_proof_observation", "parameters": [{ "name": "session_id", "in": "path", "required": true, "schema": { "type": "string" } }], "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SyntheticProofObservation" } } } }, "responses": { "201": { "description": "Observed synthetic proof checkpoint", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SyntheticProofSession" } } } }, "401": { "$ref": "#/components/responses/Problem" }, "403": { "$ref": "#/components/responses/Problem" }, "404": { "$ref": "#/components/responses/Problem" }, "429": { "$ref": "#/components/responses/Problem" } } }
+    },
+    "/api/v1/public/project-northstar/sessions/{session_id}/claim-corrections": {
+      "post": { "operationId": "create_synthetic_claim_correction", "parameters": [{ "name": "session_id", "in": "path", "required": true, "schema": { "type": "string" } }], "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SyntheticClaimCorrectionCreate" } } } }, "responses": { "201": { "description": "Synthetic correction", "content": { "application/json": { "schema": { "type": "object" } } } }, "400": { "$ref": "#/components/responses/Problem" }, "403": { "$ref": "#/components/responses/Problem" }, "409": { "$ref": "#/components/responses/Problem" }, "422": { "$ref": "#/components/responses/Problem" }, "429": { "$ref": "#/components/responses/Problem" } } }
+    },
+    "/api/v1/public/project-northstar/sessions/{session_id}/conflict-resolutions": {
+      "post": { "operationId": "create_synthetic_conflict_resolution", "parameters": [{ "name": "session_id", "in": "path", "required": true, "schema": { "type": "string" } }], "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SyntheticConflictResolutionCreate" } } } }, "responses": { "201": { "description": "Synthetic conflict disposition", "content": { "application/json": { "schema": { "type": "object" } } } }, "400": { "$ref": "#/components/responses/Problem" }, "403": { "$ref": "#/components/responses/Problem" }, "409": { "$ref": "#/components/responses/Problem" }, "422": { "$ref": "#/components/responses/Problem" }, "429": { "$ref": "#/components/responses/Problem" } } }
+    },
+    "/api/v1/public/project-northstar/sessions/{session_id}/deterministic-runs": {
+      "post": { "operationId": "create_synthetic_deterministic_run", "parameters": [{ "name": "session_id", "in": "path", "required": true, "schema": { "type": "string" } }], "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SyntheticDeterministicRunCreate" } } } }, "responses": { "202": { "description": "Completed synthetic deterministic Job", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SyntheticProofJob" } } } }, "400": { "$ref": "#/components/responses/Problem" }, "403": { "$ref": "#/components/responses/Problem" }, "409": { "$ref": "#/components/responses/Problem" }, "422": { "$ref": "#/components/responses/Problem" }, "429": { "$ref": "#/components/responses/Problem" } } }
+    },
+    "/api/v1/public/project-northstar/sessions/{session_id}/impact-acceptances": {
+      "post": { "operationId": "create_synthetic_impact_acceptance", "parameters": [{ "name": "session_id", "in": "path", "required": true, "schema": { "type": "string" } }], "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SyntheticImpactAcceptanceCreate" } } } }, "responses": { "201": { "description": "Synthetic affected scope acceptance", "content": { "application/json": { "schema": { "type": "object" } } } }, "400": { "$ref": "#/components/responses/Problem" }, "403": { "$ref": "#/components/responses/Problem" }, "409": { "$ref": "#/components/responses/Problem" }, "422": { "$ref": "#/components/responses/Problem" }, "429": { "$ref": "#/components/responses/Problem" } } }
+    },
+    "/api/v1/public/project-northstar/sessions/{session_id}/revisions": {
+      "post": { "operationId": "create_synthetic_revision", "parameters": [{ "name": "session_id", "in": "path", "required": true, "schema": { "type": "string" } }], "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SyntheticRevisionCreate" } } } }, "responses": { "202": { "description": "Completed synthetic Revision Job", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SyntheticProofJob" } } } }, "400": { "$ref": "#/components/responses/Problem" }, "403": { "$ref": "#/components/responses/Problem" }, "409": { "$ref": "#/components/responses/Problem" }, "422": { "$ref": "#/components/responses/Problem" }, "429": { "$ref": "#/components/responses/Problem" } } }
+    },
+    "/api/v1/public/project-northstar/artifacts/{artifact_id}": {
+      "get": { "operationId": "get_project_northstar_artifact", "parameters": [{ "name": "artifact_id", "in": "path", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Synthetic artifact metadata", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SyntheticArtifactMetadata" } } } }, "404": { "$ref": "#/components/responses/Problem" } } }
+    },
+    "/api/v1/public/project-northstar/artifacts/{artifact_id}/download": {
+      "get": { "operationId": "download_project_northstar_artifact", "parameters": [{ "name": "artifact_id", "in": "path", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Exact rights-cleared synthetic artifact bytes" }, "404": { "$ref": "#/components/responses/Problem" } } }
+    },
+    "/api/v1/public/project-northstar/sessions/{session_id}/jobs/{job_id}": {
+      "get": { "operationId": "get_synthetic_job", "parameters": [{ "name": "session_id", "in": "path", "required": true, "schema": { "type": "string" } }, { "name": "job_id", "in": "path", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Synthetic Job" }, "404": { "$ref": "#/components/responses/Problem" } } }
+    },
+    "/api/v1/public/project-northstar/sessions/{session_id}/jobs/{job_id}/events": {
+      "get": { "operationId": "get_synthetic_job_events", "parameters": [{ "name": "session_id", "in": "path", "required": true, "schema": { "type": "string" } }, { "name": "job_id", "in": "path", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Synthetic Job SSE", "content": { "text/event-stream": { "schema": { "type": "string" } } } }, "404": { "$ref": "#/components/responses/Problem" } } }
+    },
+    "/api/v1/public/project-northstar/sessions/{session_id}/artifact-inspections": {
+      "post": { "operationId": "create_synthetic_artifact_inspection", "parameters": [{ "name": "session_id", "in": "path", "required": true, "schema": { "type": "string" } }], "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SyntheticArtifactInspectionCreate" } } } }, "responses": { "201": { "description": "Synthetic artifact download receipt", "content": { "application/json": { "schema": { "type": "object" } } } }, "401": { "$ref": "#/components/responses/Problem" }, "403": { "$ref": "#/components/responses/Problem" }, "404": { "$ref": "#/components/responses/Problem" }, "422": { "$ref": "#/components/responses/Problem" }, "429": { "$ref": "#/components/responses/Problem" } } }
+    },
     "/api/v1/deals/{deal_id}/overview": {
       "get": {
         "operationId": "get_deal_overview",
@@ -70,6 +118,19 @@
   "components": {
     "schemas": {
       "MagicLinkBootstrap": { "type": "object", "required": ["email"], "additionalProperties": false, "properties": { "email": { "type": "string", "format": "email" } } },
+      "SyntheticProof": { "type": "object", "required": ["synthetic", "fixture", "fixture_version", "required_checkpoints"], "additionalProperties": true, "properties": { "synthetic": { "const": true }, "fixture": { "const": "project_northstar" }, "fixture_version": { "type": "string" }, "required_checkpoints": { "type": "array", "items": { "type": "string" } }, "current_revision": { "type": "object" }, "real_uploads_allowed": { "const": false }, "confidential_processing_allowed": { "const": false } } },
+      "SyntheticProofSession": { "allOf": [{ "$ref": "#/components/schemas/SyntheticProof" }, { "type": "object", "required": ["id", "session", "completion", "observed_checkpoints"], "properties": { "id": { "type": "string" }, "session": { "type": "object" }, "completion": { "type": "object" }, "observed_checkpoints": { "type": "array", "items": { "type": "string" } } } }] },
+      "SyntheticProofJob": { "type": "object", "required": ["id", "kind", "state", "synthetic", "result"], "properties": { "id": { "type": "string" }, "kind": { "type": "string" }, "state": { "const": "completed" }, "synthetic": { "const": true }, "result": { "type": "object" } } },
+      "SyntheticProofSessionCreate": { "type": "object", "additionalProperties": false, "properties": { "fixture_version": { "const": "1.0.0" }, "fixture": { "const": "project_northstar_v1" } } },
+      "SyntheticProofObservation": { "type": "object", "required": ["proof_state"], "additionalProperties": false, "properties": { "proof_state": { "type": "string" } } },
+      "SyntheticClaimCorrectionCreate": { "type": "object", "required": ["claim_id", "evidence_id", "corrected_value", "reason"], "additionalProperties": false, "properties": { "claim_id": { "type": "string" }, "evidence_id": { "type": "string" }, "corrected_value": { "type": "string" }, "reason": { "type": "string", "minLength": 1 } } },
+      "SyntheticConflictResolutionCreate": { "type": "object", "required": ["conflict_id", "disposition", "retained_claim_ids", "scope", "rationale"], "additionalProperties": false, "properties": { "conflict_id": { "type": "string" }, "disposition": { "type": "string" }, "retained_claim_ids": { "type": "array", "minItems": 2, "items": { "type": "string" } }, "scope": { "type": "string" }, "rationale": { "type": "string" } } },
+      "SyntheticDeterministicRunCreate": { "type": "object", "required": ["rule_set", "corrected_cash"], "additionalProperties": false, "properties": { "rule_set": { "type": "string" }, "corrected_cash": { "type": "string" } } },
+      "SyntheticImpactAcceptanceCreate": { "type": "object", "required": ["assessment_id", "accepted_scope"], "additionalProperties": false, "properties": { "assessment_id": { "type": "string" }, "accepted_scope": { "type": "array", "minItems": 1, "items": { "type": "string" } } } },
+      "SyntheticRevisionCreate": { "type": "object", "required": ["source_record_id", "reason"], "additionalProperties": false, "properties": { "source_record_id": { "type": "string" }, "reason": { "type": "string", "minLength": 1 } } },
+      "SyntheticArtifactInspectionCreate": { "type": "object", "required": ["artifact_id", "sha256"], "additionalProperties": false, "properties": { "artifact_id": { "type": "string" }, "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" } } },
+      "SyntheticArtifactMetadata": { "type": "object", "required": ["id", "filename", "format", "revision", "rights_posture", "sha256", "download_url"], "properties": { "id": { "type": "string" }, "filename": { "type": "string" }, "format": { "type": "string" }, "revision": { "type": "string" }, "rights_posture": { "const": "rights_cleared_synthetic" }, "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }, "download_url": { "type": "string" } } },
+      "RecordedProof": { "type": "object", "required": ["synthetic", "interactive_completion_emitted", "chapters"], "properties": { "synthetic": { "const": true }, "interactive_completion_emitted": { "const": false }, "chapters": { "type": "array" } } },
       "MagicLinkVerification": { "type": "object", "required": ["token"], "additionalProperties": false, "properties": { "token": { "type": "string", "minLength": 16 } } },
       "MagicLinkBootstrapAccepted": { "type": "object", "required": ["status"], "properties": { "status": { "const": "magic_link_sent" }, "test_verification_token": { "type": "string" } } },
       "SessionPosture": { "type": "object", "required": ["status", "posture"], "properties": { "status": { "type": "string" }, "posture": { "type": "string" } } },

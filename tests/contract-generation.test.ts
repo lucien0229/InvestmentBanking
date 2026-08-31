@@ -16,3 +16,19 @@ test("generated API contract declares the Reference Deal seam and stable problem
   assert.ok(contract.components.schemas.Problem.properties?.code);
   assert.ok(contract.components.schemas.DealOverviewProjection.properties?.authorization);
 });
+
+test("generated API contract declares the isolated Project Northstar synthetic proof seam", () => {
+  const contract = JSON.parse(fs.readFileSync("contracts/openapi.json", "utf8")) as {
+    paths: Record<string, { get?: unknown; post?: unknown }>;
+    components: { schemas: Record<string, { properties?: Record<string, unknown> }> };
+  };
+  assert.ok(contract.paths["/api/v1/public/project-northstar"]?.get);
+  assert.ok(contract.paths["/api/v1/public/project-northstar/sessions"]?.post);
+  assert.ok(contract.paths["/api/v1/public/project-northstar/sessions/{session_id}/observations"]?.post);
+  assert.ok(contract.paths["/api/v1/public/project-northstar/sessions/{session_id}/artifact-inspections"]?.post);
+  assert.ok(contract.paths["/api/v1/public/project-northstar/sessions/{session_id}/revisions"]?.post);
+  assert.ok(contract.paths["/api/v1/public/project-northstar/artifacts/{artifact_id}/download"]?.get);
+  assert.ok(contract.components.schemas.SyntheticProof.properties?.real_uploads_allowed);
+  assert.ok(contract.components.schemas.SyntheticArtifactMetadata.properties?.sha256);
+  assert.ok(contract.components.schemas.SyntheticProofObservation);
+});

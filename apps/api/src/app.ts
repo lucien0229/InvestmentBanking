@@ -4,6 +4,12 @@ import cookie from "@fastify/cookie";
 import { z } from "zod";
 import { AuthError, LocalAuthAdapter, SupabaseAuthAdapter, type AuthAdapter, type AuthMode } from "./auth.js";
 import { Database } from "./database.js";
+import {
+  PROJECT_NORTHSTAR_FIXTURE_VERSION,
+  PROJECT_NORTHSTAR_PROOF_COOKIE,
+  SyntheticProofError,
+  SyntheticProofStore,
+} from "./synthetic-proof.js";
 
 const dealIdSchema = z.string().uuid();
 const emailSchema = z.string().email().max(320);
@@ -13,6 +19,7 @@ export interface BuildApiOptions {
   database?: Database;
   authMode?: AuthMode;
   authAdapter?: AuthAdapter;
+  syntheticProofStore?: SyntheticProofStore;
 }
 
 function traceId() { return crypto.randomUUID(); }
@@ -26,7 +33,7 @@ function problem(reply: FastifyReply, status: number, code: string, detail: stri
     detail,
     instance,
     outcome: "rejected",
-    retryable: status === 401 || status === 503,
+    retryable: status === 401 || status === 429 || status === 503,
     recovery_action: recoveryAction,
   });
 }
@@ -50,7 +57,33 @@ export async function buildApi(options: BuildApiOptions = {}): Promise<FastifyIn
   const authMode = options.authMode ?? (process.env.AUTH_ADAPTER === "supabase" ? "supabase" : "local");
   if (authMode === "local" && process.env.APP_ENV === "production") throw new Error("local auth adapter is forbidden in production");
   const auth = options.authAdapter ?? (authMode === "supabase" ? new SupabaseAuthAdapter(database) : new LocalAuthAdapter(database));
+  const syntheticProof = options.syntheticProofStore ?? new SyntheticProofStore();
   const api = Fastify({ logger: false }) as unknown as FastifyInstance & { database: Database };
+  const publicMutationBuckets = new Map<string, { tokens: number; updatedAt: number }>();
+  const allowPublicMutation = (request: FastifyRequest, reply: FastifyReply) => {
+    const origin = request.headers.origin;
+    const configuredOrigin = process.env.PUBLIC_WEB_ORIGIN;
+    const originAllowed = origin ? (configuredOrigin ? origin === configuredOrigin : /^https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?$/.test(origin)) : false;
+    if (!originAllowed) {
+      problem(reply, 403, "origin_rejected", "The request Origin is not allowed for this first-party proof surface.", "return_to_public_proof", request.url);
+      return false;
+    }
+    const now = Date.now();
+    for (const [bucketKey, value] of publicMutationBuckets) if (now - value.updatedAt > 60_000) publicMutationBuckets.delete(bucketKey);
+    const key = request.ip || "unknown";
+    const bucket = publicMutationBuckets.get(key) ?? { tokens: 30, updatedAt: now };
+    bucket.tokens = Math.min(30, bucket.tokens + ((now - bucket.updatedAt) / 60_000) * 180);
+    bucket.updatedAt = now;
+    if (bucket.tokens < 1) {
+      publicMutationBuckets.set(key, bucket);
+      reply.header("retry-after", "60");
+      problem(reply, 429, "rate_limited", "The synthetic proof request limit has been reached.", "retry_after_delay", request.url);
+      return false;
+    }
+    bucket.tokens -= 1;
+    publicMutationBuckets.set(key, bucket);
+    return true;
+  };
   api.database = database;
   await api.register(cookie);
 
@@ -163,6 +196,186 @@ export async function buildApi(options: BuildApiOptions = {}): Promise<FastifyIn
     if (result.kind === "not_found") return problem(reply, 404, "resource_not_found", "The requested resource is not available.", "return_to_safe_parent", request.url);
     if (result.kind !== "ok") return problem(reply, 401, "authentication_required", "Authenticate to continue.", "authenticate", request.url);
     return reply.code(200).send(result.value);
+  });
+
+  api.get("/api/v1/public/project-northstar", async (request, reply) => {
+    const session = syntheticProof.getSessionByToken(request.cookies[PROJECT_NORTHSTAR_PROOF_COOKIE] ?? "");
+    return reply.code(200).send(session ? syntheticProof.sessionState(session) : syntheticProof.publicProof());
+  });
+
+  api.get<{ Params: { proof_state: string } }>("/api/v1/public/project-northstar/states/:proof_state", async (request, reply) => {
+    const checkpoint = syntheticProof.normalizeCheckpoint(request.params.proof_state);
+    if (!checkpoint) return problem(reply, 404, "resource_not_found", "The requested resource is not available.", "return_to_public_proof", request.url);
+    const token = request.cookies[PROJECT_NORTHSTAR_PROOF_COOKIE];
+    const session = token ? syntheticProof.getSessionByToken(token) : undefined;
+    if (session) return reply.code(200).send(syntheticProof.stateSnapshot(session, checkpoint));
+    return reply.code(200).send(syntheticProof.publicState(checkpoint));
+  });
+
+  api.get("/api/v1/public/project-northstar/recorded", async (_request, reply) => reply.code(200).send(syntheticProof.recorded()));
+
+  api.post("/api/v1/public/project-northstar/sessions", async (request, reply) => {
+    if (!allowPublicMutation(request, reply)) return;
+    const body = z.object({ fixture_version: z.string().optional(), fixture: z.string().optional() }).strict().parse(request.body ?? {});
+    const fixtureVersion = body.fixture_version ?? (body.fixture === "project_northstar_v1" ? PROJECT_NORTHSTAR_FIXTURE_VERSION : body.fixture);
+    try {
+      const created = syntheticProof.createSession(fixtureVersion ?? PROJECT_NORTHSTAR_FIXTURE_VERSION);
+      reply.setCookie(PROJECT_NORTHSTAR_PROOF_COOKIE, created.token, { httpOnly: true, secure: true, sameSite: "strict", path: "/", maxAge: 15 * 60 });
+      return reply.code(201).header("location", `/api/v1/public/project-northstar/sessions/${created.session.id}`).send(syntheticProof.sessionState(created.session));
+    } catch (error) {
+      if (error instanceof SyntheticProofError) {
+        if (error.status === 429) reply.header("retry-after", "60");
+        return problem(reply, error.status, error.code, error.message, error.recoveryAction, request.url);
+      }
+      throw error;
+    }
+  });
+
+  api.post<{ Params: { session_id: string } }>("/api/v1/public/project-northstar/sessions/:session_id/observations", async (request, reply) => {
+    if (!allowPublicMutation(request, reply)) return;
+    const session = getSyntheticSession(request, reply, request.params.session_id);
+    if (!session) return;
+    const body = z.object({ proof_state: z.string() }).strict().parse(request.body);
+    const checkpoint = syntheticProof.normalizeCheckpoint(body.proof_state);
+    if (!checkpoint) return problem(reply, 404, "resource_not_found", "The requested resource is not available.", "return_to_public_proof", request.url);
+    return reply.code(201).header("location", `${request.url}`).send(syntheticProof.observeState(session, checkpoint));
+  });
+
+  function getSyntheticSession(request: FastifyRequest, reply: FastifyReply, sessionId: string) {
+    const token = request.cookies[PROJECT_NORTHSTAR_PROOF_COOKIE];
+    if (!token) {
+      problem(reply, 401, "authentication_required", "Continue with the same synthetic proof session.", "start_synthetic_proof_session", request.url);
+      return undefined;
+    }
+    const session = syntheticProof.getSession(sessionId, token);
+    if (!session) {
+      problem(reply, 404, "resource_not_found", "The requested resource is not available.", "restart_synthetic_proof", request.url);
+      return undefined;
+    }
+    return session;
+  }
+
+  api.get<{ Params: { session_id: string } }>("/api/v1/public/project-northstar/sessions/:session_id", async (request, reply) => {
+    const session = getSyntheticSession(request, reply, request.params.session_id);
+    if (!session) return;
+    return reply.code(200).send(syntheticProof.sessionState(session));
+  });
+
+  api.post<{ Params: { session_id: string } }>("/api/v1/public/project-northstar/sessions/:session_id/claim-corrections", async (request, reply) => {
+    if (!allowPublicMutation(request, reply)) return;
+    const session = getSyntheticSession(request, reply, request.params.session_id);
+    if (!session) return;
+    const body = z.object({ claim_id: z.string(), evidence_id: z.string(), corrected_value: z.string(), reason: z.string().min(1) }).strict().parse(request.body);
+    try {
+      return reply.code(201).header("location", `${request.url}`).send(syntheticProof.recordCorrection(session, { claimId: body.claim_id, evidenceId: body.evidence_id, correctedValue: body.corrected_value, actorId: "synthetic-prospective-banker", reason: body.reason }));
+    } catch (error) {
+      if (error instanceof SyntheticProofError) return problem(reply, error.status, error.code, error.message, error.recoveryAction, request.url);
+      throw error;
+    }
+  });
+
+  api.post<{ Params: { session_id: string } }>("/api/v1/public/project-northstar/sessions/:session_id/conflict-resolutions", async (request, reply) => {
+    if (!allowPublicMutation(request, reply)) return;
+    const session = getSyntheticSession(request, reply, request.params.session_id);
+    if (!session) return;
+    const body = z.object({ conflict_id: z.string(), disposition: z.string(), retained_claim_ids: z.array(z.string()).min(2), scope: z.string().min(1), rationale: z.string().min(1) }).strict().parse(request.body);
+    try {
+      return reply.code(201).header("location", `${request.url}`).send(syntheticProof.recordConflictResolution(session, { conflictId: body.conflict_id, disposition: body.disposition, retainedClaimIds: body.retained_claim_ids, scope: body.scope, rationale: body.rationale }));
+    } catch (error) {
+      if (error instanceof SyntheticProofError) return problem(reply, error.status, error.code, error.message, error.recoveryAction, request.url);
+      throw error;
+    }
+  });
+
+  api.post<{ Params: { session_id: string } }>("/api/v1/public/project-northstar/sessions/:session_id/deterministic-runs", async (request, reply) => {
+    if (!allowPublicMutation(request, reply)) return;
+    const session = getSyntheticSession(request, reply, request.params.session_id);
+    if (!session) return;
+    const body = z.object({ rule_set: z.string(), corrected_cash: z.string() }).strict().parse(request.body);
+    try {
+      const job = syntheticProof.createDeterministicRun(session, { ruleSet: body.rule_set, correctedCash: body.corrected_cash });
+      return reply.code(202).header("location", `/api/v1/public/project-northstar/sessions/${request.params.session_id}/jobs/${job.id}`).send(job);
+    } catch (error) {
+      if (error instanceof SyntheticProofError) return problem(reply, error.status, error.code, error.message, error.recoveryAction, request.url);
+      throw error;
+    }
+  });
+
+  api.post<{ Params: { session_id: string } }>("/api/v1/public/project-northstar/sessions/:session_id/impact-acceptances", async (request, reply) => {
+    if (!allowPublicMutation(request, reply)) return;
+    const session = getSyntheticSession(request, reply, request.params.session_id);
+    if (!session) return;
+    const body = z.object({ assessment_id: z.string(), accepted_scope: z.array(z.string()).min(1) }).strict().parse(request.body);
+    try {
+      return reply.code(201).header("location", `${request.url}`).send(syntheticProof.recordImpactAcceptance(session, { assessmentId: body.assessment_id, acceptedScope: body.accepted_scope }));
+    } catch (error) {
+      if (error instanceof SyntheticProofError) return problem(reply, error.status, error.code, error.message, error.recoveryAction, request.url);
+      throw error;
+    }
+  });
+
+  api.post<{ Params: { session_id: string } }>("/api/v1/public/project-northstar/sessions/:session_id/revisions", async (request, reply) => {
+    if (!allowPublicMutation(request, reply)) return;
+    const session = getSyntheticSession(request, reply, request.params.session_id);
+    if (!session) return;
+    const body = z.object({ source_record_id: z.string(), reason: z.string().min(1) }).strict().parse(request.body);
+    try {
+      const job = syntheticProof.createRevision(session, { sourceRecordId: body.source_record_id, reason: body.reason });
+      return reply.code(202).header("location", `/api/v1/public/project-northstar/sessions/${request.params.session_id}/jobs/${job.id}`).send(job);
+    } catch (error) {
+      if (error instanceof SyntheticProofError) return problem(reply, error.status, error.code, error.message, error.recoveryAction, request.url);
+      throw error;
+    }
+  });
+
+  api.get<{ Params: { session_id: string; job_id: string } }>("/api/v1/public/project-northstar/sessions/:session_id/jobs/:job_id", async (request, reply) => {
+    const session = getSyntheticSession(request, reply, request.params.session_id);
+    if (!session) return;
+    const job = syntheticProof.getJob(session, request.params.job_id);
+    if (!job) return problem(reply, 404, "resource_not_found", "The requested resource is not available.", "return_to_synthetic_proof", request.url);
+    return reply.code(200).send(job);
+  });
+
+  api.get<{ Params: { session_id: string; job_id: string } }>("/api/v1/public/project-northstar/sessions/:session_id/jobs/:job_id/events", async (request, reply) => {
+    const session = getSyntheticSession(request, reply, request.params.session_id);
+    if (!session) return;
+    const job = syntheticProof.getJob(session, request.params.job_id);
+    if (!job) return problem(reply, 404, "resource_not_found", "The requested resource is not available.", "return_to_synthetic_proof", request.url);
+    return reply.code(200).type("text/event-stream").header("cache-control", "no-store").send(`id: 1\nevent: completed\ndata: ${JSON.stringify(job)}\n\n`);
+  });
+
+  api.post<{ Params: { session_id: string } }>("/api/v1/public/project-northstar/sessions/:session_id/artifact-inspections", async (request, reply) => {
+    if (!allowPublicMutation(request, reply)) return;
+    const session = getSyntheticSession(request, reply, request.params.session_id);
+    if (!session) return;
+    const body = z.object({ artifact_id: z.string(), sha256: z.string().regex(/^[a-f0-9]{64}$/) }).strict().parse(request.body);
+    try {
+      const artifact = syntheticProof.recordArtifactDownload(session, body.artifact_id, body.sha256);
+      return reply.code(201).header("location", `${request.url}`).send({ synthetic: true, artifact_id: artifact.id, revision: artifact.revision, sha256: artifact.sha256, session: syntheticProof.sessionState(session) });
+    } catch (error) {
+      if (error instanceof SyntheticProofError) return problem(reply, error.status, error.code, error.message, error.recoveryAction, request.url);
+      throw error;
+    }
+  });
+
+  api.get<{ Params: { artifact_id: string } }>("/api/v1/public/project-northstar/artifacts/:artifact_id", async (request, reply) => {
+    const artifact = syntheticProof.artifact(request.params.artifact_id);
+    if (!artifact) return problem(reply, 404, "resource_not_found", "The requested resource is not available.", "return_to_public_proof", request.url);
+    if (artifact.revision === "0.4") {
+      const session = syntheticProof.getSessionByToken(request.cookies[PROJECT_NORTHSTAR_PROOF_COOKIE] ?? "");
+      if (!session || !session.revision_job) return problem(reply, 404, "resource_not_found", "The requested resource is not available.", "append_sr_006", request.url);
+    }
+    return reply.code(200).send(syntheticProof.artifactMetadata(artifact.id));
+  });
+
+  api.get<{ Params: { artifact_id: string } }>("/api/v1/public/project-northstar/artifacts/:artifact_id/download", async (request, reply) => {
+    const artifact = syntheticProof.artifact(request.params.artifact_id);
+    if (!artifact) return problem(reply, 404, "resource_not_found", "The requested resource is not available.", "return_to_public_proof", request.url);
+    if (artifact.revision === "0.4") {
+      const session = syntheticProof.getSessionByToken(request.cookies[PROJECT_NORTHSTAR_PROOF_COOKIE] ?? "");
+      if (!session || !session.revision_job) return problem(reply, 404, "resource_not_found", "The requested resource is not available.", "append_sr_006", request.url);
+    }
+    return reply.code(200).type(artifact.mime_type).header("content-disposition", `attachment; filename="${artifact.filename}"`).header("cache-control", "public, max-age=3600, immutable").header("x-synthetic-revision", artifact.revision).send(artifact.bytes);
   });
 
   return api;
