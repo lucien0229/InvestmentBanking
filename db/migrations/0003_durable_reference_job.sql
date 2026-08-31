@@ -1,5 +1,24 @@
 CREATE SCHEMA IF NOT EXISTS jobs;
 CREATE SCHEMA IF NOT EXISTS commerce;
+CREATE SCHEMA IF NOT EXISTS extensions;
+
+-- Supabase installs pgcrypto under `extensions`; the local PostgreSQL image
+-- installs it under `public`. Keep the durable Job functions portable without
+-- replacing a provider-managed extension function.
+DO $$
+BEGIN
+  IF to_regprocedure('extensions.digest(text,text)') IS NULL THEN
+    EXECUTE $fn$CREATE FUNCTION extensions.digest(data text, algorithm text)
+      RETURNS bytea LANGUAGE SQL IMMUTABLE PARALLEL SAFE
+      AS 'SELECT public.digest(data, algorithm)'$fn$;
+  END IF;
+  IF to_regprocedure('extensions.digest(bytea,text)') IS NULL THEN
+    EXECUTE $fn$CREATE FUNCTION extensions.digest(data bytea, algorithm text)
+      RETURNS bytea LANGUAGE SQL IMMUTABLE PARALLEL SAFE
+      AS 'SELECT public.digest(data, algorithm)'$fn$;
+  END IF;
+END
+$$;
 
 DO $$
 BEGIN
