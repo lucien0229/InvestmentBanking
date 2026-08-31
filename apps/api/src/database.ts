@@ -70,6 +70,37 @@ export class Database {
     }
   }
 
+  async withJobContext<T>(sessionToken: string, jobId: string, fn: (client: pg.PoolClient, context: { accountId: string; actorId: string; dealId: string; passkeyVerified: boolean; mode: string }) => Promise<T>): Promise<{ kind: "invalid" } | { kind: "not_found" } | { kind: "passkey_required" } | { kind: "ok"; value: T }> {
+    const client = await this.pool.connect();
+    try {
+      await client.query("BEGIN");
+      const session = await client.query<{ account_id: string; actor_id: string; passkey_verified: boolean; mode: string }>("SELECT * FROM app.begin_request($1, NULL)", [hashToken(sessionToken)]);
+      if (session.rowCount === 0) {
+        await client.query("ROLLBACK");
+        return { kind: "invalid" };
+      }
+      if (!session.rows[0].passkey_verified) {
+        await client.query("ROLLBACK");
+        return { kind: "passkey_required" };
+      }
+      const deal = await client.query<{ deal_id: string }>("SELECT * FROM jobs.resolve_job_deal($1)", [jobId]);
+      if (deal.rowCount !== 1 || !(await client.query("SELECT app.set_deal_scope($1)", [deal.rows[0].deal_id])).rows[0]?.set_deal_scope) {
+        await client.query("ROLLBACK");
+        return { kind: "not_found" };
+      }
+      const context = session.rows[0];
+      const value = await fn(client, { accountId: context.account_id, actorId: context.actor_id, dealId: deal.rows[0].deal_id, passkeyVerified: true, mode: context.mode });
+      await client.query("SELECT app.clear_request()");
+      await client.query("COMMIT");
+      return { kind: "ok", value };
+    } catch (error) {
+      await client.query("ROLLBACK").catch(() => undefined);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
   async close() {
     await this.pool.end();
   }

@@ -104,6 +104,43 @@
         }
       }
     },
+    "/api/v1/deals/{deal_id}/reference-jobs": {
+      "post": {
+        "operationId": "create_reference_deal_job",
+        "parameters": [{ "name": "deal_id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }, { "name": "Idempotency-Key", "in": "header", "required": true, "schema": { "type": "string", "minLength": 16, "maxLength": 128 } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ReferenceJobCreate" } } } },
+        "responses": { "202": { "description": "Durable Reference Job accepted", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/JobAccepted" } } } }, "400": { "$ref": "#/components/responses/Problem" }, "401": { "$ref": "#/components/responses/Problem" }, "403": { "$ref": "#/components/responses/Problem" }, "404": { "$ref": "#/components/responses/Problem" }, "409": { "$ref": "#/components/responses/Problem" } }
+      }
+    },
+    "/api/v1/jobs/{job_id}": {
+      "get": {
+        "operationId": "get_job",
+        "parameters": [{ "name": "job_id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "Authoritative Job snapshot", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Job" } } } }, "401": { "$ref": "#/components/responses/Problem" }, "403": { "$ref": "#/components/responses/Problem" }, "404": { "$ref": "#/components/responses/Problem" } }
+      }
+    },
+    "/api/v1/jobs/{job_id}/events": {
+      "get": {
+        "operationId": "get_job_events",
+        "parameters": [{ "name": "job_id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }, { "name": "Last-Event-ID", "in": "header", "required": false, "schema": { "type": "integer", "minimum": 0 } }],
+        "responses": { "200": { "description": "Durable Job SSE notification stream", "content": { "text/event-stream": { "schema": { "type": "string" } } } }, "400": { "$ref": "#/components/responses/Problem" }, "401": { "$ref": "#/components/responses/Problem" }, "404": { "$ref": "#/components/responses/Problem" }, "409": { "$ref": "#/components/responses/Problem" } }
+      }
+    },
+    "/api/v1/jobs/{job_id}/cancellations": {
+      "post": {
+        "operationId": "create_job_cancellation",
+        "parameters": [{ "name": "job_id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }, { "name": "If-Match", "in": "header", "required": true, "schema": { "type": "string" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["reason"], "additionalProperties": false, "properties": { "reason": { "type": "string", "minLength": 1, "maxLength": 120 } } } } } },
+        "responses": { "201": { "description": "Job cancellation accepted", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/JobControlResult" } } } }, "401": { "$ref": "#/components/responses/Problem" }, "404": { "$ref": "#/components/responses/Problem" }, "409": { "$ref": "#/components/responses/Problem" }, "412": { "$ref": "#/components/responses/Problem" }, "428": { "$ref": "#/components/responses/Problem" } }
+      }
+    },
+    "/api/v1/jobs/{job_id}/retries": {
+      "post": {
+        "operationId": "create_job_retry",
+        "parameters": [{ "name": "job_id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }, { "name": "If-Match", "in": "header", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Job retry accepted", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/JobControlResult" } } } }, "401": { "$ref": "#/components/responses/Problem" }, "404": { "$ref": "#/components/responses/Problem" }, "409": { "$ref": "#/components/responses/Problem" }, "412": { "$ref": "#/components/responses/Problem" }, "428": { "$ref": "#/components/responses/Problem" } }
+      }
+    },
     "/api/v1/account/audit-events": {
       "get": {
         "operationId": "list_account_audit_events",
@@ -258,7 +295,12 @@
       ,"CheckoutSession": { "type": "object", "required": ["id", "checkout_order_id", "payment_state", "provider", "live_verification_debt"], "properties": { "id": { "type": "string" }, "checkout_order_id": { "type": "string", "format": "uuid" }, "provider_session_id": { "type": "string" }, "provider": { "enum": ["stripe_test_adapter", "stripe_live_adapter"] }, "live_verification_debt": { "type": "boolean" }, "hosted_url": { "type": ["string", "null"] }, "payment_state": { "type": "string" }, "product_authoritative_status": { "type": "string" } } }
       ,"ProductEntitlement": { "type": "object", "required": ["id", "product_code", "capability_version", "active_deal_capacity", "capabilities", "status"], "properties": { "id": { "type": "string", "format": "uuid" }, "product_code": { "type": "string" }, "capability_version": { "type": "string" }, "term_start": { "type": "string" }, "term_end": { "type": "string" }, "active_deal_capacity": { "type": "integer" }, "capabilities": { "type": "array", "items": { "type": "string" } }, "status": { "type": "string" }, "actor_name": { "type": "string" } } }
       ,"CommercialReceipt": { "type": "object", "required": ["id", "checkout_order_id", "amount_minor", "currency", "status"], "properties": { "id": { "type": "string", "format": "uuid" }, "checkout_order_id": { "type": "string", "format": "uuid" }, "provider_payment_id": { "type": "string" }, "amount_minor": { "type": "integer" }, "currency": { "type": "string" }, "status": { "type": "string" } } }
-      ,"UsageSummary": { "type": "object", "required": ["active_deal_capacity", "granted_active_deals", "used_active_deals", "granted_allowances"], "properties": { "active_deal_capacity": { "type": "integer" }, "granted_active_deals": { "type": "integer" }, "used_active_deals": { "type": "integer" }, "granted_allowances": { "type": "object", "required": ["intensive_logical_pages", "intensive_operations", "archive_capacity_gb"], "properties": { "intensive_logical_pages": { "type": "integer" }, "intensive_operations": { "type": "integer" }, "archive_capacity_gb": { "type": "integer" } } } } }
+      ,"UsageSummary": { "type": "object", "required": ["active_deal_capacity", "granted_active_deals", "used_active_deals", "granted_allowances"], "properties": { "active_deal_capacity": { "type": "integer" }, "granted_active_deals": { "type": "integer" }, "used_active_deals": { "type": "integer" }, "granted_allowances": { "type": "object", "required": ["intensive_logical_pages", "intensive_operations", "archive_capacity_gb"], "properties": { "intensive_logical_pages": { "type": "integer" }, "intensive_operations": { "type": "integer" }, "archive_capacity_gb": { "type": "integer" } } } } },
+      "ReferenceJobCreate": { "type": "object", "required": ["purpose", "inputs"], "additionalProperties": false, "properties": { "purpose": { "const": "reference_workspace_build" }, "inputs": { "type": "object", "required": ["source_packet", "requested_scope"], "additionalProperties": false, "properties": { "source_packet": { "type": "string" }, "requested_scope": { "const": "synthetic_reference_fixture" } } } } },
+      "JobAccepted": { "type": "object", "required": ["id", "job_type", "state", "accepted_at"], "properties": { "id": { "type": "string", "format": "uuid" }, "job_type": { "const": "reference_workspace_build" }, "state": { "type": "string", "enum": ["queued", "running", "waiting_for_user", "waiting_for_source", "blocked", "failed_retryable", "failed_terminal", "canceled", "completed"] }, "accepted_at": { "type": "string", "format": "date-time" } } },
+      "JobScope": { "type": "object", "required": ["account_id", "deal_id", "purpose", "input_digest", "input_version", "workflow_version", "release_id", "allowance", "workspace_posture_version", "security_epoch", "scope_id", "runtime_principal", "operations", "expires_at"], "properties": { "account_id": { "type": "string", "format": "uuid" }, "deal_id": { "type": "string", "format": "uuid" }, "purpose": { "type": "string" }, "input_digest": { "type": "string" }, "input_version": { "type": "string" }, "workflow_version": { "type": "string" }, "release_id": { "type": "string" }, "allowance": { "type": "object", "required": ["class", "quantity", "posture"], "properties": { "class": { "type": "string" }, "quantity": { "type": "string" }, "posture": { "type": "string" } } }, "workspace_posture_version": { "type": "integer" }, "security_epoch": { "type": "integer" }, "scope_id": { "type": ["string", "null"] }, "runtime_principal": { "type": ["string", "null"] }, "operations": { "type": "array", "items": { "type": "string" } }, "expires_at": { "type": ["string", "null"] } } },
+      "Job": { "type": "object", "required": ["id", "job_type", "state", "progress", "scope", "result", "problem", "accepted_inputs", "created_at", "updated_at", "worker_heartbeat_at", "row_version"], "properties": { "id": { "type": "string", "format": "uuid" }, "job_type": { "type": "string" }, "state": { "type": "string", "enum": ["queued", "running", "waiting_for_user", "waiting_for_source", "blocked", "failed_retryable", "failed_terminal", "canceled", "completed"] }, "progress": { "type": "object", "additionalProperties": true }, "scope": { "$ref": "#/components/schemas/JobScope" }, "result": { "type": ["object", "null"] }, "problem": { "type": ["object", "null"] }, "accepted_inputs": { "type": "object" }, "created_at": { "type": "string", "format": "date-time" }, "updated_at": { "type": "string", "format": "date-time" }, "worker_heartbeat_at": { "type": ["string", "null"] }, "row_version": { "type": "integer" } } },
+      "JobControlResult": { "type": "object", "required": ["job_id", "state", "row_version"], "properties": { "job_id": { "type": "string", "format": "uuid" }, "state": { "type": "string" }, "row_version": { "type": "integer" } } }
     },
     "securitySchemes": { "bankerSession": { "type": "apiKey", "in": "cookie", "name": "__Host-banker_session", "description": "Passkey-backed Banker Session cookie; API authorization remains product-owned." } },
     "responses": { "Problem": { "description": "RFC 9457 problem", "content": { "application/problem+json": { "schema": { "$ref": "#/components/schemas/Problem" } } } } }

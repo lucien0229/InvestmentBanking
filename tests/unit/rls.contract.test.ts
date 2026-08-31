@@ -23,6 +23,24 @@ test("runtime role and tenant tables enforce the forced-RLS boundary", async (t)
   );
 });
 
+test("durable Job tables are forced-RLS and worker procedures are the only write seam", async (t) => {
+  const database = await createTestDatabase();
+  t.after(() => database.close());
+  const result = await database.ownerPool.query<{ schema: string; relname: string; relforcerowsecurity: boolean }>(
+    `SELECT n.nspname AS schema, c.relname, c.relforcerowsecurity
+     FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+     WHERE (n.nspname = 'jobs' AND c.relname = ANY($1)) OR (n.nspname = 'commerce' AND c.relname = ANY($2))
+     ORDER BY n.nspname, c.relname`,
+    [["idempotency_record", "job", "job_step", "job_attempt", "job_lease", "job_scope", "job_scope_deal", "job_scope_operation", "job_event", "transactional_outbox"], ["usage_reservation", "usage_ledger_entry"]],
+  );
+  assert.ok(result.rows.length >= 12);
+  assert.ok(result.rows.every((row) => row.relforcerowsecurity));
+  const acl = await database.ownerPool.query<{ identity_args: string; proacl: string | null }>(
+    "SELECT p.oid::regprocedure::text AS identity_args, p.proacl::text FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = 'jobs' AND p.proname IN ('start_reference_job', 'claim_reference_step', 'commit_reference_step', 'dispatch_reference_outbox')",
+  );
+  assert.ok(acl.rows.every((row) => !row.proacl?.includes("{=X") && !row.proacl?.includes(",=X")), "Job procedures must not be executable by PUBLIC");
+});
+
 test("database policy cannot be redirected to a different Deal by a caller-supplied object identity", async (t) => {
   const database = await createTestDatabase();
   t.after(() => database.close());

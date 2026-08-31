@@ -771,6 +771,278 @@ export const openApiContract = {
         }
       }
     },
+    "/api/v1/deals/{deal_id}/reference-jobs": {
+      "post": {
+        "operationId": "create_reference_deal_job",
+        "parameters": [
+          {
+            "name": "deal_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 128
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReferenceJobCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Durable Reference Job accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobAccepted"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/jobs/{job_id}": {
+      "get": {
+        "operationId": "get_job",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authoritative Job snapshot",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Job"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/jobs/{job_id}/events": {
+      "get": {
+        "operationId": "get_job_events",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Last-Event-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Durable Job SSE notification stream",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/jobs/{job_id}/cancellations": {
+      "post": {
+        "operationId": "create_job_cancellation",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "reason"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Job cancellation accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobControlResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "412": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "428": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/jobs/{job_id}/retries": {
+      "post": {
+        "operationId": "create_job_retry",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Job retry accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobControlResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "412": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "428": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
     "/api/v1/account/audit-events": {
       "get": {
         "operationId": "list_account_audit_events",
@@ -2463,6 +2735,263 @@ export const openApiContract = {
                 "type": "integer"
               }
             }
+          }
+        }
+      },
+      "ReferenceJobCreate": {
+        "type": "object",
+        "required": [
+          "purpose",
+          "inputs"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "purpose": {
+            "const": "reference_workspace_build"
+          },
+          "inputs": {
+            "type": "object",
+            "required": [
+              "source_packet",
+              "requested_scope"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "source_packet": {
+                "type": "string"
+              },
+              "requested_scope": {
+                "const": "synthetic_reference_fixture"
+              }
+            }
+          }
+        }
+      },
+      "JobAccepted": {
+        "type": "object",
+        "required": [
+          "id",
+          "job_type",
+          "state",
+          "accepted_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "job_type": {
+            "const": "reference_workspace_build"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "running",
+              "waiting_for_user",
+              "waiting_for_source",
+              "blocked",
+              "failed_retryable",
+              "failed_terminal",
+              "canceled",
+              "completed"
+            ]
+          },
+          "accepted_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "JobScope": {
+        "type": "object",
+        "required": [
+          "account_id",
+          "deal_id",
+          "purpose",
+          "input_digest",
+          "input_version",
+          "workflow_version",
+          "release_id",
+          "allowance",
+          "workspace_posture_version",
+          "security_epoch",
+          "scope_id",
+          "runtime_principal",
+          "operations",
+          "expires_at"
+        ],
+        "properties": {
+          "account_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "deal_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "purpose": {
+            "type": "string"
+          },
+          "input_digest": {
+            "type": "string"
+          },
+          "input_version": {
+            "type": "string"
+          },
+          "workflow_version": {
+            "type": "string"
+          },
+          "release_id": {
+            "type": "string"
+          },
+          "allowance": {
+            "type": "object",
+            "required": [
+              "class",
+              "quantity",
+              "posture"
+            ],
+            "properties": {
+              "class": {
+                "type": "string"
+              },
+              "quantity": {
+                "type": "string"
+              },
+              "posture": {
+                "type": "string"
+              }
+            }
+          },
+          "workspace_posture_version": {
+            "type": "integer"
+          },
+          "security_epoch": {
+            "type": "integer"
+          },
+          "scope_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "runtime_principal": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "operations": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "expires_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "Job": {
+        "type": "object",
+        "required": [
+          "id",
+          "job_type",
+          "state",
+          "progress",
+          "scope",
+          "result",
+          "problem",
+          "accepted_inputs",
+          "created_at",
+          "updated_at",
+          "worker_heartbeat_at",
+          "row_version"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "job_type": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "running",
+              "waiting_for_user",
+              "waiting_for_source",
+              "blocked",
+              "failed_retryable",
+              "failed_terminal",
+              "canceled",
+              "completed"
+            ]
+          },
+          "progress": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "scope": {
+            "$ref": "#/components/schemas/JobScope"
+          },
+          "result": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "problem": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "accepted_inputs": {
+            "type": "object"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "worker_heartbeat_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "row_version": {
+            "type": "integer"
+          }
+        }
+      },
+      "JobControlResult": {
+        "type": "object",
+        "required": [
+          "job_id",
+          "state",
+          "row_version"
+        ],
+        "properties": {
+          "job_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "state": {
+            "type": "string"
+          },
+          "row_version": {
+            "type": "integer"
           }
         }
       }

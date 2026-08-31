@@ -11,6 +11,7 @@ import {
   SyntheticProofError,
   SyntheticProofStore,
 } from "./synthetic-proof.js";
+import { ReferenceJobRuntime, type ReferenceJobRuntimeOptions } from "./jobs.js";
 
 const dealIdSchema = z.string().uuid();
 const emailSchema = z.string().email().max(320);
@@ -22,6 +23,7 @@ export interface BuildApiOptions {
   authAdapter?: AuthAdapter;
   syntheticProofStore?: SyntheticProofStore;
   checkoutAdapter?: CheckoutProviderAdapter;
+  referenceJobRuntime?: ReferenceJobRuntime | ReferenceJobRuntimeOptions;
 }
 
 function traceId() { return crypto.randomUUID(); }
@@ -54,7 +56,16 @@ function setSessionCookie(reply: FastifyReply, name: string, value: string) {
   reply.setCookie(name, value, { httpOnly: true, secure: true, sameSite: "lax", path: "/", maxAge: 60 * 60 * 24 * 7 });
 }
 
-export async function buildApi(options: BuildApiOptions = {}): Promise<FastifyInstance & { database: Database }> {
+function headerValue(request: FastifyRequest, name: string) {
+  const value = request.headers[name];
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function etag(rowVersion: number) {
+  return `"job-${rowVersion}"`;
+}
+
+export async function buildApi(options: BuildApiOptions = {}): Promise<FastifyInstance & { database: Database; referenceJobRuntime: ReferenceJobRuntime }> {
   const database = options.database ?? new Database();
   const authMode = options.authMode ?? (process.env.AUTH_ADAPTER === "supabase" ? "supabase" : "local");
   if (authMode === "local" && process.env.APP_ENV === "production") throw new Error("local auth adapter is forbidden in production");
@@ -62,7 +73,7 @@ export async function buildApi(options: BuildApiOptions = {}): Promise<FastifyIn
   const syntheticProof = options.syntheticProofStore ?? new SyntheticProofStore();
   const checkoutAdapter = options.checkoutAdapter ?? StripeCheckoutAdapter.fromEnv() ?? new StripeTestCheckoutAdapter();
   if (process.env.APP_ENV === "production" && checkoutAdapter.name === "stripe_test_adapter") throw new Error("live Stripe Checkout adapter is required in production");
-  const api = Fastify({ logger: false }) as unknown as FastifyInstance & { database: Database };
+  const api = Fastify({ logger: false }) as unknown as FastifyInstance & { database: Database; referenceJobRuntime: ReferenceJobRuntime };
   const publicMutationBuckets = new Map<string, { tokens: number; updatedAt: number }>();
   const allowPublicMutation = (request: FastifyRequest, reply: FastifyReply) => {
     const origin = request.headers.origin;
@@ -100,6 +111,11 @@ export async function buildApi(options: BuildApiOptions = {}): Promise<FastifyIn
       done(new Error("invalid json"));
     }
   });
+  const ownsReferenceJobRuntime = !(options.referenceJobRuntime instanceof ReferenceJobRuntime);
+  api.referenceJobRuntime = options.referenceJobRuntime instanceof ReferenceJobRuntime
+    ? options.referenceJobRuntime
+    : new ReferenceJobRuntime(database, options.referenceJobRuntime);
+  if (ownsReferenceJobRuntime) api.addHook("onClose", async () => api.referenceJobRuntime.close());
   await api.register(cookie);
 
   api.setErrorHandler((_error, request, reply) => {
@@ -480,6 +496,177 @@ export async function buildApi(options: BuildApiOptions = {}): Promise<FastifyIn
     const state = persisted.rows[0]?.state;
     const reconciliation = await database.pool.query<{ dispatch_provider_event_outbox: string }>("SELECT app.dispatch_provider_event_outbox($1)", [providerEventId]);
     return reply.code(200).send({ status: reconciliation.rows[0]?.dispatch_provider_event_outbox ?? state ?? "received", provider_event_id: providerEventId, canonical_digest: digest });
+  });
+
+  api.post<{ Params: { deal_id: string } }>("/api/v1/deals/:deal_id/reference-jobs", async (request, reply) => {
+    const dealId = dealIdSchema.parse(request.params.deal_id);
+    const body = z.object({
+      purpose: z.literal("reference_workspace_build"),
+      inputs: z.object({ source_packet: z.string().min(1).max(160), requested_scope: z.literal("synthetic_reference_fixture") }).strict(),
+    }).strict().parse(request.body);
+    const idempotencyKey = headerValue(request, "idempotency-key");
+    if (!idempotencyKey || idempotencyKey.length < 16 || idempotencyKey.length > 128) {
+      return problem(reply, 400, "idempotency_key_required", "A valid Idempotency-Key is required.", "retry_with_idempotency_key", request.url);
+    }
+    const session = cookieValue(request, "__Host-banker_session") ?? cookieValue(request, "__Host-pending_passkey");
+    if (!session) return problem(reply, 401, "authentication_required", "Authenticate to continue.", "authenticate", request.url);
+    const requestDigest = canonicalDigest({ method: "POST", route: "/api/v1/deals/{deal_id}/reference-jobs", api_version: "v1", deal_id: dealId, purpose: body.purpose, inputs: body.inputs });
+    const result = await database.withContext(session, dealId, async (client) => {
+      const created = await client.query<{ job_id: string; created: boolean; conflict: boolean }>(
+        "SELECT * FROM jobs.start_reference_job($1, $2, $3, $4)",
+        [dealId, Database.hashToken(idempotencyKey), requestDigest, body.inputs],
+      );
+      const row = created.rows[0];
+      if (!row || row.conflict) return { kind: "conflict" as const, jobId: row?.job_id ?? null };
+      const job = await client.query<{ id: string; state: string; requested_at: string; row_version: string }>("SELECT id, state, requested_at, row_version FROM jobs.job WHERE id = $1", [row.job_id]);
+      if (row.created) await client.query("SELECT app.record_audit($1,$2,$3,$4,$5,$6)", ["reference_job_started", "completed", "job", row.job_id, "accepted", traceId()]);
+      return { kind: "ok" as const, job: job.rows[0], created: row.created };
+    });
+    if (result.kind === "invalid") return problem(reply, 401, "session_expired", "The session is no longer valid.", "reauthenticate", request.url);
+    if (result.kind === "passkey_required") return problem(reply, 403, "passkey_required", "A Passkey-backed session is required for Job access.", "register_passkey", request.url);
+    if (result.kind === "not_found") return problem(reply, 404, "resource_not_found", "The requested resource is not available.", "return_to_safe_parent", request.url);
+    if (result.value.kind === "conflict") return problem(reply, 409, "idempotency_key_reused", "The Idempotency-Key was already used for a different request.", "use_new_idempotency_key", request.url);
+    api.referenceJobRuntime.schedule(result.value.job.id);
+    reply.header("Location", `/api/v1/jobs/${result.value.job.id}`);
+    reply.header("ETag", etag(Number(result.value.job.row_version)));
+    if (!result.value.created) reply.header("Idempotent-Replayed", "true");
+    return reply.code(202).send({ id: result.value.job.id, job_type: "reference_workspace_build", state: result.value.job.state, accepted_at: result.value.job.requested_at });
+  });
+
+  api.get<{ Params: { job_id: string } }>("/api/v1/jobs/:job_id", async (request, reply) => {
+    const jobId = dealIdSchema.parse(request.params.job_id);
+    const session = cookieValue(request, "__Host-banker_session") ?? cookieValue(request, "__Host-pending_passkey");
+    if (!session) return problem(reply, 401, "authentication_required", "Authenticate to continue.", "authenticate", request.url);
+    const result = await database.withJobContext(session, jobId, async (client) => {
+      const query = await client.query<{
+        id: string; account_id: string; deal_id: string; command_type: string; purpose_code: string; accepted_inputs: Record<string, unknown>;
+        input_digest: string; input_version: string; workflow_version: string; release_id: string; allowance_class: string; allowance_quantity: string;
+        allowance_posture: string; workspace_posture_version: string; security_epoch: string; state: string; progress: Record<string, unknown>; result: Record<string, unknown> | null;
+        problem: Record<string, unknown> | null; requested_at: string; updated_at: string; worker_heartbeat_at: string | null; row_version: string; scope_id: string | null; scope_expires_at: string | null; runtime_principal_code: string | null;
+      }>(
+        `SELECT j.id, j.account_id, j.deal_id, j.command_type, j.purpose_code, j.accepted_inputs, j.input_digest, j.input_version, j.workflow_version,
+                j.release_id, j.allowance_class, j.allowance_quantity, j.allowance_posture, j.workspace_posture_version, j.security_epoch, j.state, j.progress,
+                j.result, j.problem, j.requested_at, j.updated_at, j.worker_heartbeat_at, j.row_version,
+                latest.id AS scope_id, latest.expires_at AS scope_expires_at, latest.runtime_principal_code
+         FROM jobs.job j
+         LEFT JOIN LATERAL (
+           SELECT s.id, s.expires_at, s.runtime_principal_code
+           FROM jobs.job_scope s WHERE s.job_id = j.id ORDER BY s.issued_at DESC LIMIT 1
+         ) latest ON true
+         WHERE j.id = $1`,
+        [jobId],
+      );
+      if (query.rowCount !== 1) return null;
+      const row = query.rows[0];
+      const events = await client.query<{ sequence: string; event_type: string; state: string; stage_code: string | null; safe_message_code: string; recovery_action: string | null; occurred_at: string }>("SELECT sequence, event_type, state, stage_code, safe_message_code, recovery_action, occurred_at FROM jobs.job_event WHERE job_id = $1 ORDER BY sequence DESC LIMIT 1", [jobId]);
+      return {
+        id: row.id,
+        job_type: row.command_type,
+        state: row.state,
+        progress: row.progress,
+        scope: {
+          account_id: row.account_id,
+          deal_id: row.deal_id,
+          purpose: row.purpose_code,
+          input_digest: row.input_digest,
+          input_version: row.input_version,
+          workflow_version: row.workflow_version,
+          release_id: row.release_id,
+          allowance: { class: row.allowance_class, quantity: row.allowance_quantity, posture: row.allowance_posture },
+          workspace_posture_version: Number(row.workspace_posture_version),
+          security_epoch: Number(row.security_epoch),
+          scope_id: row.scope_id,
+          runtime_principal: row.runtime_principal_code,
+          operations: row.scope_id ? ["reference_workspace_build"] : [],
+          expires_at: row.scope_expires_at,
+        },
+        result: row.result,
+        problem: row.problem,
+        accepted_inputs: row.accepted_inputs,
+        created_at: row.requested_at,
+        updated_at: row.updated_at,
+        worker_heartbeat_at: row.worker_heartbeat_at,
+        row_version: Number(row.row_version),
+        latest_event: events.rows[0] ? {
+          sequence: Number(events.rows[0].sequence), event_type: events.rows[0].event_type, state: events.rows[0].state,
+          stage_code: events.rows[0].stage_code, message_code: events.rows[0].safe_message_code, recovery_action: events.rows[0].recovery_action, occurred_at: events.rows[0].occurred_at,
+        } : null,
+      };
+    });
+    if (result.kind === "invalid") return problem(reply, 401, "session_expired", "The session is no longer valid.", "reauthenticate", request.url);
+    if (result.kind === "passkey_required") return problem(reply, 403, "passkey_required", "A Passkey-backed session is required for Job access.", "register_passkey", request.url);
+    if (result.kind === "not_found" || result.value === null) return problem(reply, 404, "resource_not_found", "The requested resource is not available.", "return_to_safe_parent", request.url);
+    reply.header("ETag", etag(result.value.row_version)).header("Cache-Control", "private, no-store");
+    return reply.code(200).send(result.value);
+  });
+
+  api.get<{ Params: { job_id: string } }>("/api/v1/jobs/:job_id/events", async (request, reply) => {
+    const jobId = dealIdSchema.parse(request.params.job_id);
+    const session = cookieValue(request, "__Host-banker_session") ?? cookieValue(request, "__Host-pending_passkey");
+    if (!session) return problem(reply, 401, "authentication_required", "Authenticate to continue.", "authenticate", request.url);
+    const lastEventId = Number(headerValue(request, "last-event-id") ?? "0");
+    if (!Number.isInteger(lastEventId) || lastEventId < 0) return problem(reply, 400, "invalid_event_cursor", "The event cursor is invalid.", "reconnect_without_cursor", request.url);
+    const result = await database.withJobContext(session, jobId, async (client) => {
+      const rows = await client.query<{ sequence: string; event_type: string; state: string; stage_code: string | null; progress: Record<string, unknown>; safe_message_code: string; recovery_action: string | null; occurred_at: string }>(
+        "SELECT sequence, event_type, state, stage_code, progress, safe_message_code, recovery_action, occurred_at FROM jobs.job_event WHERE job_id = $1 AND sequence > $2 ORDER BY sequence ASC",
+        [jobId, lastEventId],
+      );
+      const snapshot = await client.query<{ state: string; progress: Record<string, unknown>; row_version: string; worker_heartbeat_at: string | null; sequence: string | null }>("SELECT j.state, j.progress, j.row_version, j.worker_heartbeat_at, (SELECT max(sequence) FROM jobs.job_event WHERE job_id = j.id) AS sequence FROM jobs.job j WHERE j.id = $1", [jobId]);
+      const bounds = await client.query<{ first_sequence: string | null }>("SELECT min(sequence) AS first_sequence FROM jobs.job_event WHERE job_id = $1", [jobId]);
+      return { rows: rows.rows, snapshot: snapshot.rows[0], firstSequence: bounds.rows[0]?.first_sequence ? Number(bounds.rows[0].first_sequence) : null };
+    });
+    if (result.kind === "invalid") return problem(reply, 401, "session_expired", "The session is no longer valid.", "reauthenticate", request.url);
+    if (result.kind === "passkey_required") return problem(reply, 403, "passkey_required", "A Passkey-backed session is required for Job access.", "register_passkey", request.url);
+    if (result.kind === "not_found") return problem(reply, 404, "resource_not_found", "The requested resource is not available.", "return_to_safe_parent", request.url);
+    if (result.value.firstSequence !== null && lastEventId > 0 && lastEventId < result.value.firstSequence - 1) return problem(reply, 409, "event_cursor_expired", "The event cursor is no longer retained.", "reconnect_without_cursor", request.url);
+    const lines = ["retry: 3000", ": heartbeat"];
+    const snapshotData = result.value.snapshot ? JSON.stringify({ state: result.value.snapshot.state, progress: result.value.snapshot.progress, row_version: Number(result.value.snapshot.row_version), worker_heartbeat_at: result.value.snapshot.worker_heartbeat_at }) : null;
+    const snapshotLine = snapshotData ? `event: job_snapshot\ndata: ${snapshotData}` : null;
+    if (lastEventId === 0 && snapshotLine) lines.push(snapshotLine);
+    for (const event of result.value.rows) lines.push(`id: ${event.sequence}\nevent: ${event.event_type}\ndata: ${JSON.stringify({ state: event.state, stage_code: event.stage_code, progress: event.progress, message_code: event.safe_message_code, recovery_action: event.recovery_action, occurred_at: event.occurred_at })}`);
+    if (lastEventId > 0 && snapshotData) lines.push(`id: ${Number(result.value.snapshot?.sequence ?? lastEventId)}\nevent: job_snapshot\ndata: ${snapshotData}`);
+    if (result.value.snapshot && ["completed", "failed_terminal", "canceled"].includes(result.value.snapshot.state)) lines.push("event: stream_closed\ndata: {\"reason\":\"terminal\"}");
+    return reply.code(200).type("text/event-stream").header("cache-control", "no-cache").send(`${lines.join("\n\n")}\n\n`);
+  });
+
+  api.post<{ Params: { job_id: string } }>("/api/v1/jobs/:job_id/cancellations", async (request, reply) => {
+    const jobId = dealIdSchema.parse(request.params.job_id);
+    const body = z.object({ reason: z.string().min(1).max(120) }).strict().parse(request.body);
+    const version = Number(headerValue(request, "if-match")?.replace(/^\"job-|\"$/g, ""));
+    if (!Number.isInteger(version)) return problem(reply, 428, "precondition_required", "The current Job version is required.", "reload_and_retry", request.url);
+    const session = cookieValue(request, "__Host-banker_session") ?? cookieValue(request, "__Host-pending_passkey");
+    if (!session) return problem(reply, 401, "authentication_required", "Authenticate to continue.", "authenticate", request.url);
+    const result = await database.withJobContext(session, jobId, async (client) => (await client.query<{ status: string; job_state: string | null; row_version: string | null }>("SELECT * FROM jobs.cancel_reference_job($1, $2, $3)", [jobId, version, body.reason])).rows[0]);
+    if (result.kind === "invalid") return problem(reply, 401, "session_expired", "The session is no longer valid.", "reauthenticate", request.url);
+    if (result.kind === "passkey_required") return problem(reply, 403, "passkey_required", "A Passkey-backed session is required for Job access.", "register_passkey", request.url);
+    if (result.kind === "not_found" || !result.value || result.value.status === "not_found") return problem(reply, 404, "resource_not_found", "The requested resource is not available.", "return_to_safe_parent", request.url);
+    if (result.value.status === "version_conflict") {
+      if (result.value.row_version !== null) reply.header("ETag", etag(Number(result.value.row_version)));
+      return problem(reply, 412, "version_conflict", "The Job changed after it was loaded.", "reload_and_compare", request.url);
+    }
+    if (result.value.status === "not_cancelable") return problem(reply, 409, "job_not_cancelable", "The Job cannot be canceled in its current state.", "inspect_job", request.url);
+    reply.header("ETag", etag(Number(result.value.row_version)));
+    return reply.code(201).send({ job_id: jobId, state: result.value.job_state, row_version: Number(result.value.row_version) });
+  });
+
+  api.post<{ Params: { job_id: string } }>("/api/v1/jobs/:job_id/retries", async (request, reply) => {
+    const jobId = dealIdSchema.parse(request.params.job_id);
+    const version = Number(headerValue(request, "if-match")?.replace(/^\"job-|\"$/g, ""));
+    if (!Number.isInteger(version)) return problem(reply, 428, "precondition_required", "The current Job version is required.", "reload_and_retry", request.url);
+    const session = cookieValue(request, "__Host-banker_session") ?? cookieValue(request, "__Host-pending_passkey");
+    if (!session) return problem(reply, 401, "authentication_required", "Authenticate to continue.", "authenticate", request.url);
+    const result = await database.withJobContext(session, jobId, async (client) => (await client.query<{ status: string; job_state: string | null; row_version: string | null }>("SELECT * FROM jobs.retry_reference_job($1, $2)", [jobId, version])).rows[0]);
+    if (result.kind === "invalid") return problem(reply, 401, "session_expired", "The session is no longer valid.", "reauthenticate", request.url);
+    if (result.kind === "passkey_required") return problem(reply, 403, "passkey_required", "A Passkey-backed session is required for Job access.", "register_passkey", request.url);
+    if (result.kind === "not_found" || !result.value || result.value.status === "not_found") return problem(reply, 404, "resource_not_found", "The requested resource is not available.", "return_to_safe_parent", request.url);
+    if (result.value.status === "version_conflict") {
+      if (result.value.row_version !== null) reply.header("ETag", etag(Number(result.value.row_version)));
+      return problem(reply, 412, "version_conflict", "The Job changed after it was loaded.", "reload_and_compare", request.url);
+    }
+    if (result.value.status === "not_retryable") return problem(reply, 409, "job_not_retryable", "Only failed-retryable Jobs can be retried.", "inspect_recovery_action", request.url);
+    api.referenceJobRuntime.schedule(jobId);
+    reply.header("ETag", etag(Number(result.value.row_version)));
+    return reply.code(200).send({ job_id: jobId, state: result.value.job_state, row_version: Number(result.value.row_version) });
   });
 
   api.get<{ Params: { deal_id: string } }>("/api/v1/deals/:deal_id/overview", async (request, reply) => {

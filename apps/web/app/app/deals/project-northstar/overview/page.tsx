@@ -14,6 +14,8 @@ type Overview = {
 export default function DealOverviewPage() {
   const [overview, setOverview] = useState<Overview | null>(null);
   const [error, setError] = useState("");
+  const [jobLink, setJobLink] = useState("");
+  const [startingJob, setStartingJob] = useState(false);
   useEffect(() => {
     fetch(`/api/v1/deals/${dealId}/overview`).then(async (response) => {
       const body = await response.json();
@@ -37,6 +39,30 @@ export default function DealOverviewPage() {
           <h2>Current controlled state</h2>
           <dl><dt>Business stage</dt><dd>{overview.displayed_state.stage}</dd><dt>Source posture</dt><dd>{overview.displayed_state.source_posture}</dd><dt>Next controlled action</dt><dd>{overview.displayed_state.next_controlled_action}</dd></dl>
           <p style={{ fontFamily: "monospace", fontSize: 12 }}>Account/Deal authorization is checked by the API and database policy for this exact object identity.</p>
+        </section>
+        <section aria-label="Reference workspace operation" style={{ marginTop: 24, border: "1px solid #ccd5d8", background: "white", padding: 20 }}>
+          <h2>Reference workspace operation</h2>
+          <p>Run the synthetic Project Northstar workspace build through the durable Job controls.</p>
+          <button type="button" disabled={startingJob} onClick={async () => {
+            setStartingJob(true);
+            setError("");
+            try {
+              const response = await fetch(`/api/v1/deals/${dealId}/reference-jobs`, {
+                method: "POST",
+                headers: { "content-type": "application/json", "idempotency-key": `reference-ui-${crypto.randomUUID()}` },
+                body: JSON.stringify({ purpose: "reference_workspace_build", inputs: { source_packet: "northstar-source-packet-v1", requested_scope: "synthetic_reference_fixture" } }),
+              });
+              const body = await response.json();
+              if (!response.ok) setError(body.detail ?? "The Reference Job could not be started.");
+              else setJobLink(`/app/deals/project-northstar/actions/jobs/${body.id}`);
+            } catch {
+              setError("The API could not be reached.");
+            } finally {
+              setStartingJob(false);
+            }
+          }}>{startingJob ? "Starting…" : "Start reference operation"}</button>
+          {jobLink && <p><a href={jobLink}>Open durable Job detail</a></p>}
+          <p style={{ fontFamily: "monospace", fontSize: 12 }}>Job state, checkpoints, heartbeat and recovery are authoritative in the versioned API.</p>
         </section>
       </>}
     </main>
