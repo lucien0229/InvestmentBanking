@@ -6,6 +6,7 @@ export default function HomePage() {
       <h1>Controlled Sell-Side Auction Workspace</h1>
       <p>Trace a complete synthetic Project Northstar control loop before account access. Production-shaped Web delivery, versioned API, and PostgreSQL authority remain separate from this public proof.</p>
       <a href="/project-northstar" style={{ display: "inline-block", background: "#16724b", color: "white", padding: "12px 16px", borderRadius: 6, textDecoration: "none" }}>Inspect Project Northstar</a>
+      <p><a href="/pricing">View pricing and capability boundaries</a> · <a href="/qualification">Check qualification</a></p>
       <a href="/account-access" style={{ display: "inline-block", marginLeft: 12, color: "#16724b" }}>Open Account Access</a>
     </main>
   );

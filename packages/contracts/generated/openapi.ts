@@ -812,6 +812,459 @@ export const openApiContract = {
           }
         }
       }
+    },
+    "/api/v1/public/offer": {
+      "get": {
+        "operationId": "get_public_offer",
+        "responses": {
+          "200": {
+            "description": "Versioned public commercial offer",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicOffer"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/public/qualification-assessments": {
+      "post": {
+        "operationId": "create_qualification_assessment",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QualificationAssessmentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Non-confidential qualification result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QualificationAssessment"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/public/qualification-assessments/{assessment_id}": {
+      "get": {
+        "operationId": "get_qualification_assessment",
+        "parameters": [
+          {
+            "name": "assessment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Saved non-confidential qualification result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QualificationAssessment"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/checkout-orders": {
+      "post": {
+        "operationId": "create_checkout_order",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckoutOrderRequest"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 128
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Durable Checkout Order",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckoutOrder"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/checkout-orders/{checkout_order_id}": {
+      "get": {
+        "operationId": "get_checkout_order",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "checkout_order_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Product-authoritative Checkout Order",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckoutOrder"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/checkout-orders/{checkout_order_id}/terms-acceptances": {
+      "post": {
+        "operationId": "create_checkout_terms_acceptance",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "checkout_order_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 128
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckoutTermsAcceptanceRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Immutable terms acceptance",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckoutTermsAcceptance"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/checkout-sessions": {
+      "post": {
+        "operationId": "create_checkout_session",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 128
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckoutSessionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Hosted provider Checkout session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckoutSession"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/checkout-sessions/{checkout_session_id}": {
+      "get": {
+        "operationId": "get_checkout_session",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "checkout_session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Product-authoritative projected provider status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckoutSession"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/account/entitlements": {
+      "get": {
+        "operationId": "get_account_entitlements",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Product Entitlements",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "entitlements": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ProductEntitlement"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/account/commercial-receipts": {
+      "get": {
+        "operationId": "list_commercial_receipts",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Commercial Receipts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "receipts": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CommercialReceipt"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/account/usage": {
+      "get": {
+        "operationId": "get_account_usage",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Usage and capacity summary",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsageSummary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/account/subscription": {
+      "get": {
+        "operationId": "get_subscription",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current product subscription projection",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/account/commerce-state": {
+      "get": {
+        "operationId": "get_account_commerce_state",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Consistent entitlement, receipt, capacity, audit, and measurement projection",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/webhooks/stripe": {
+      "post": {
+        "operationId": "receive_stripe_webhook",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Durable canonical evidence accepted"
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1393,6 +1846,633 @@ export const openApiContract = {
             "const": "passkey_backed_session"
           }
         }
+      },
+      "PublicOffer": {
+        "type": "object",
+        "required": [
+          "product_code",
+          "capability_version",
+          "currency",
+          "monthly",
+          "annual",
+          "included_active_deals",
+          "allowances",
+          "add_ons",
+          "unmetered_actions",
+          "guarantee",
+          "cancellation",
+          "tax"
+        ],
+        "properties": {
+          "product_code": {
+            "type": "string"
+          },
+          "capability_version": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "monthly": {
+            "type": "object"
+          },
+          "annual": {
+            "type": "object",
+            "properties": {
+              "amount_minor": {
+                "type": "integer"
+              },
+              "display": {
+                "type": "string"
+              },
+              "renewal": {
+                "const": "annual"
+              },
+              "monthly_equivalent_minor": {
+                "type": "integer"
+              },
+              "savings_minor": {
+                "type": "integer"
+              },
+              "discount_percent": {
+                "type": "number"
+              }
+            }
+          },
+          "included_active_deals": {
+            "const": 2
+          },
+          "allowances": {
+            "type": "object"
+          },
+          "add_ons": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "unmetered_actions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "guarantee": {
+            "type": "string"
+          },
+          "cancellation": {
+            "type": "string"
+          },
+          "tax": {
+            "type": "string"
+          }
+        }
+      },
+      "QualificationAssessmentRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "banker_role",
+          "can_purchase_independently",
+          "deal_type",
+          "intended_use",
+          "intended_audience",
+          "expected_source_types",
+          "expected_template_types",
+          "known_special_structures",
+          "source_authority",
+          "confidentiality_class",
+          "employer_restrictions",
+          "provider_or_geographic_restrictions",
+          "minimum_source_packet"
+        ],
+        "properties": {
+          "banker_role": {
+            "type": "string"
+          },
+          "can_purchase_independently": {
+            "type": "boolean"
+          },
+          "deal_type": {
+            "type": "string"
+          },
+          "intended_use": {
+            "type": "string"
+          },
+          "intended_audience": {
+            "type": "string"
+          },
+          "expected_source_types": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "expected_template_types": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "known_special_structures": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "source_authority": {
+            "type": "string"
+          },
+          "confidentiality_class": {
+            "enum": [
+              "public",
+              "internal",
+              "confidential",
+              "restricted"
+            ]
+          },
+          "employer_restrictions": {
+            "type": "string"
+          },
+          "provider_or_geographic_restrictions": {
+            "type": "string"
+          },
+          "minimum_source_packet": {
+            "type": "string"
+          }
+        }
+      },
+      "QualificationAssessment": {
+        "type": "object",
+        "required": [
+          "id",
+          "result",
+          "basis",
+          "source_material_authorized"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "result": {
+            "type": "string"
+          },
+          "basis": {
+            "type": "string"
+          },
+          "unverified_conditions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "preflight_recheck": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "source_material_authorized": {
+            "const": false
+          }
+        }
+      },
+      "CheckoutOrderRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "billing_term"
+        ],
+        "properties": {
+          "billing_term": {
+            "enum": [
+              "monthly",
+              "annual"
+            ]
+          },
+          "add_on": {
+            "enum": [
+              "none",
+              "additional_active_deal",
+              "intensive_processing",
+              "archive_capacity"
+            ]
+          }
+        }
+      },
+      "CheckoutTermsAcceptanceRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "displayed_contract_digest",
+          "acknowledgements"
+        ],
+        "properties": {
+          "displayed_contract_digest": {
+            "type": "string"
+          },
+          "acknowledgements": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "purchase_authority",
+              "source_authority_separate",
+              "guarantee",
+              "cancellation_refund",
+              "post_term",
+              "export_retention_deletion",
+              "add_on_preview",
+              "provider_boundary"
+            ],
+            "properties": {
+              "purchase_authority": {
+                "const": true
+              },
+              "source_authority_separate": {
+                "const": true
+              },
+              "guarantee": {
+                "const": true
+              },
+              "cancellation_refund": {
+                "const": true
+              },
+              "post_term": {
+                "const": true
+              },
+              "export_retention_deletion": {
+                "const": true
+              },
+              "add_on_preview": {
+                "const": true
+              },
+              "provider_boundary": {
+                "const": true
+              }
+            }
+          }
+        }
+      },
+      "CheckoutSessionRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "checkout_order_id",
+          "terms_acceptance_id"
+        ],
+        "properties": {
+          "checkout_order_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "terms_acceptance_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "CheckoutOrder": {
+        "type": "object",
+        "required": [
+          "id",
+          "billing_term",
+          "amount_minor",
+          "current_step",
+          "payment_state",
+          "included_active_deals",
+          "allowances",
+          "unmetered_actions",
+          "contract_digest",
+          "annual_equivalent"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "billing_term": {
+            "enum": [
+              "monthly",
+              "annual"
+            ]
+          },
+          "add_on": {
+            "type": "string"
+          },
+          "amount_minor": {
+            "type": "integer"
+          },
+          "amount_due_now": {
+            "type": "object",
+            "required": [
+              "amount_minor",
+              "currency"
+            ],
+            "properties": {
+              "amount_minor": {
+                "type": "integer"
+              },
+              "currency": {
+                "type": "string"
+              }
+            }
+          },
+          "currency": {
+            "type": "string"
+          },
+          "tax": {
+            "type": "object",
+            "required": [
+              "posture",
+              "amount_minor"
+            ],
+            "properties": {
+              "posture": {
+                "type": "string"
+              },
+              "amount_minor": {
+                "type": "integer"
+              }
+            }
+          },
+          "renewal": {
+            "type": "object",
+            "required": [
+              "amount_minor",
+              "term"
+            ],
+            "properties": {
+              "amount_minor": {
+                "type": "integer"
+              },
+              "term": {
+                "type": "string"
+              }
+            }
+          },
+          "annual_equivalent": {
+            "type": "object",
+            "required": [
+              "monthly_amount_minor",
+              "savings_minor",
+              "discount_percent"
+            ],
+            "properties": {
+              "monthly_amount_minor": {
+                "type": "integer"
+              },
+              "savings_minor": {
+                "type": "integer"
+              },
+              "discount_percent": {
+                "type": "number"
+              }
+            }
+          },
+          "included_active_deals": {
+            "const": 2
+          },
+          "allowances": {
+            "type": "object"
+          },
+          "unmetered_actions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "guarantee": {
+            "type": "string"
+          },
+          "cancellation": {
+            "type": "string"
+          },
+          "contract_digest": {
+            "type": "string"
+          },
+          "current_step": {
+            "enum": [
+              "order",
+              "terms",
+              "payment",
+              "confirmation"
+            ]
+          },
+          "payment_state": {
+            "enum": [
+              "not_started",
+              "failed",
+              "pending",
+              "requires_action",
+              "duplicate_charge",
+              "succeeded"
+            ]
+          },
+          "status": {
+            "type": "string"
+          },
+          "row_version": {
+            "type": "integer"
+          },
+          "provider_checkout_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "CheckoutTermsAcceptance": {
+        "type": "object",
+        "required": [
+          "id",
+          "checkout_order_id",
+          "displayed_contract_digest",
+          "acknowledgements"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "checkout_order_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayed_contract_digest": {
+            "type": "string"
+          },
+          "acknowledgements": {
+            "type": "object"
+          }
+        }
+      },
+      "CheckoutSession": {
+        "type": "object",
+        "required": [
+          "id",
+          "checkout_order_id",
+          "payment_state",
+          "provider",
+          "live_verification_debt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "checkout_order_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "provider_session_id": {
+            "type": "string"
+          },
+          "provider": {
+            "enum": [
+              "stripe_test_adapter",
+              "stripe_live_adapter"
+            ]
+          },
+          "live_verification_debt": {
+            "type": "boolean"
+          },
+          "hosted_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "payment_state": {
+            "type": "string"
+          },
+          "product_authoritative_status": {
+            "type": "string"
+          }
+        }
+      },
+      "ProductEntitlement": {
+        "type": "object",
+        "required": [
+          "id",
+          "product_code",
+          "capability_version",
+          "active_deal_capacity",
+          "capabilities",
+          "status"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "product_code": {
+            "type": "string"
+          },
+          "capability_version": {
+            "type": "string"
+          },
+          "term_start": {
+            "type": "string"
+          },
+          "term_end": {
+            "type": "string"
+          },
+          "active_deal_capacity": {
+            "type": "integer"
+          },
+          "capabilities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "status": {
+            "type": "string"
+          },
+          "actor_name": {
+            "type": "string"
+          }
+        }
+      },
+      "CommercialReceipt": {
+        "type": "object",
+        "required": [
+          "id",
+          "checkout_order_id",
+          "amount_minor",
+          "currency",
+          "status"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "checkout_order_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "provider_payment_id": {
+            "type": "string"
+          },
+          "amount_minor": {
+            "type": "integer"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
+      "UsageSummary": {
+        "type": "object",
+        "required": [
+          "active_deal_capacity",
+          "granted_active_deals",
+          "used_active_deals",
+          "granted_allowances"
+        ],
+        "properties": {
+          "active_deal_capacity": {
+            "type": "integer"
+          },
+          "granted_active_deals": {
+            "type": "integer"
+          },
+          "used_active_deals": {
+            "type": "integer"
+          },
+          "granted_allowances": {
+            "type": "object",
+            "required": [
+              "intensive_logical_pages",
+              "intensive_operations",
+              "archive_capacity_gb"
+            ],
+            "properties": {
+              "intensive_logical_pages": {
+                "type": "integer"
+              },
+              "intensive_operations": {
+                "type": "integer"
+              },
+              "archive_capacity_gb": {
+                "type": "integer"
+              }
+            }
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "bankerSession": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "__Host-banker_session",
+        "description": "Passkey-backed Banker Session cookie; API authorization remains product-owned."
       }
     },
     "responses": {

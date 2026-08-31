@@ -44,3 +44,20 @@ test("database policy cannot be redirected to a different Deal by a caller-suppl
     client.release();
   }
 });
+
+test("commerce authority tables are forced-RLS and provider evidence has no raw payload column", async (t) => {
+  const database = await createTestDatabase();
+  t.after(() => database.close());
+  const tableNames = ["qualification_assessment", "checkout_order", "checkout_terms_acceptance", "provider_event", "commercial_receipt", "product_entitlement", "entitlement_mutation", "usage_ledger_entry", "checkout_completed_event", "product_measurement_candidate"];
+  const result = await database.ownerPool.query<{ relname: string; relforcerowsecurity: boolean }>("SELECT c.relname, c.relforcerowsecurity FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = 'app' AND c.relname = ANY($1)", [tableNames]);
+  assert.deepEqual(result.rows.filter((row) => row.relforcerowsecurity).map((row) => row.relname).sort(), [...tableNames].sort());
+  const columns = await database.ownerPool.query<{ column_name: string }>("SELECT column_name FROM information_schema.columns WHERE table_schema = 'app' AND table_name = 'provider_event'");
+  assert.equal(columns.rows.some((row) => row.column_name === "raw_payload"), false);
+  const policies = await database.ownerPool.query<{ policyname: string }>("SELECT polname AS policyname FROM pg_policy WHERE polrelid = 'app.checkout_order'::regclass");
+  assert.ok(policies.rows.some((row) => row.policyname === "checkout_order_scope"));
+  const commerceFunctions = await database.ownerPool.query<{ identity_args: string; owner_name: string; owner_can_login: boolean; owner_bypasses_rls: boolean; proacl: string | null }>("SELECT p.oid::regprocedure::text AS identity_args, r.rolname AS owner_name, r.rolcanlogin AS owner_can_login, r.rolbypassrls AS owner_bypasses_rls, p.proacl::text FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace JOIN pg_roles r ON r.oid = p.proowner WHERE n.nspname = 'app' AND p.proname = ANY($1)", [["create_qualification_assessment", "get_qualification_assessment", "create_checkout_order", "accept_checkout_terms", "create_checkout_session", "persist_provider_event", "reconcile_provider_event", "dispatch_provider_event_outbox"]]);
+  assert.equal(commerceFunctions.rows.length, 8);
+  assert.ok(commerceFunctions.rows.every((row) => row.owner_name === "app_commerce_owner"), "commerce definer functions must have a dedicated NOLOGIN owner");
+  assert.ok(commerceFunctions.rows.every((row) => row.owner_can_login === false), "commerce definer owner must not be an online login role");
+  assert.ok(commerceFunctions.rows.every((row) => !row.proacl?.includes("{=X") && !row.proacl?.includes(",=X")), "commerce definer functions must not be executable by PUBLIC");
+});

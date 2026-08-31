@@ -8,6 +8,8 @@ export type Queryable = Pick<pg.PoolClient, "query" | "release">;
 
 export class Database {
   readonly pool: pg.Pool;
+  /** Test-only fault injection for the provider persistence seam. */
+  failProviderEvidencePersistence = false;
 
   constructor(options: { connectionString?: string } = {}) {
     const connectionString = options.connectionString ?? process.env.DATABASE_URL;

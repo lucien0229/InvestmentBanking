@@ -11,10 +11,13 @@ export default function AccountAccessPage() {
   const [email, setEmail] = useState("banker-a@example.test");
   const [token, setToken] = useState("");
   const [providerAccessToken, setProviderAccessToken] = useState("");
+  const [returnTo, setReturnTo] = useState("/app/deals/project-northstar/overview");
   const [status, setStatus] = useState("Enter a mailbox to begin the Supabase Magic Link bootstrap.");
   const [error, setError] = useState("");
 
   useEffect(() => {
+    const requested = new URLSearchParams(window.location.search).get("return_to");
+    if (requested?.startsWith("/checkout/")) setReturnTo(requested);
     if (!supabaseMode) return;
     let cancelled = false;
     async function restoreProviderSession() {
@@ -89,7 +92,7 @@ export default function AccountAccessPage() {
         setProviderAccessToken(data.session.access_token);
         const response = await fetch("/api/v1/session/passkey/authenticate", { method: "POST", headers: { authorization: `Bearer ${data.session.access_token}` } });
         if (!response.ok) throw new Error((await response.json()).detail ?? "Passkey authentication failed.");
-        router.push("/app/deals/project-northstar/overview");
+        router.push(returnTo);
       } catch (error) {
         setError(error instanceof Error ? error.message : "Passkey authentication failed.");
       }
@@ -98,7 +101,7 @@ export default function AccountAccessPage() {
     const response = await fetch("/api/v1/session/passkey/authenticate", { method: "POST" });
     const body = await response.json();
     if (!response.ok) return setError(body.detail ?? "Passkey authentication failed.");
-    router.push("/app/deals/project-northstar/overview");
+    router.push(returnTo);
   }
 
   return (

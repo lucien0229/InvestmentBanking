@@ -4,6 +4,7 @@ import cookie from "@fastify/cookie";
 import { z } from "zod";
 import { AuthError, LocalAuthAdapter, SupabaseAuthAdapter, type AuthAdapter, type AuthMode } from "./auth.js";
 import { Database } from "./database.js";
+import { canonicalDigest, canonicalizeStripeEvent, checkoutContractDigest, publicOffer, rawPayloadDigest, stableJson, StripeCheckoutAdapter, StripeTestCheckoutAdapter, stripeEventId, verifyStripeSignature, type AddOnCode, type BillingTerm, type CheckoutProviderAdapter } from "./commerce.js";
 import {
   PROJECT_NORTHSTAR_FIXTURE_VERSION,
   PROJECT_NORTHSTAR_PROOF_COOKIE,
@@ -20,6 +21,7 @@ export interface BuildApiOptions {
   authMode?: AuthMode;
   authAdapter?: AuthAdapter;
   syntheticProofStore?: SyntheticProofStore;
+  checkoutAdapter?: CheckoutProviderAdapter;
 }
 
 function traceId() { return crypto.randomUUID(); }
@@ -58,6 +60,8 @@ export async function buildApi(options: BuildApiOptions = {}): Promise<FastifyIn
   if (authMode === "local" && process.env.APP_ENV === "production") throw new Error("local auth adapter is forbidden in production");
   const auth = options.authAdapter ?? (authMode === "supabase" ? new SupabaseAuthAdapter(database) : new LocalAuthAdapter(database));
   const syntheticProof = options.syntheticProofStore ?? new SyntheticProofStore();
+  const checkoutAdapter = options.checkoutAdapter ?? StripeCheckoutAdapter.fromEnv() ?? new StripeTestCheckoutAdapter();
+  if (process.env.APP_ENV === "production" && checkoutAdapter.name === "stripe_test_adapter") throw new Error("live Stripe Checkout adapter is required in production");
   const api = Fastify({ logger: false }) as unknown as FastifyInstance & { database: Database };
   const publicMutationBuckets = new Map<string, { tokens: number; updatedAt: number }>();
   const allowPublicMutation = (request: FastifyRequest, reply: FastifyReply) => {
@@ -85,6 +89,17 @@ export async function buildApi(options: BuildApiOptions = {}): Promise<FastifyIn
     return true;
   };
   api.database = database;
+  // Stripe signature verification needs the exact request bytes. Other JSON
+  // routes keep Fastify's normal object parsing behavior.
+  api.removeContentTypeParser("application/json");
+  api.addContentTypeParser("application/json", { parseAs: "string" }, (request, body, done) => {
+    if (request.url === "/webhooks/stripe") return done(null, body);
+    try {
+      done(null, JSON.parse(body as string));
+    } catch {
+      done(new Error("invalid json"));
+    }
+  });
   await api.register(cookie);
 
   api.setErrorHandler((_error, request, reply) => {
@@ -153,6 +168,318 @@ export async function buildApi(options: BuildApiOptions = {}): Promise<FastifyIn
     if (result.kind === "invalid") return problem(reply, 401, "session_expired", "The session is no longer valid.", "reauthenticate", request.url);
     if (result.kind === "passkey_required") return reply.code(200).send({ status: "authenticated", posture: "passkey_required" });
     return reply.code(200).send({ status: "authenticated", posture: "passkey_backed_session" });
+  });
+
+  api.get("/api/v1/public/offer", async (_request, reply) => reply.code(200).send(publicOffer));
+
+  api.post("/api/v1/public/qualification-assessments", async (request, reply) => {
+    const body = z.object({
+      banker_role: z.string().min(1).max(120),
+      can_purchase_independently: z.boolean(),
+      deal_type: z.string().min(1).max(120),
+      intended_use: z.string().min(1).max(240),
+      intended_audience: z.string().min(1).max(240),
+      expected_source_types: z.array(z.string().min(1).max(80)).max(20),
+      expected_template_types: z.array(z.string().min(1).max(80)).max(20),
+      known_special_structures: z.array(z.string().min(1).max(120)).max(20),
+      source_authority: z.string().min(1).max(120),
+      confidentiality_class: z.enum(["public", "internal", "confidential", "restricted"]),
+      employer_restrictions: z.string().min(1).max(240),
+      provider_or_geographic_restrictions: z.string().min(1).max(240),
+      minimum_source_packet: z.string().min(1).max(240),
+    }).strict().parse(request.body);
+    const digest = canonicalDigest({ ...body, expected_source_types: [...body.expected_source_types].sort(), expected_template_types: [...body.expected_template_types].sort(), known_special_structures: [...body.known_special_structures].sort() });
+    const sellSideScope = body.deal_type.toLowerCase().includes("sell-side") || body.deal_type.toLowerCase().includes("sell side");
+    const resultLabel = !body.can_purchase_independently || !sellSideScope ? "Not supported for this intended use" : body.employer_restrictions.toLowerCase() === "none" && body.provider_or_geographic_restrictions.toLowerCase() === "none" && body.confidentiality_class !== "restricted" ? "Likely compatible" : "Potential constraint — review before purchase";
+    const assessment = await database.pool.query<{ id: string; result: string; basis: string; unverified_conditions: string[]; preflight_recheck: string[] }>(
+      "SELECT * FROM app.create_qualification_assessment($1,$2,$3,$4,$5)",
+      [digest, resultLabel, "Non-confidential category information was evaluated against the current V1 capability boundary; exact files, rights, provider, and minimum packet remain unverified.", ["exact source rights", "provider/geographic restrictions", "minimum Source Packet"], ["purchase authority", "intended use", "source rights", "confidentiality", "processing compatibility", "minimum Source Packet"]],
+    );
+    const row = assessment.rows[0];
+    return reply.code(201).send({ id: row.id, result: row.result, basis: row.basis, unverified_conditions: row.unverified_conditions, preflight_recheck: row.preflight_recheck, source_material_authorized: false });
+  });
+
+  api.get<{ Params: { assessment_id: string } }>("/api/v1/public/qualification-assessments/:assessment_id", async (request, reply) => {
+    const assessmentId = z.string().uuid().parse(request.params.assessment_id);
+    const assessment = await database.pool.query("SELECT * FROM app.get_qualification_assessment($1)", [assessmentId]);
+    if (assessment.rowCount !== 1) return problem(reply, 404, "resource_not_found", "The qualification assessment is not available.", "start_new_qualification", request.url);
+    return reply.code(200).send({ ...assessment.rows[0], source_material_authorized: false });
+  });
+
+  function sessionFor(request: FastifyRequest) {
+    return cookieValue(request, "__Host-banker_session");
+  }
+
+  async function requireBanker(request: FastifyRequest, reply: FastifyReply) {
+    const session = sessionFor(request);
+    if (!session) {
+      problem(reply, 401, "authentication_required", "Authenticate to continue.", "authenticate", request.url);
+      return null;
+    }
+    return session;
+  }
+
+  function orderProjection(row: {
+    id: string; billing_term: "monthly" | "annual"; add_on_code: string; amount_minor: number; currency: string; tax_posture: string; tax_amount_minor: number; renewal_amount_minor: number; included_active_deals: number; allowances: Record<string, unknown>; unmetered_actions: string[]; guarantee_version: string; cancellation_version: string; contract_version: string; contract_digest: string; current_step: string; payment_state: string; status: string; provider_checkout_id: string | null; row_version: number; created_at: string; completed_at: string | null;
+  }) {
+    return {
+      id: row.id,
+      product_code: publicOffer.product_code,
+      capability_version: publicOffer.capability_version,
+      billing_term: row.billing_term,
+      annual_equivalent: { monthly_amount_minor: publicOffer.annual.monthly_equivalent_minor, savings_minor: publicOffer.annual.savings_minor, discount_percent: publicOffer.annual.discount_percent },
+      add_on: row.add_on_code,
+      amount_minor: row.amount_minor,
+      amount_due_now: { amount_minor: row.amount_minor, currency: row.currency },
+      currency: row.currency,
+      tax: { posture: row.tax_posture, amount_minor: row.tax_amount_minor },
+      renewal: { amount_minor: row.renewal_amount_minor, term: row.billing_term },
+      included_active_deals: row.included_active_deals,
+      allowances: row.allowances,
+      unmetered_actions: row.unmetered_actions,
+      guarantee: row.guarantee_version,
+      cancellation: row.cancellation_version,
+      contract_version: row.contract_version,
+      contract_digest: row.contract_digest,
+      current_step: row.current_step,
+      payment_state: row.payment_state,
+      status: row.status,
+      provider_checkout_id: row.provider_checkout_id,
+      row_version: Number(row.row_version),
+      created_at: row.created_at,
+      completed_at: row.completed_at,
+    };
+  }
+
+  api.post("/api/v1/checkout-orders", async (request, reply) => {
+    const session = await requireBanker(request, reply);
+    if (!session) return;
+    const body = z.object({ billing_term: z.enum(["monthly", "annual"]), add_on: z.enum(["none", "additional_active_deal", "intensive_processing", "archive_capacity"]).default("none") }).strict().parse(request.body);
+    if (body.billing_term === "annual" && body.add_on === "archive_capacity") return problem(reply, 400, "invalid_request", "Archive capacity is a monthly-only V1 pack.", "choose_supported_add_on", request.url);
+    const idempotencyKey = request.headers["idempotency-key"];
+    if (typeof idempotencyKey !== "string" || idempotencyKey.length < 16 || idempotencyKey.length > 128) return problem(reply, 400, "invalid_request", "An Idempotency-Key of 16–128 characters is required for checkout commands.", "correct_request", request.url);
+    let result: Awaited<ReturnType<typeof database.withContext>>;
+    try {
+      result = await database.withContext(session, null, async (client, context) => {
+        const response = await client.query(`SELECT * FROM app.create_checkout_order($1,$2,$3,$4,$5,$6,$7,$8)`, [context.accountId, context.actorId, body.billing_term, body.add_on, idempotencyKey, checkoutContractDigest(body.billing_term, body.add_on), publicOffer.allowances, publicOffer.unmetered_actions]);
+        return response.rows[0];
+      });
+    } catch (error) {
+      if (error && typeof error === "object" && "code" in error && error.code === "23505") return problem(reply, 409, "idempotency_key_reused", "This Idempotency-Key was already used for a different Checkout Order.", "start_new_checkout_order", request.url);
+      throw error;
+    }
+    if (result.kind === "invalid") return problem(reply, 401, "session_expired", "The session is no longer valid.", "reauthenticate", request.url);
+    if (result.kind === "passkey_required") return problem(reply, 403, "passkey_required", "A Passkey-backed session is required for checkout.", "register_passkey", request.url);
+    if (result.kind === "not_found") return problem(reply, 404, "resource_not_found", "The requested resource is not available.", "return_to_safe_parent", request.url);
+    const bodyResult = orderProjection(result.value as Parameters<typeof orderProjection>[0]);
+    reply.header("etag", `W/\"${bodyResult.row_version}\"`);
+    return reply.code(201).send(bodyResult);
+  });
+
+  api.get<{ Params: { checkout_order_id: string } }>("/api/v1/checkout-orders/:checkout_order_id", async (request, reply) => {
+    const session = await requireBanker(request, reply);
+    if (!session) return;
+    const orderId = z.string().uuid().parse(request.params.checkout_order_id);
+    const result = await database.withContext(session, null, async (client) => {
+      const order = await client.query("SELECT * FROM app.checkout_order WHERE id = $1", [orderId]);
+      if (order.rowCount !== 1) return null;
+      const projected = orderProjection(order.rows[0]);
+      const terms = await client.query("SELECT id, displayed_contract_digest, acknowledgements, accepted_at FROM app.checkout_terms_acceptance WHERE checkout_order_id = $1", [orderId]);
+      if (projected.status === "completed") {
+        const entitlement = await client.query("SELECT pe.active_deal_capacity, a.display_name AS actor_name, pe.capabilities, pe.term_start, pe.term_end FROM app.product_entitlement pe JOIN app.actor a ON a.id = pe.actor_id WHERE pe.source_receipt_id IN (SELECT id FROM app.commercial_receipt WHERE checkout_order_id = $1)", [orderId]);
+        const receipt = await client.query("SELECT id, provider_payment_id, amount_minor, currency, tax_amount_minor, created_at FROM app.commercial_receipt WHERE checkout_order_id = $1", [orderId]);
+        return { ...projected, terms_acceptance: terms.rows[0] ?? null, entitlement: entitlement.rows[0] ? { ...entitlement.rows[0], active_deal_capacity: Number(entitlement.rows[0].active_deal_capacity) } : null, receipt: receipt.rows[0] ?? null };
+      }
+      return { ...projected, terms_acceptance: terms.rows[0] ?? null, entitlement: null, receipt: null };
+    });
+    if (result.kind === "invalid") return problem(reply, 401, "session_expired", "The session is no longer valid.", "reauthenticate", request.url);
+    if (result.kind === "passkey_required") return problem(reply, 403, "passkey_required", "A Passkey-backed session is required for checkout.", "register_passkey", request.url);
+    if (result.kind === "not_found") return problem(reply, 404, "resource_not_found", "The requested resource is not available.", "return_to_safe_parent", request.url);
+    if (result.value === null) return problem(reply, 404, "resource_not_found", "The requested resource is not available.", "return_to_safe_parent", request.url);
+    reply.header("etag", `W/\"${result.value.row_version}\"`);
+    return reply.code(200).send(result.value);
+  });
+
+  api.post<{ Params: { checkout_order_id: string } }>("/api/v1/checkout-orders/:checkout_order_id/terms-acceptances", async (request, reply) => {
+    const session = await requireBanker(request, reply);
+    if (!session) return;
+    const orderId = z.string().uuid().parse(request.params.checkout_order_id);
+    const body = z.object({ displayed_contract_digest: z.string().startsWith("sha256:"), acknowledgements: z.object({ purchase_authority: z.literal(true), source_authority_separate: z.literal(true), guarantee: z.literal(true), cancellation_refund: z.literal(true), post_term: z.literal(true), export_retention_deletion: z.literal(true), add_on_preview: z.literal(true), provider_boundary: z.literal(true) }).strict() }).strict().parse(request.body);
+    const ifMatch = request.headers["if-match"];
+    if (typeof ifMatch !== "string") return problem(reply, 428, "invalid_request", "The current Checkout Order version is required.", "refresh_checkout_state", request.url);
+    const idempotencyKey = request.headers["idempotency-key"];
+    if (typeof idempotencyKey !== "string" || idempotencyKey.length < 16 || idempotencyKey.length > 128) return problem(reply, 400, "invalid_request", "An Idempotency-Key of 16–128 characters is required for checkout terms commands.", "correct_request", request.url);
+    let result: Awaited<ReturnType<typeof database.withContext>>;
+    try {
+      result = await database.withContext(session, null, async (client) => {
+        const current = await client.query<{ row_version: string }>("SELECT row_version FROM app.checkout_order WHERE id = $1", [orderId]);
+        if (current.rowCount !== 1) return { kind: "missing" as const };
+        if (ifMatch !== `W/\"${current.rows[0].row_version}\"`) return { kind: "stale" as const };
+        return { kind: "accepted" as const, value: (await client.query("SELECT * FROM app.accept_checkout_terms($1,$2,$3,$4)", [orderId, body.displayed_contract_digest, body.acknowledgements, idempotencyKey])).rows[0] };
+      });
+    } catch (error) {
+      if (error && typeof error === "object" && "code" in error && error.code === "23505") return problem(reply, 409, "idempotency_key_reused", "This Idempotency-Key was already used for a different terms command.", "start_new_checkout_order", request.url);
+      if (error && typeof error === "object" && "code" in error && (error.code === "22023" || error.code === "40001")) return problem(reply, 409, "checkout_state_ambiguous", "The displayed Checkout terms no longer match the saved Order.", "refresh_checkout_state", request.url);
+      throw error;
+    }
+    if (result.kind === "invalid") return problem(reply, 401, "session_expired", "The session is no longer valid.", "reauthenticate", request.url);
+    if (result.kind === "passkey_required") return problem(reply, 403, "passkey_required", "A Passkey-backed session is required for checkout.", "register_passkey", request.url);
+    if (result.kind === "not_found") return problem(reply, 404, "resource_not_found", "The requested resource is not available.", "return_to_safe_parent", request.url);
+    if (result.kind !== "ok") return problem(reply, 503, "service_unavailable", "The Checkout Order terms could not be accepted.", "retry_after_delay", request.url);
+    const termsResult = result.value as { kind: "stale" | "missing" | "accepted"; value?: unknown };
+    if (termsResult.kind === "stale") return problem(reply, 409, "checkout_state_ambiguous", "The Checkout Order changed before terms were accepted.", "refresh_checkout_state", request.url);
+    if (termsResult.kind === "missing") return problem(reply, 404, "resource_not_found", "The requested resource is not available.", "return_to_safe_parent", request.url);
+    if (termsResult.kind !== "accepted") return problem(reply, 409, "checkout_state_ambiguous", "The Checkout Order terms could not be accepted.", "refresh_checkout_state", request.url);
+    return reply.code(201).send(termsResult.value);
+  });
+
+  api.post("/api/v1/checkout-sessions", async (request, reply) => {
+    const session = await requireBanker(request, reply);
+    if (!session) return;
+    const body = z.object({ checkout_order_id: z.string().uuid(), terms_acceptance_id: z.string().uuid() }).strict().parse(request.body);
+    const idempotencyKey = request.headers["idempotency-key"];
+    if (typeof idempotencyKey !== "string" || idempotencyKey.length < 16 || idempotencyKey.length > 128) return problem(reply, 400, "invalid_request", "An Idempotency-Key of 16–128 characters is required for checkout session commands.", "correct_request", request.url);
+    const requestDigest = canonicalDigest({ checkout_order_id: body.checkout_order_id, terms_acceptance_id: body.terms_acceptance_id });
+    const result = await database.withContext(session, null, async (client, context) => {
+      // Hold a transaction-scoped lock across the provider call so a retried
+      // command cannot create two external Checkout sessions for one key.
+      await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [`${context.accountId}:${idempotencyKey}`]);
+      const order = await client.query("SELECT * FROM app.checkout_order WHERE id = $1", [body.checkout_order_id]);
+      const acceptance = await client.query("SELECT 1 FROM app.checkout_terms_acceptance WHERE id = $1 AND checkout_order_id = $2", [body.terms_acceptance_id, body.checkout_order_id]);
+      if (order.rowCount !== 1 || acceptance.rowCount !== 1) return { kind: "invalid_state" as const };
+      const prior = await client.query("SELECT * FROM app.checkout_order WHERE account_id = app.policy_account_id() AND session_idempotency_key = $1", [idempotencyKey]);
+      const orderRow = order.rows[0];
+      const priorRow = prior.rows[0] ?? null;
+      if (priorRow && (priorRow.id !== orderRow.id || priorRow.session_request_digest !== requestDigest)) return { kind: "idempotency_conflict" as const };
+      if (orderRow.provider_checkout_id && orderRow.session_idempotency_key === idempotencyKey) return { kind: "existing" as const, row: orderRow, hosted_url: checkoutAdapter.getHostedSessionUrl?.(orderRow.provider_checkout_id) ?? null };
+      if (orderRow.provider_checkout_id && orderRow.session_idempotency_key && orderRow.session_idempotency_key !== idempotencyKey) return { kind: "idempotency_conflict" as const };
+      const billingTerm = z.enum(["monthly", "annual"]).parse(orderRow.billing_term) as BillingTerm;
+      const addOn = z.enum(["none", "additional_active_deal", "intensive_processing", "archive_capacity"]).parse(orderRow.add_on_code) as AddOnCode;
+      const hostedSession = await checkoutAdapter.createHostedSession({ checkoutOrderId: body.checkout_order_id, billingTerm, addOn });
+      const created = (await client.query("SELECT * FROM app.create_checkout_session($1,$2,$3,$4)", [body.checkout_order_id, hostedSession.providerSessionId, idempotencyKey, requestDigest])).rows[0];
+      return { kind: "created" as const, row: created, hosted_url: hostedSession.hostedUrl };
+    });
+    if (result.kind === "invalid") return problem(reply, 401, "session_expired", "The session is no longer valid.", "reauthenticate", request.url);
+    if (result.kind === "passkey_required") return problem(reply, 403, "passkey_required", "A Passkey-backed session is required for checkout.", "register_passkey", request.url);
+    if (result.kind === "not_found") return problem(reply, 404, "resource_not_found", "The requested resource is not available.", "return_to_safe_parent", request.url);
+    if (result.kind !== "ok") return problem(reply, 503, "service_unavailable", "The checkout session could not be created.", "retry_after_delay", request.url);
+    const sessionResult = result.value as { kind: "invalid_state" | "idempotency_conflict" | "existing" | "created"; row?: { provider_checkout_id: string; id: string; payment_state: string }; hosted_url?: string | null };
+    if (sessionResult.kind === "invalid_state") return problem(reply, 409, "checkout_state_ambiguous", "The checkout terms could not be verified for this Order.", "refresh_checkout_state", request.url);
+    if (sessionResult.kind === "idempotency_conflict") return problem(reply, 409, "idempotency_key_reused", "This Idempotency-Key was already used for a different checkout command.", "start_new_checkout_order", request.url);
+    if (!sessionResult.row) return problem(reply, 503, "service_unavailable", "The checkout session could not be created.", "retry_after_delay", request.url);
+    return reply.code(201).send({ id: sessionResult.row.provider_checkout_id, checkout_order_id: sessionResult.row.id, provider_session_id: sessionResult.row.provider_checkout_id, provider: checkoutAdapter.name, live_verification_debt: checkoutAdapter.name === "stripe_test_adapter", hosted_url: sessionResult.hosted_url ?? null, payment_state: sessionResult.row.payment_state });
+  });
+
+  api.get<{ Params: { checkout_session_id: string } }>("/api/v1/checkout-sessions/:checkout_session_id", async (request, reply) => {
+    const session = await requireBanker(request, reply);
+    if (!session) return;
+    const providerSessionId = z.string().min(1).max(200).parse(request.params.checkout_session_id);
+    const result = await database.withContext(session, null, async (client) => {
+      const order = await client.query("SELECT * FROM app.checkout_order WHERE provider_checkout_id = $1", [providerSessionId]);
+      return order.rowCount === 1 ? orderProjection(order.rows[0]) : null;
+    });
+    if (result.kind === "invalid") return problem(reply, 401, "session_expired", "The session is no longer valid.", "reauthenticate", request.url);
+    if (result.kind === "passkey_required") return problem(reply, 403, "passkey_required", "A Passkey-backed session is required for checkout.", "register_passkey", request.url);
+    if (result.kind === "not_found") return problem(reply, 404, "resource_not_found", "The requested resource is not available.", "return_to_safe_parent", request.url);
+    if (result.value === null) return problem(reply, 404, "resource_not_found", "The requested resource is not available.", "return_to_safe_parent", request.url);
+    return reply.code(200).send({ id: providerSessionId, checkout_order_id: result.value.id, payment_state: result.value.payment_state, product_authoritative_status: result.value.status, current_step: result.value.current_step });
+  });
+
+  api.get("/api/v1/account/entitlements", async (request, reply) => {
+    const session = await requireBanker(request, reply);
+    if (!session) return;
+    const result = await database.withContext(session, null, async (client) => {
+      const rows = await client.query("SELECT pe.id, pe.product_code, pe.capability_version, pe.term_start, pe.term_end, pe.active_deal_capacity, pe.capabilities, pe.status, a.display_name AS actor_name FROM app.product_entitlement pe JOIN app.actor a ON a.id = pe.actor_id WHERE pe.account_id = app.policy_account_id() ORDER BY pe.created_at ASC");
+      return { entitlements: rows.rows.map((row) => ({ ...row, active_deal_capacity: Number(row.active_deal_capacity) })) };
+    });
+    if (result.kind === "invalid") return problem(reply, 401, "session_expired", "The session is no longer valid.", "reauthenticate", request.url);
+    if (result.kind === "passkey_required") return problem(reply, 403, "passkey_required", "A Passkey-backed session is required.", "register_passkey", request.url);
+    if (result.kind === "not_found") return problem(reply, 404, "resource_not_found", "The requested resource is not available.", "return_to_safe_parent", request.url);
+    return reply.code(200).send(result.value);
+  });
+
+  api.get("/api/v1/account/commercial-receipts", async (request, reply) => {
+    const session = await requireBanker(request, reply);
+    if (!session) return;
+    const result = await database.withContext(session, null, async (client) => (await client.query("SELECT id, checkout_order_id, provider_payment_id, amount_minor, currency, tax_amount_minor, status, created_at FROM app.commercial_receipt WHERE account_id = app.policy_account_id() ORDER BY created_at ASC")).rows);
+    if (result.kind === "invalid") return problem(reply, 401, "session_expired", "The session is no longer valid.", "reauthenticate", request.url);
+    if (result.kind === "passkey_required") return problem(reply, 403, "passkey_required", "A Passkey-backed session is required.", "register_passkey", request.url);
+    if (result.kind === "not_found") return problem(reply, 404, "resource_not_found", "The requested resource is not available.", "return_to_safe_parent", request.url);
+    return reply.code(200).send({ receipts: result.value });
+  });
+
+  api.get("/api/v1/account/usage", async (request, reply) => {
+    const session = await requireBanker(request, reply);
+    if (!session) return;
+    const result = await database.withContext(session, null, async (client) => {
+      const rows = await client.query("SELECT COALESCE(SUM(quantity) FILTER (WHERE entry_type = 'grant' AND allowance_class IN ('active_deal_capacity', 'active_deal_capacity_add_on')), 0)::int AS granted_active_deals, COALESCE(SUM(quantity) FILTER (WHERE entry_type = 'grant' AND allowance_class = 'logical_pages_intensive_processing'), 0)::int AS intensive_logical_pages, COALESCE(SUM(quantity) FILTER (WHERE entry_type = 'grant' AND allowance_class = 'full_workflow_operations_intensive_processing'), 0)::int AS intensive_operations, COALESCE(SUM(quantity) FILTER (WHERE entry_type = 'grant' AND allowance_class = 'archive_capacity_gb'), 0)::int AS archive_capacity_gb FROM app.usage_ledger_entry WHERE account_id = app.policy_account_id()");
+      const ent = await client.query("SELECT COALESCE(MAX(active_deal_capacity), 0)::int AS active_deal_capacity FROM app.product_entitlement WHERE account_id = app.policy_account_id() AND status IN ('active','billing_recovery')");
+      return { active_deal_capacity: Number(ent.rows[0].active_deal_capacity), granted_active_deals: Number(rows.rows[0].granted_active_deals), used_active_deals: 0, granted_allowances: { intensive_logical_pages: Number(rows.rows[0].intensive_logical_pages), intensive_operations: Number(rows.rows[0].intensive_operations), archive_capacity_gb: Number(rows.rows[0].archive_capacity_gb) } };
+    });
+    if (result.kind === "invalid") return problem(reply, 401, "session_expired", "The session is no longer valid.", "reauthenticate", request.url);
+    if (result.kind === "passkey_required") return problem(reply, 403, "passkey_required", "A Passkey-backed session is required.", "register_passkey", request.url);
+    if (result.kind === "not_found") return problem(reply, 404, "resource_not_found", "The requested resource is not available.", "return_to_safe_parent", request.url);
+    return reply.code(200).send(result.value);
+  });
+
+  api.get("/api/v1/account/subscription", async (request, reply) => {
+    const session = await requireBanker(request, reply);
+    if (!session) return;
+    const result = await database.withContext(session, null, async (client) => {
+      const row = await client.query("SELECT billing_term, amount_minor, renewal_amount_minor, current_step, payment_state, status, cancellation_version, guarantee_version FROM app.checkout_order WHERE account_id = app.policy_account_id() ORDER BY created_at DESC LIMIT 1");
+      return row.rows[0] ?? null;
+    });
+    if (result.kind === "invalid") return problem(reply, 401, "session_expired", "The session is no longer valid.", "reauthenticate", request.url);
+    if (result.kind === "passkey_required") return problem(reply, 403, "passkey_required", "A Passkey-backed session is required.", "register_passkey", request.url);
+    if (result.kind === "not_found") return problem(reply, 404, "resource_not_found", "The requested resource is not available.", "return_to_safe_parent", request.url);
+    return reply.code(200).send(result.value ?? { status: "not_started", payment_state: "not_started" });
+  });
+
+  api.get("/api/v1/account/commerce-state", async (request, reply) => {
+    const session = await requireBanker(request, reply);
+    if (!session) return;
+    const result = await database.withContext(session, null, async (client) => {
+      const [entitlements, receipts, usage, audit, measurements] = await Promise.all([
+        client.query("SELECT pe.id, pe.product_code, pe.capability_version, pe.term_start, pe.term_end, pe.active_deal_capacity, pe.capabilities, pe.status, a.display_name AS actor_name FROM app.product_entitlement pe JOIN app.actor a ON a.id = pe.actor_id WHERE pe.account_id = app.policy_account_id() ORDER BY pe.created_at ASC"),
+        client.query("SELECT id, checkout_order_id, provider_payment_id, amount_minor, currency, tax_amount_minor, status, created_at FROM app.commercial_receipt WHERE account_id = app.policy_account_id() ORDER BY created_at ASC"),
+        client.query("SELECT COALESCE(MAX(active_deal_capacity), 0)::int AS active_deal_capacity, COALESCE(SUM(quantity) FILTER (WHERE entry_type = 'grant' AND allowance_class IN ('active_deal_capacity', 'active_deal_capacity_add_on')), 0)::int AS granted_active_deals, COALESCE(SUM(quantity) FILTER (WHERE entry_type = 'grant' AND allowance_class = 'logical_pages_intensive_processing'), 0)::int AS intensive_logical_pages, COALESCE(SUM(quantity) FILTER (WHERE entry_type = 'grant' AND allowance_class = 'full_workflow_operations_intensive_processing'), 0)::int AS intensive_operations, COALESCE(SUM(quantity) FILTER (WHERE entry_type = 'grant' AND allowance_class = 'archive_capacity_gb'), 0)::int AS archive_capacity_gb FROM app.usage_ledger_entry ul LEFT JOIN app.product_entitlement pe ON pe.id = ul.entitlement_id WHERE ul.account_id = app.policy_account_id()"),
+        client.query("SELECT id, code, outcome, object_kind, object_id, created_at FROM app.audit_event WHERE account_id = app.policy_account_id() AND deal_id IS NULL ORDER BY created_at ASC, id ASC"),
+        client.query("SELECT event_code, source_identity, properties, created_at FROM app.product_measurement_candidate WHERE account_id = app.policy_account_id() ORDER BY created_at ASC"),
+      ]);
+      return { entitlements: entitlements.rows.map((row) => ({ ...row, active_deal_capacity: Number(row.active_deal_capacity) })), receipts: receipts.rows, usage: { active_deal_capacity: Number(usage.rows[0].active_deal_capacity), granted_active_deals: Number(usage.rows[0].granted_active_deals), used_active_deals: 0, granted_allowances: { intensive_logical_pages: Number(usage.rows[0].intensive_logical_pages), intensive_operations: Number(usage.rows[0].intensive_operations), archive_capacity_gb: Number(usage.rows[0].archive_capacity_gb) } }, audit_events: audit.rows, measurement_candidates: measurements.rows };
+    });
+    if (result.kind === "invalid") return problem(reply, 401, "session_expired", "The session is no longer valid.", "reauthenticate", request.url);
+    if (result.kind === "passkey_required") return problem(reply, 403, "passkey_required", "A Passkey-backed session is required.", "register_passkey", request.url);
+    if (result.kind === "not_found") return problem(reply, 404, "resource_not_found", "The requested resource is not available.", "return_to_safe_parent", request.url);
+    return reply.code(200).send(result.value);
+  });
+
+  api.post("/webhooks/stripe", async (request, reply) => {
+    const rawBody = typeof request.body === "string" ? request.body : stableJson(request.body);
+    const secret = process.env.STRIPE_WEBHOOK_SECRET ?? (process.env.APP_ENV === "production" ? "" : "ticket-03-test-secret");
+    if (!secret) return problem(reply, 503, "provider_unavailable", "Stripe Webhook verification is not configured.", "retry_after_delay", request.url);
+    const signatureHeader = request.headers["stripe-signature"];
+    if (!verifyStripeSignature(rawBody, typeof signatureHeader === "string" ? signatureHeader : undefined, secret)) return problem(reply, 400, "invalid_signature", "The provider signature is invalid or expired.", "provider_retry", request.url);
+    let rawEvent: unknown;
+    try {
+      rawEvent = JSON.parse(rawBody);
+    } catch {
+      return problem(reply, 400, "invalid_request", "The provider event body is not valid JSON.", "provider_retry", request.url);
+    }
+    let parsed: ReturnType<typeof canonicalizeStripeEvent>;
+    try {
+      parsed = canonicalizeStripeEvent(rawEvent);
+    } catch {
+      return problem(reply, 400, "invalid_request", "The provider event body does not match the supported evidence contract.", "provider_retry", request.url);
+    }
+    const providerEventId = stripeEventId(rawEvent);
+    if (!providerEventId) return problem(reply, 400, "invalid_request", "The provider event identity is missing.", "provider_retry", request.url);
+    if (database.failProviderEvidencePersistence) return problem(reply, 503, "provider_event_persistence_failed", "The provider event could not be durably recorded.", "provider_retry", request.url);
+    const digest = canonicalDigest(parsed);
+    const persisted = await database.pool.query<{ state: string }>("SELECT * FROM app.persist_provider_event($1,$2,$3,$4,$5,$6)", [providerEventId, parsed.api_version, parsed.type, parsed, digest, rawPayloadDigest(rawBody)]);
+    const state = persisted.rows[0]?.state;
+    const reconciliation = await database.pool.query<{ dispatch_provider_event_outbox: string }>("SELECT app.dispatch_provider_event_outbox($1)", [providerEventId]);
+    return reply.code(200).send({ status: reconciliation.rows[0]?.dispatch_provider_event_outbox ?? state ?? "received", provider_event_id: providerEventId, canonical_digest: digest });
   });
 
   api.get<{ Params: { deal_id: string } }>("/api/v1/deals/:deal_id/overview", async (request, reply) => {
