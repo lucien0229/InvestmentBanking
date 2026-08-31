@@ -59,3 +59,7 @@ Not verified and intentionally not claimed: production control-plane persistence
 ## Git/worktree state
 
 `HEAD` and `main` both resolve to `73c72a5b1d77b41d9cfb5bae72b08412861a907b` at verification. The worktree contains only the Ticket 02 implementation, contract/test changes, and this evidence/status update; no commit, push, PR, cleanup, or Ticket 03/04 change was made.
+
+## Integration update — 2026-08-31
+
+The Ticket 02 implementation commit `010c658` and tracker closure commit `eadc9d4` are now on `main`. The main worktree is clean at `eadc9d4`; no push, PR, cleanup, or Ticket 03/04 change was made. The originating implementation worktree is detached at `c6f7f55` and clean.
