@@ -16,7 +16,7 @@
 
 ## Answer
 
-Ticket 07 is resolved for the authorized local development boundary. The implementation is committed in `64e79e9` plus the follow-up hardening commit recorded in the handoff, with no downstream ticket scope advanced.
+Ticket 07 is resolved for the authorized local development boundary. The implementation is committed in `64e79e9` plus follow-up hardening commit `fc0b7d3`, with no downstream ticket scope advanced.
 
 - `0006-web-evidence-account-templates.sql` adds forced-RLS Web Observation, impact, Account preview/quarantine, reusable-template/version, compatibility, Deal-selection, and typed Protected Account Object tables. Web observations are FK-linked to typed Source Records; immutable triggers protect observations and template versions; definer functions are owned by non-login `app_source_owner` with direct runtime writes revoked.
 - Public Web capture creates a new observation/version per retrieval, preserves the prior row, records identity/as-of/locator/rights/limitations, lowers to citation-only when rights or retention do not permit a snapshot, and stores encrypted snapshot bytes plus Source Representation/coverage when permitted.
