@@ -727,6 +727,254 @@ export const openApiContract = {
         }
       }
     },
+    "/api/v1/deals": {
+      "get": {
+        "operationId": "list_paid_deals",
+        "responses": {
+          "200": {
+            "description": "Account-scoped paid Deals"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      },
+      "post": {
+        "operationId": "create_paid_deal",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 128
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaidDealCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Identity-complete Deal with reserved Active Deal capacity"
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/setup": {
+      "get": {
+        "operationId": "get_deal_setup",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deal Setup projection"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      },
+      "patch": {
+        "operationId": "save_deal_setup",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "$ref": "#/components/parameters/IfMatch"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DealSetupPatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Versioned setup draft"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "412": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/preflights": {
+      "get": {
+        "operationId": "list_paid_preflights",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paid Preflight history"
+          }
+        }
+      },
+      "post": {
+        "operationId": "create_paid_preflight",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Privacy-safe Paid Preflight result"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/preflights/{preflight_id}": {
+      "get": {
+        "operationId": "get_paid_preflight",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "$ref": "#/components/parameters/PreflightId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paid Preflight detail and control outcomes"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/preflights/{preflight_id}/limited-proceed-acceptances": {
+      "post": {
+        "operationId": "accept_limited_preflight",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "$ref": "#/components/parameters/PreflightId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LimitedProceedAcceptance"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Exact limited scope accepted"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/identity-changes": {
+      "post": {
+        "operationId": "create_linked_deal_for_identity_change",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Linked Deal with predecessor pointer"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/guide": {
+      "get": {
+        "operationId": "get_first_deal_guide",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Resumable First Deal Guide checkpoint"
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/substantive-processing": {
+      "post": {
+        "operationId": "authorize_substantive_processing",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation permitted by current preflight"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
     "/api/v1/deals/{deal_id}/overview": {
       "get": {
         "operationId": "get_deal_overview",
@@ -1540,7 +1788,203 @@ export const openApiContract = {
     }
   },
   "components": {
+    "parameters": {
+      "DealId": {
+        "name": "deal_id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "PreflightId": {
+        "name": "preflight_id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "IdempotencyKey": {
+        "name": "Idempotency-Key",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "minLength": 16,
+          "maxLength": 128
+        }
+      },
+      "IfMatch": {
+        "name": "If-Match",
+        "in": "header",
+        "required": false,
+        "schema": {
+          "type": "string"
+        }
+      }
+    },
     "schemas": {
+      "PaidDealCreate": {
+        "type": "object",
+        "required": [
+          "display_name",
+          "represented_party",
+          "transaction_subject",
+          "transaction_perimeter",
+          "banker_role_or_side",
+          "mandate_objective",
+          "transaction_type",
+          "business_stage",
+          "intended_purpose",
+          "intended_audience",
+          "base_currency",
+          "reporting_units",
+          "purchase_authority_acknowledgement_id",
+          "deal_authority_basis",
+          "expected_source_use_authority",
+          "confidentiality_class",
+          "employer_or_client_restrictions",
+          "intended_processing_path",
+          "expected_file_families",
+          "expected_template_posture",
+          "provider_restrictions",
+          "special_structures",
+          "identity_confirmed"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "display_name": {
+            "type": "string"
+          },
+          "represented_party": {
+            "type": "string"
+          },
+          "transaction_subject": {
+            "type": "string"
+          },
+          "transaction_perimeter": {
+            "type": "object"
+          },
+          "banker_role_or_side": {
+            "type": "string"
+          },
+          "mandate_objective": {
+            "type": "string"
+          },
+          "transaction_type": {
+            "type": "string"
+          },
+          "business_stage": {
+            "type": "string"
+          },
+          "intended_purpose": {
+            "type": "string"
+          },
+          "intended_audience": {
+            "type": "string"
+          },
+          "base_currency": {
+            "type": "string"
+          },
+          "reporting_units": {
+            "type": "string"
+          },
+          "purchase_authority_acknowledgement_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "deal_authority_basis": {
+            "type": "string"
+          },
+          "expected_source_use_authority": {
+            "type": "string"
+          },
+          "confidentiality_class": {
+            "type": "string"
+          },
+          "employer_or_client_restrictions": {
+            "type": "object"
+          },
+          "intended_processing_path": {
+            "type": "string"
+          },
+          "expected_file_families": {
+            "type": "array"
+          },
+          "expected_template_posture": {
+            "type": "string"
+          },
+          "provider_restrictions": {
+            "type": "array"
+          },
+          "special_structures": {
+            "type": "array"
+          },
+          "identity_confirmed": {
+            "const": true
+          }
+        }
+      },
+      "DealSetupPatch": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "source_reference": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "source_rights": {
+            "type": "string"
+          },
+          "intended_use": {
+            "type": "string"
+          },
+          "intended_audience": {
+            "type": "string"
+          },
+          "confidentiality_class": {
+            "type": "string"
+          },
+          "processing_path": {
+            "type": "string"
+          },
+          "provider_restrictions": {
+            "type": "array"
+          },
+          "minimum_packet": {
+            "type": "string"
+          },
+          "compatibility": {
+            "type": "string"
+          }
+        }
+      },
+      "LimitedProceedAcceptance": {
+        "type": "object",
+        "required": [
+          "accepted_scope",
+          "excluded_scope",
+          "output_ceiling"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "accepted_scope": {
+            "type": "array",
+            "minItems": 1
+          },
+          "excluded_scope": {
+            "type": "array"
+          },
+          "output_ceiling": {
+            "type": "string"
+          }
+        }
+      },
       "MagicLinkBootstrap": {
         "type": "object",
         "required": [

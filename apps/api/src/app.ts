@@ -16,6 +16,49 @@ import { ReferenceJobRuntime, type ReferenceJobRuntimeOptions } from "./jobs.js"
 const dealIdSchema = z.string().uuid();
 const emailSchema = z.string().email().max(320);
 const problemType = "https://investment-banking.local/problems";
+const dealCreateSchema = z.object({
+  display_name: z.string().min(1).max(160),
+  represented_party: z.string().min(1).max(240),
+  transaction_subject: z.string().min(1).max(240),
+  transaction_perimeter: z.object({ inclusions: z.array(z.string().min(1).max(240)).min(1).max(30), exclusions: z.array(z.string().min(1).max(240)).max(30) }).strict(),
+  banker_role_or_side: z.string().min(1).max(120),
+  mandate_objective: z.string().min(1).max(500),
+  transaction_type: z.string().min(1).max(120),
+  business_stage: z.string().min(1).max(120),
+  intended_purpose: z.string().min(1).max(500),
+  intended_audience: z.string().min(1).max(240),
+  base_currency: z.string().length(3),
+  reporting_units: z.enum(["ones", "thousands", "millions"]),
+  purchase_authority_acknowledgement_id: dealIdSchema,
+  deal_authority_basis: z.string().min(1).max(160),
+  expected_source_use_authority: z.enum(["provided_under_mandate", "limited_pending_confirmation", "not_confirmed"]),
+  confidentiality_class: z.enum(["public", "internal", "confidential", "restricted"]),
+  employer_or_client_restrictions: z.object({ posture: z.enum(["none_known", "declared"]), details: z.string().max(500).nullable().optional() }).strict(),
+  intended_processing_path: z.enum(["local_deterministic_only", "local_deterministic_and_approved_ai"]),
+  expected_file_families: z.array(z.string().min(1).max(80)).min(1).max(30),
+  expected_template_posture: z.enum(["product_default", "banker_supplied_pending_preflight"]),
+  provider_restrictions: z.array(z.string().min(1).max(120)).max(30),
+  special_structures: z.array(z.string().min(1).max(120)).max(30),
+  stage_basis_reference: z.string().max(240).optional(),
+  identity_confirmed: z.boolean(),
+  source_reference: z.string().max(160).nullable().optional(),
+  source_rights: z.enum(["missing", "confirmed", "limited", "blocked"]).optional(),
+  intended_use: z.enum(["internal_deal_execution", "internal_analysis", "controlled_export", "external_distribution"]).optional(),
+  minimum_packet: z.enum(["missing", "incomplete", "complete"]).optional(),
+  compatibility: z.enum(["pass", "review_required", "blocked"]).optional(),
+  predecessor_deal_id: dealIdSchema.optional(),
+}).strict();
+const setupPatchSchema = z.object({
+  source_reference: z.string().max(160).nullable().optional(),
+  source_rights: z.enum(["missing", "confirmed", "limited", "blocked"]).optional(),
+  intended_use: z.enum(["internal_deal_execution", "internal_analysis", "controlled_export", "external_distribution"]).optional(),
+  intended_audience: z.string().min(1).max(240).optional(),
+  confidentiality_class: z.enum(["public", "internal", "confidential", "restricted"]).optional(),
+  processing_path: z.enum(["local_deterministic_only", "local_deterministic_and_approved_ai"]).optional(),
+  provider_restrictions: z.array(z.string().min(1).max(120)).max(30).optional(),
+  minimum_packet: z.enum(["missing", "incomplete", "complete"]).optional(),
+  compatibility: z.enum(["pass", "review_required", "blocked"]).optional(),
+}).strict();
 
 export interface BuildApiOptions {
   database?: Database;
@@ -63,6 +106,26 @@ function headerValue(request: FastifyRequest, name: string) {
 
 function etag(rowVersion: number) {
   return `"job-${rowVersion}"`;
+}
+
+function dealSetupEtag(version: number) {
+  return `"deal-setup-${version}"`;
+}
+
+function ticket05Error(error: unknown): { status: number; code: string; detail: string; recovery: string } | null {
+  const message = error && typeof error === "object" && "message" in error ? String(error.message) : String(error);
+  const mappings: Record<string, { status: number; code: string; detail: string; recovery: string }> = {
+    active_deal_capacity_exhausted: { status: 409, code: "active_deal_capacity_exhausted", detail: "The paid Active Deal capacity is already reserved.", recovery: "release_or_purchase_capacity" },
+    deal_identity_unchanged: { status: 409, code: "deal_identity_unchanged", detail: "A Deal with this identity already exists; create a linked Deal only when the identity materially changes.", recovery: "change_identity_or_open_existing_deal" },
+    identity_change_requires_new_deal: { status: 409, code: "identity_change_requires_new_deal", detail: "Deal identity is immutable after creation.", recovery: "create_linked_deal_for_identity_change" },
+    setup_version_conflict: { status: 412, code: "setup_version_conflict", detail: "The setup changed after it was loaded.", recovery: "reload_and_compare" },
+    idempotency_key_reused: { status: 409, code: "idempotency_key_reused", detail: "This Idempotency-Key was already used for a different request.", recovery: "use_new_idempotency_key" },
+    deal_create_precondition_failed: { status: 403, code: "entitlement_or_terms_required", detail: "A completed paid entitlement and purchase-authority acknowledgement are required.", recovery: "complete_checkout_and_terms" },
+    invalid_deal_create: { status: 400, code: "invalid_request", detail: "The Deal identity or setup fields are invalid.", recovery: "correct_request" },
+    invalid_setup_source_reference: { status: 400, code: "invalid_request", detail: "The source reference format is invalid.", recovery: "correct_request" },
+    invalid_predecessor_deal: { status: 400, code: "invalid_request", detail: "The predecessor Deal is not in the same account.", recovery: "correct_request" },
+  };
+  return Object.entries(mappings).find(([key]) => message.includes(key))?.[1] ?? null;
 }
 
 export async function buildApi(options: BuildApiOptions = {}): Promise<FastifyInstance & { database: Database; referenceJobRuntime: ReferenceJobRuntime }> {
@@ -234,6 +297,222 @@ export async function buildApi(options: BuildApiOptions = {}): Promise<FastifyIn
     }
     return session;
   }
+
+  function commandKey(request: FastifyRequest, reply: FastifyReply) {
+    const key = headerValue(request, "idempotency-key");
+    if (!key || key.length < 16 || key.length > 128) {
+      problem(reply, 400, "idempotency_key_required", "A valid Idempotency-Key is required.", "retry_with_idempotency_key", request.url);
+      return null;
+    }
+    return key;
+  }
+
+  async function dealProjection(client: import("pg").PoolClient, accountId: string, actorId: string, dealId: string) {
+    const result = await client.query<{ projection: Record<string, unknown> | null }>("SELECT app.get_deal_setup_projection($1,$2,$3) AS projection", [accountId, actorId, dealId]);
+    return result.rows[0]?.projection ?? null;
+  }
+
+  function sendTicket05Error(error: unknown, request: FastifyRequest, reply: FastifyReply) {
+    const mapped = ticket05Error(error);
+    if (!mapped) throw error;
+    return problem(reply, mapped.status, mapped.code, mapped.detail, mapped.recovery, request.url);
+  }
+
+  api.post("/api/v1/deals", async (request, reply) => {
+    const session = await requireBanker(request, reply);
+    if (!session) return;
+    const key = commandKey(request, reply);
+    if (!key) return;
+    const body = dealCreateSchema.parse(request.body);
+    const requestDigest = canonicalDigest({ method: "POST", route: "/api/v1/deals", api_version: "v1", body });
+    try {
+      const result = await database.withContext(session, null, async (client, context) => {
+        const created = await client.query<{ deal_id: string; idempotent_replayed: boolean }>("SELECT * FROM app.create_paid_deal($1,$2,$3,$4,$5)", [context.accountId, context.actorId, Database.hashToken(key), requestDigest, body]);
+        const row = created.rows[0];
+        if (!row) return null;
+        return { ...row, projection: await dealProjection(client, context.accountId, context.actorId, row.deal_id) };
+      });
+      if (result.kind === "invalid") return problem(reply, 401, "session_expired", "The session is no longer valid.", "reauthenticate", request.url);
+      if (result.kind === "passkey_required") return problem(reply, 403, "passkey_required", "A Passkey-backed session is required for Deal Setup.", "register_passkey", request.url);
+      if (result.kind === "not_found" || result.value === null || result.value.projection === null) return problem(reply, 404, "resource_not_found", "The requested resource is not available.", "return_to_safe_parent", request.url);
+      const projection = result.value.projection as { data: { setup?: { version?: number }; id: string } };
+      reply.header("Location", `/api/v1/deals/${projection.data.id}/setup`).header("ETag", dealSetupEtag(Number(projection.data.setup?.version ?? 1)));
+      if (result.value.idempotent_replayed) reply.header("Idempotent-Replayed", "true");
+      return reply.code(result.value.idempotent_replayed ? 200 : 201).send({ deal: projection.data });
+    } catch (error) {
+      return sendTicket05Error(error, request, reply);
+    }
+  });
+
+  api.get("/api/v1/deals", async (request, reply) => {
+    const session = await requireBanker(request, reply);
+    if (!session) return;
+    const result = await database.withContext(session, null, async (client, context) => (await client.query<{ list_account_deals: Record<string, unknown> }>("SELECT app.list_account_deals($1,$2) AS list_account_deals", [context.accountId, context.actorId])).rows.map((row) => row.list_account_deals));
+    if (result.kind === "invalid") return problem(reply, 401, "session_expired", "The session is no longer valid.", "reauthenticate", request.url);
+    if (result.kind === "passkey_required") return problem(reply, 403, "passkey_required", "A Passkey-backed session is required for Deal Setup.", "register_passkey", request.url);
+    return reply.code(200).send({ deals: result.kind === "ok" ? result.value : [] });
+  });
+
+  api.get<{ Params: { deal_id: string } }>("/api/v1/deals/:deal_id/setup", async (request, reply) => {
+    const dealId = dealIdSchema.parse(request.params.deal_id);
+    const session = await requireBanker(request, reply);
+    if (!session) return;
+    const result = await database.withContext(session, dealId, async (client, context) => dealProjection(client, context.accountId, context.actorId, dealId));
+    if (result.kind === "invalid") return problem(reply, 401, "session_expired", "The session is no longer valid.", "reauthenticate", request.url);
+    if (result.kind === "passkey_required") return problem(reply, 403, "passkey_required", "A Passkey-backed session is required for Deal Setup.", "register_passkey", request.url);
+    if (result.kind === "not_found" || result.value === null) return problem(reply, 404, "resource_not_found", "The requested resource is not available.", "return_to_safe_parent", request.url);
+    const projection = result.value as { data: { setup?: { version?: number } } };
+    reply.header("ETag", dealSetupEtag(Number(projection.data.setup?.version ?? 1))).header("Cache-Control", "private, no-store");
+    return reply.code(200).send(result.value);
+  });
+
+  api.patch<{ Params: { deal_id: string } }>("/api/v1/deals/:deal_id/setup", async (request, reply) => {
+    const dealId = dealIdSchema.parse(request.params.deal_id);
+    const session = await requireBanker(request, reply);
+    if (!session) return;
+    const body = setupPatchSchema.parse(request.body);
+    const ifMatch = headerValue(request, "if-match");
+    const expectedVersion = ifMatch ? Number(ifMatch.match(/(?:deal-setup-)(\d+)/)?.[1] ?? "NaN") : null;
+    if (ifMatch && !Number.isInteger(expectedVersion)) return problem(reply, 400, "invalid_request", "The setup ETag is invalid.", "reload_and_compare", request.url);
+    try {
+      const result = await database.withContext(session, dealId, async (client, context) => {
+        const saved = await client.query<{ draft_id: string; version: number }>("SELECT * FROM app.save_deal_setup($1,$2,$3,$4,$5)", [context.accountId, context.actorId, dealId, body, expectedVersion]);
+        const row = saved.rows[0];
+        return row ? { ...row, projection: await dealProjection(client, context.accountId, context.actorId, dealId) } : null;
+      });
+      if (result.kind === "invalid") return problem(reply, 401, "session_expired", "The session is no longer valid.", "reauthenticate", request.url);
+      if (result.kind === "passkey_required") return problem(reply, 403, "passkey_required", "A Passkey-backed session is required for Deal Setup.", "register_passkey", request.url);
+      if (result.kind === "not_found" || result.value === null || result.value.projection === null) return problem(reply, 404, "resource_not_found", "The requested resource is not available.", "return_to_safe_parent", request.url);
+      reply.header("ETag", dealSetupEtag(Number(result.value.version)));
+      return reply.code(200).send(result.value.projection);
+    } catch (error) {
+      return sendTicket05Error(error, request, reply);
+    }
+  });
+
+  api.post<{ Params: { deal_id: string } }>("/api/v1/deals/:deal_id/preflights", async (request, reply) => {
+    const dealId = dealIdSchema.parse(request.params.deal_id);
+    const session = await requireBanker(request, reply);
+    if (!session) return;
+    const key = commandKey(request, reply);
+    if (!key) return;
+    z.object({}).strict().parse(request.body ?? {});
+    const requestDigest = canonicalDigest({ method: "POST", route: "/api/v1/deals/{deal_id}/preflights", api_version: "v1", deal_id: dealId });
+    try {
+      const result = await database.withContext(session, dealId, async (client, context) => {
+        const created = await client.query<{ preflight_id: string; result: string; reason_code: string; recovery_action: string }>("SELECT * FROM app.create_paid_preflight($1,$2,$3,$4,$5)", [context.accountId, context.actorId, dealId, Database.hashToken(key), requestDigest]);
+        const row = created.rows[0];
+        if (!row) return null;
+        const detail = await client.query<Record<string, unknown> & { id: string }>(`SELECT p.id, p.version, p.result, p.reason_code, p.recovery_action, p.permitted_scope, p.excluded_scope, p.output_ceiling, p.requested_at, p.completed_at, p.expires_at,
+          coalesce(jsonb_agg(jsonb_build_object('dimension', c.control_dimension, 'outcome', c.outcome_code, 'reason_code', c.reason_code, 'recovery_action', c.recovery_action) ORDER BY c.control_dimension) FILTER (WHERE c.id IS NOT NULL), '[]'::jsonb) AS controls
+          FROM app.paid_preflight p LEFT JOIN app.preflight_control_result c ON c.preflight_id = p.id WHERE p.id = $1 GROUP BY p.id`, [row.preflight_id]);
+        return { ...row, detail: detail.rows[0] ?? null };
+      });
+      if (result.kind === "invalid") return problem(reply, 401, "session_expired", "The session is no longer valid.", "reauthenticate", request.url);
+      if (result.kind === "passkey_required") return problem(reply, 403, "passkey_required", "A Passkey-backed session is required for Paid Preflight.", "register_passkey", request.url);
+      if (result.kind === "not_found" || result.value === null || result.value.detail === null) return problem(reply, 404, "resource_not_found", "The requested resource is not available.", "return_to_safe_parent", request.url);
+      return reply.code(201).send({ data: result.value.detail });
+    } catch (error) {
+      return sendTicket05Error(error, request, reply);
+    }
+  });
+
+  api.get<{ Params: { deal_id: string } }>("/api/v1/deals/:deal_id/preflights", async (request, reply) => {
+    const dealId = dealIdSchema.parse(request.params.deal_id);
+    const session = await requireBanker(request, reply);
+    if (!session) return;
+    const result = await database.withContext(session, dealId, async (client) => (await client.query("SELECT id, version, result, reason_code, recovery_action, permitted_scope, excluded_scope, output_ceiling, requested_at, completed_at, expires_at FROM app.paid_preflight WHERE deal_id = $1 ORDER BY version ASC", [dealId])).rows);
+    if (result.kind === "invalid") return problem(reply, 401, "session_expired", "The session is no longer valid.", "reauthenticate", request.url);
+    if (result.kind === "passkey_required") return problem(reply, 403, "passkey_required", "A Passkey-backed session is required for Paid Preflight.", "register_passkey", request.url);
+    if (result.kind === "not_found") return problem(reply, 404, "resource_not_found", "The requested resource is not available.", "return_to_safe_parent", request.url);
+    return reply.code(200).send({ data: result.value });
+  });
+
+  api.get<{ Params: { deal_id: string; preflight_id: string } }>("/api/v1/deals/:deal_id/preflights/:preflight_id", async (request, reply) => {
+    const dealId = dealIdSchema.parse(request.params.deal_id);
+    const preflightId = dealIdSchema.parse(request.params.preflight_id);
+    const session = await requireBanker(request, reply);
+    if (!session) return;
+    const result = await database.withContext(session, dealId, async (client) => (await client.query("SELECT p.id, p.version, p.result, p.reason_code, p.recovery_action, p.permitted_scope, p.excluded_scope, p.output_ceiling, p.requested_at, p.completed_at, p.expires_at, coalesce(jsonb_agg(jsonb_build_object('dimension', c.control_dimension, 'outcome', c.outcome_code, 'reason_code', c.reason_code, 'recovery_action', c.recovery_action) ORDER BY c.control_dimension) FILTER (WHERE c.id IS NOT NULL), '[]'::jsonb) AS controls FROM app.paid_preflight p LEFT JOIN app.preflight_control_result c ON c.preflight_id = p.id WHERE p.id=$1 AND p.deal_id=$2 GROUP BY p.id", [preflightId, dealId])).rows[0] ?? null);
+    if (result.kind === "invalid") return problem(reply, 401, "session_expired", "The session is no longer valid.", "reauthenticate", request.url);
+    if (result.kind === "passkey_required") return problem(reply, 403, "passkey_required", "A Passkey-backed session is required for Paid Preflight.", "register_passkey", request.url);
+    if (result.kind === "not_found" || result.value === null) return problem(reply, 404, "resource_not_found", "The requested resource is not available.", "return_to_safe_parent", request.url);
+    return reply.code(200).send({ data: result.value });
+  });
+
+  api.post<{ Params: { deal_id: string; preflight_id: string } }>("/api/v1/deals/:deal_id/preflights/:preflight_id/limited-proceed-acceptances", async (request, reply) => {
+    const dealId = dealIdSchema.parse(request.params.deal_id);
+    const preflightId = dealIdSchema.parse(request.params.preflight_id);
+    const session = await requireBanker(request, reply);
+    if (!session) return;
+    const key = commandKey(request, reply);
+    if (!key) return;
+    const body = z.object({ accepted_scope: z.array(z.string().min(1).max(120)).min(1).max(20), excluded_scope: z.array(z.string().min(1).max(120)).max(30), output_ceiling: z.string().min(1).max(160) }).strict().parse(request.body);
+    const requestDigest = canonicalDigest({ method: "POST", route: "/api/v1/deals/{deal_id}/preflights/{preflight_id}/limited-proceed-acceptances", api_version: "v1", deal_id: dealId, preflight_id: preflightId, body });
+    try {
+      const result = await database.withContext(session, dealId, async (client, context) => (await client.query<{ accepted: boolean; reservation_state: string | null }>("SELECT * FROM app.accept_limited_preflight($1,$2,$3,$4,$5,$6,$7,$8,$9)", [context.accountId, context.actorId, dealId, preflightId, Database.hashToken(key), requestDigest, body.accepted_scope, body.excluded_scope, body.output_ceiling])).rows[0] ?? { accepted: false, reservation_state: null });
+      if (result.kind === "invalid") return problem(reply, 401, "session_expired", "The session is no longer valid.", "reauthenticate", request.url);
+      if (result.kind === "passkey_required") return problem(reply, 403, "passkey_required", "A Passkey-backed session is required for Paid Preflight.", "register_passkey", request.url);
+      if (result.kind === "not_found" || !result.value.accepted) return problem(reply, 409, "limited_scope_not_accepted", "The exact limited scope no longer matches the current preflight.", "reload_and_compare", request.url);
+      return reply.code(201).send({ data: { accepted: true, reservation_state: result.value.reservation_state, accepted_scope: body.accepted_scope, excluded_scope: body.excluded_scope, output_ceiling: body.output_ceiling } });
+    } catch (error) {
+      return sendTicket05Error(error, request, reply);
+    }
+  });
+
+  api.post<{ Params: { deal_id: string } }>("/api/v1/deals/:deal_id/identity-changes", async (request, reply) => {
+    const dealId = dealIdSchema.parse(request.params.deal_id);
+    const session = await requireBanker(request, reply);
+    if (!session) return;
+    const key = commandKey(request, reply);
+    if (!key) return;
+    const body = z.object({ represented_party: z.string().min(1).max(240).optional(), transaction_subject: z.string().min(1).max(240).optional(), transaction_perimeter: z.object({ inclusions: z.array(z.string().min(1).max(240)).min(1).max(30), exclusions: z.array(z.string().min(1).max(240)).max(30) }).strict().optional(), banker_role_or_side: z.string().min(1).max(120).optional(), mandate_objective: z.string().min(1).max(500).optional(), identity_confirmed: z.boolean().optional() }).strict().refine((value) => Object.keys(value).length > 0, "at least one identity field is required").parse(request.body);
+    const requestDigest = canonicalDigest({ method: "POST", route: "/api/v1/deals/{deal_id}/identity-changes", api_version: "v1", deal_id: dealId, body });
+    try {
+      const result = await database.withContext(session, dealId, async (client, context) => {
+        const changed = await client.query<{ create_identity_changed_deal: string | null }>("SELECT app.create_identity_changed_deal($1,$2,$3,$4,$5,$6) AS create_identity_changed_deal", [context.accountId, context.actorId, dealId, Database.hashToken(key), requestDigest, body]);
+        const linkedId = changed.rows[0]?.create_identity_changed_deal;
+        return linkedId ? await dealProjection(client, context.accountId, context.actorId, linkedId) : null;
+      });
+      if (result.kind === "invalid") return problem(reply, 401, "session_expired", "The session is no longer valid.", "reauthenticate", request.url);
+      if (result.kind === "passkey_required") return problem(reply, 403, "passkey_required", "A Passkey-backed session is required for Deal Setup.", "register_passkey", request.url);
+      if (result.kind === "not_found" || result.value === null) return problem(reply, 404, "resource_not_found", "The requested resource is not available.", "return_to_safe_parent", request.url);
+      const projection = result.value as { data: Record<string, unknown> };
+      return reply.code(201).send({ deal: projection.data });
+    } catch (error) {
+      return sendTicket05Error(error, request, reply);
+    }
+  });
+
+  api.get<{ Params: { deal_id: string } }>("/api/v1/deals/:deal_id/guide", async (request, reply) => {
+    const dealId = dealIdSchema.parse(request.params.deal_id);
+    const session = await requireBanker(request, reply);
+    if (!session) return;
+    const result = await database.withContext(session, dealId, async (client, context) => await dealProjection(client, context.accountId, context.actorId, dealId));
+    if (result.kind === "invalid") return problem(reply, 401, "session_expired", "The session is no longer valid.", "reauthenticate", request.url);
+    if (result.kind === "passkey_required") return problem(reply, 403, "passkey_required", "A Passkey-backed session is required for First Deal Guide.", "register_passkey", request.url);
+    if (result.kind === "not_found" || result.value === null) return problem(reply, 404, "resource_not_found", "The requested resource is not available.", "return_to_safe_parent", request.url);
+    const projection = result.value as { data: { first_deal_guide: Record<string, unknown> } };
+    return reply.code(200).send({ data: projection.data.first_deal_guide });
+  });
+
+  api.post<{ Params: { deal_id: string } }>("/api/v1/deals/:deal_id/substantive-processing", async (request, reply) => {
+    const dealId = dealIdSchema.parse(request.params.deal_id);
+    const session = await requireBanker(request, reply);
+    if (!session) return;
+    const body = z.object({ operation: z.enum(["quarantine", "parse", "deterministic_analysis", "internal_controlled_export", "ai", "rendering", "provider_egress"]), confidentiality_class: z.enum(["public", "internal", "confidential", "restricted"]).optional() }).strict().parse(request.body);
+    const result = await database.withContext(session, dealId, async (client) => {
+      const row = await client.query<{ processing_posture: string; paid_preflight_status: string }>("SELECT processing_posture, paid_preflight_status FROM app.deal_workspace WHERE deal_id=$1", [dealId]);
+      return row.rows[0] ?? null;
+    });
+    if (result.kind === "invalid") return problem(reply, 401, "session_expired", "The session is no longer valid.", "reauthenticate", request.url);
+    if (result.kind === "passkey_required") return problem(reply, 403, "passkey_required", "A Passkey-backed session is required before substantive processing.", "register_passkey", request.url);
+    if (result.kind === "not_found" || result.value === null) return problem(reply, 404, "resource_not_found", "The requested resource is not available.", "return_to_safe_parent", request.url);
+    const allowed = result.value.processing_posture === "permitted" && ["quarantine", "parse", "deterministic_analysis", "internal_controlled_export"].includes(body.operation);
+    if (!allowed) return problem(reply, 409, "processing_not_permitted", "Paid Preflight does not permit this processing operation for the current Deal posture.", "run_paid_preflight", request.url);
+    if (body.confidentiality_class && ["confidential", "restricted"].includes(body.confidentiality_class) && body.operation !== "quarantine") return problem(reply, 409, "confidential_content_not_permitted", "Confidential or Restricted content has no authorized parsing, AI, rendering, or provider-egress route in this release.", "use_quarantine_or_authorized_provider_route", request.url);
+    return reply.code(200).send({ operation: body.operation, permitted: true, preflight_status: result.value.paid_preflight_status });
+  });
 
   function orderProjection(row: {
     id: string; billing_term: "monthly" | "annual"; add_on_code: string; amount_minor: number; currency: string; tax_posture: string; tax_amount_minor: number; renewal_amount_minor: number; included_active_deals: number; allowances: Record<string, unknown>; unmetered_actions: string[]; guarantee_version: string; cancellation_version: string; contract_version: string; contract_digest: string; current_step: string; payment_state: string; status: string; provider_checkout_id: string | null; row_version: number; created_at: string; completed_at: string | null;
