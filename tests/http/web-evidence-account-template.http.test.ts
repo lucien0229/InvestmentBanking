@@ -76,6 +76,10 @@ test("public Web retrieval creates immutable observations and lowers posture whe
   const second = await api.inject({ method: "POST", url: `/api/v1/deals/${owner.dealId}/web-evidence-observations`, headers: { cookie: owner.cookie, "idempotency-key": `web-${crypto.randomUUID()}` }, payload: { ...body, rights_basis: { ...body.rights_basis, publisher_rights: "snapshot_permitted", source_terms: "permitted", retention_limit_days: 7 } } });
   assert.equal(second.statusCode, 202);
   assert.notEqual(second.json().data.observation.source_record_id, recordId);
+  assert.equal(second.json().data.observation.capture_mode, "snapshot");
+  assert.equal(second.json().data.observation.permitted_representation.bytes_retained, true);
+  const storedWebBytes = await database.ownerPool.query("SELECT 1 FROM source.source_representation WHERE source_record_id=$1", [second.json().data.observation.source_record_id]);
+  assert.equal(storedWebBytes.rowCount, 1);
   const old = await api.inject({ method: "GET", url: `/api/v1/deals/${owner.dealId}/web-evidence-observations/${recordId}`, headers: { cookie: owner.cookie } });
   assert.equal(old.statusCode, 200);
   assert.equal(old.json().data.rights.snapshot_permitted, false);
@@ -101,7 +105,10 @@ test("Account template remains quarantined until compatibility preflight and can
   assert.equal(preview.statusCode, 200);
   const bytes = Buffer.from("PK\\x03\\x04[Content_Types].xml\\x00xl/workbook.xml\\x00PK\\x05\\x06", "binary");
   const digest = crypto.createHash("sha256").update(bytes).digest("hex");
-  const upload = await api.inject({ method: "POST", url: "/api/v1/account/upload-sessions", headers: { cookie: cookieA }, payload: { purpose: "account_reusable_template", operation_preview_id: preview.json().data.id, consent_digest: `sha256:${digest}`, files: [{ client_file_id: "template", display_name: "CIM Template.xlsx", byte_length: String(bytes.length), media_type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", sha256: digest, template_declaration: { template_class: "cim", source_material_id: null, deal_id: null, clean_template_basis: "separately_supplied_outside_live_deal", purpose_scope: "account_only" }, rights_posture_inputs: { receipt_permitted: true, processing_operations: ["quarantine", "compatibility_preflight"], conditions: [] }, confidentiality_posture: { confidentiality_class: "internal", de_identification_posture: "not_de_identified" }, processing_posture: { expected_file_family: "xlsx", special_structures: [] } }] } });
+  const mismatchedPreview = await api.inject({ method: "POST", url: "/api/v1/account/upload-sessions", headers: { cookie: cookieA }, payload: { purpose: "account_reusable_template", operation_preview_id: preview.json().data.id, consent_digest: "sha256:wrong", files: [{ client_file_id: "template", display_name: "CIM Template.xlsx", byte_length: String(bytes.length), media_type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", template_declaration: { template_class: "cim", source_material_id: null, deal_id: null, clean_template_basis: "separately_supplied_outside_live_deal", purpose_scope: "account_only" }, rights_posture_inputs: { receipt_permitted: true }, confidentiality_posture: {}, processing_posture: {} }] } });
+  assert.equal(mismatchedPreview.statusCode, 409);
+  assert.equal(mismatchedPreview.json().code, "operation_preview_required");
+  const upload = await api.inject({ method: "POST", url: "/api/v1/account/upload-sessions", headers: { cookie: cookieA }, payload: { purpose: "account_reusable_template", operation_preview_id: preview.json().data.id, consent_digest: preview.json().data.consent_digest, files: [{ client_file_id: "template", display_name: "CIM Template.xlsx", byte_length: String(bytes.length), media_type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", sha256: digest, template_declaration: { template_class: "cim", source_material_id: null, deal_id: null, clean_template_basis: "separately_supplied_outside_live_deal", purpose_scope: "account_only" }, rights_posture_inputs: { receipt_permitted: true, processing_operations: ["quarantine", "compatibility_preflight"], conditions: [] }, confidentiality_posture: { confidentiality_class: "internal", de_identification_posture: "not_de_identified" }, processing_posture: { expected_file_family: "xlsx", special_structures: [] } }] } });
   assert.equal(upload.statusCode, 201);
   const file = upload.json().data.files[0];
   const patch = await api.inject({ method: "PATCH", url: file.tus_url, headers: { cookie: cookieA, "content-type": "application/offset+octet-stream", "tus-resumable": "1.0.0", "upload-offset": "0" }, payload: bytes });
@@ -119,9 +126,13 @@ test("Account template remains quarantined until compatibility preflight and can
   const blockedSelection = await api.inject({ method: "POST", url: `/api/v1/deals/${dealId}/template-selections`, headers: { cookie: cookieA, "idempotency-key": `selection-${crypto.randomUUID()}` }, payload: { template_version_id: versionId, artifact_class: "cim" } });
   assert.equal(blockedSelection.statusCode, 409);
   assert.equal(blockedSelection.json().code, "template_not_production_ready");
+  const incompatible = await api.inject({ method: "POST", url: `/api/v1/account/artifact-templates/${templateId}/preflights`, headers: { cookie: cookieA, "idempotency-key": `tpl-preflight-incompatible-${crypto.randomUUID()}` }, payload: { version_id: versionId, compatibility_profile: "pdf-v1" } });
+  assert.equal(incompatible.statusCode, 201);
+  assert.equal(incompatible.json().data.compatibility.status, "incompatible");
   const preflight = await api.inject({ method: "POST", url: `/api/v1/account/artifact-templates/${templateId}/preflights`, headers: { cookie: cookieA, "idempotency-key": `tpl-preflight-${crypto.randomUUID()}` }, payload: { version_id: versionId, compatibility_profile: "xlsx-v1" } });
   assert.equal(preflight.statusCode, 201);
   assert.equal(preflight.json().data.compatibility.status, "eligible");
+  assert.equal(preflight.json().data.production_ready, false);
   const cookieB = await database.seedAuthenticatedSession(emailB);
   await provision(database, emailB);
   const hidden = await api.inject({ method: "GET", url: `/api/v1/account/artifact-templates/${templateId}`, headers: { cookie: cookieB } });

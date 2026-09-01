@@ -32,6 +32,12 @@ CREATE TABLE IF NOT EXISTS source.web_evidence_observation (
   FOREIGN KEY (account_id, source_material_id) REFERENCES source.source_material(account_id, id)
 );
 
+ALTER TABLE source.web_evidence_observation
+  DROP CONSTRAINT IF EXISTS web_evidence_observation_source_record_fk;
+ALTER TABLE source.web_evidence_observation
+  ADD CONSTRAINT web_evidence_observation_source_record_fk
+  FOREIGN KEY (source_record_id) REFERENCES source.source_record(id);
+
 CREATE TABLE IF NOT EXISTS source.web_observation_impact (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   account_id uuid NOT NULL REFERENCES app.account(id),
@@ -233,30 +239,36 @@ REVOKE ALL ON source.web_evidence_observation, source.web_observation_impact, so
 GRANT SELECT ON source.web_evidence_observation, source.web_observation_impact, source.account_operation_preview, source.account_template_upload_session, source.account_template_quarantined_upload, source.account_reusable_template, source.account_reusable_template_version, source.account_template_compatibility, source.account_template_command_idempotency, source.deal_template_selection TO app_runtime;
 GRANT SELECT ON object_store.protected_account_object TO app_runtime;
 GRANT SELECT, INSERT, UPDATE ON source.web_evidence_observation, source.web_observation_impact, source.account_operation_preview, source.account_template_upload_session, source.account_template_quarantined_upload, source.account_reusable_template, source.account_reusable_template_version, source.account_template_compatibility, source.account_template_command_idempotency, source.deal_template_selection, object_store.protected_account_object TO app_source_owner;
+GRANT USAGE ON SCHEMA extensions TO app_source_owner;
+GRANT EXECUTE ON FUNCTION extensions.digest(text,text), extensions.digest(bytea,text) TO app_source_owner;
 GRANT USAGE ON SCHEMA source, object_store TO app_source_owner;
 
 CREATE OR REPLACE FUNCTION source.create_account_operation_preview(p_account_id uuid, p_actor_id uuid, p_operation text, p_template_class text, p_purpose text)
 RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=source,app,pg_catalog AS $$
-DECLARE preview_id uuid := gen_random_uuid(); expiry timestamptz := clock_timestamp()+interval '30 minutes';
+DECLARE preview_id uuid := gen_random_uuid(); expiry timestamptz := clock_timestamp()+interval '30 minutes'; consent text;
 BEGIN
   IF p_account_id IS DISTINCT FROM app.policy_account_id() OR p_actor_id IS DISTINCT FROM app.policy_actor_id() OR p_purpose <> 'account_reusable_template' OR p_operation <> 'account_reusable_template_upload' THEN RAISE EXCEPTION 'account_template_scope_mismatch' USING ERRCODE='42501'; END IF;
-  INSERT INTO source.account_operation_preview(id,account_id,actor_id,operation_code,template_class,purpose_code,consent_digest,expires_at) VALUES (preview_id,p_account_id,p_actor_id,p_operation,p_template_class,p_purpose,'pending',expiry);
+  consent:='sha256:'||encode(extensions.digest(preview_id::text||'|'||p_operation||'|'||p_template_class||'|'||p_purpose,'sha256'),'hex');
+  INSERT INTO source.account_operation_preview(id,account_id,actor_id,operation_code,template_class,purpose_code,consent_digest,expires_at) VALUES (preview_id,p_account_id,p_actor_id,p_operation,p_template_class,p_purpose,consent,expiry);
   PERFORM app.record_audit('account_template_operation_preview_created','completed','account_operation_preview',preview_id::text,'account_reusable_template',gen_random_uuid()::text);
-  RETURN jsonb_build_object('id',preview_id,'account_id',p_account_id,'operation',p_operation,'template_class',p_template_class,'purpose',p_purpose,'expires_at',expiry,'status','available','consent_digest','pending');
+  RETURN jsonb_build_object('id',preview_id,'account_id',p_account_id,'operation',p_operation,'template_class',p_template_class,'purpose',p_purpose,'expires_at',expiry,'status','available','consent_digest',consent);
 END
 $$;
 
 CREATE OR REPLACE FUNCTION source.create_account_template_upload_session(p_account_id uuid,p_actor_id uuid,p_batch_id uuid,p_consent_digest text,p_operation_preview_id uuid,p_files jsonb)
 RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=source,app,pg_catalog AS $$
-DECLARE session_id uuid:=gen_random_uuid(); expiry timestamptz:=clock_timestamp()+interval '2 hours'; item jsonb; file_id uuid; result_file jsonb; total bigint;
+DECLARE session_id uuid:=gen_random_uuid(); expiry timestamptz:=clock_timestamp()+interval '2 hours'; item jsonb; file_id uuid; result_file jsonb; total bigint; preview source.account_operation_preview%ROWTYPE;
 BEGIN
   IF p_account_id IS DISTINCT FROM app.policy_account_id() OR p_actor_id IS DISTINCT FROM app.policy_actor_id() THEN RAISE EXCEPTION 'account_template_scope_mismatch' USING ERRCODE='42501'; END IF;
   IF jsonb_typeof(p_files)<>'array' OR jsonb_array_length(p_files)<>1 THEN RAISE EXCEPTION 'account_template_upload_limit_exceeded' USING ERRCODE='22023'; END IF;
-  IF NOT EXISTS (SELECT 1 FROM source.account_operation_preview WHERE id=p_operation_preview_id AND account_id=p_account_id AND actor_id=p_actor_id AND expires_at>clock_timestamp()) THEN RAISE EXCEPTION 'account_template_operation_preview_required' USING ERRCODE='42501'; END IF;
+  SELECT * INTO preview FROM source.account_operation_preview WHERE id=p_operation_preview_id AND account_id=p_account_id AND actor_id=p_actor_id AND expires_at>clock_timestamp();
+  IF NOT FOUND OR preview.consent_digest IS DISTINCT FROM p_consent_digest THEN RAISE EXCEPTION 'account_template_operation_preview_required' USING ERRCODE='42501'; END IF;
   SELECT sum((value->>'byte_length')::bigint) INTO total FROM jsonb_array_elements(p_files);
   IF total IS NULL OR total<=0 OR total>2147483648 THEN RAISE EXCEPTION 'account_template_upload_limit_exceeded' USING ERRCODE='22023'; END IF;
+  item:=p_files->0;
+  IF item->'template_declaration'->>'template_class' IS DISTINCT FROM preview.template_class OR item->'template_declaration'->>'purpose_scope' IS DISTINCT FROM 'account_only' OR item->'template_declaration'->>'source_material_id' IS NOT NULL OR item->'template_declaration'->>'deal_id' IS NOT NULL THEN RAISE EXCEPTION 'live_deal_material_forbidden' USING ERRCODE='42501'; END IF;
   INSERT INTO source.account_template_upload_session(id,account_id,actor_id,purpose_code,batch_id,consent_digest,operation_preview_id,expires_at) VALUES (session_id,p_account_id,p_actor_id,'account_reusable_template',p_batch_id,p_consent_digest,p_operation_preview_id,expiry);
-  item:=p_files->0; file_id:=gen_random_uuid();
+  file_id:=gen_random_uuid();
   INSERT INTO source.account_template_quarantined_upload(id,account_id,actor_id,upload_session_id,client_file_id,display_name,quarantine_storage_key,declared_media_type,declared_byte_length,client_sha256,template_declaration,rights_posture_inputs,confidentiality_posture,processing_posture,expires_at) VALUES (file_id,p_account_id,p_actor_id,session_id,btrim(item->>'client_file_id'),btrim(item->>'display_name'),'quarantine/account/'||session_id::text||'/'||file_id::text||'.bin',item->>'media_type',(item->>'byte_length')::bigint,NULLIF(item->>'sha256',''),item->'template_declaration',item->'rights_posture_inputs',item->'confidentiality_posture',item->'processing_posture',expiry);
   result_file:=jsonb_build_object('server_file_id',file_id,'client_file_id',item->>'client_file_id','display_name',item->>'display_name','byte_length',(item->>'byte_length'),'media_type',item->>'media_type','sha256',NULLIF(item->>'sha256',''),'offset',0,'state','created','expires_at',expiry);
   PERFORM app.record_audit('account_template_upload_session_created','completed','account_template_upload_session',session_id::text,'account_reusable_template_quarantine',gen_random_uuid()::text);
@@ -334,7 +346,25 @@ BEGIN
   IF NOT FOUND THEN RAISE EXCEPTION 'account_template_scope_mismatch' USING ERRCODE='42501'; END IF;
   status_value:=CASE WHEN (v.media_type LIKE '%spreadsheet%' AND p_profile='xlsx-v1') OR (v.media_type='application/pdf' AND p_profile='pdf-v1') OR (v.media_type LIKE '%presentation%' AND p_profile='pptx-v1') OR (v.media_type LIKE '%word%' AND p_profile='docx-v1') THEN 'eligible' ELSE 'incompatible' END;
   IF status_value='incompatible' THEN limitations:='["unsupported_template_compatibility_profile"]'::jsonb; END IF;
-  report:=jsonb_build_object('profile',p_profile,'media_type',v.media_type,'status',status_value,'limitations',limitations,'production_ready',false);
+  report:=jsonb_build_object(
+    'profile',p_profile,
+    'media_type',v.media_type,
+    'status',status_value,
+    'limitations',limitations,
+    'production_ready',false,
+    'inventory',jsonb_build_object(
+      'active_content','not_executed',
+      'external_links','not_executed',
+      'fonts','not_executed',
+      'layout_masters','not_executed',
+      'styles','not_executed',
+      'comments_revisions','not_executed',
+      'dimensions','not_executed',
+      'mappings','not_executed',
+      'unsupported_features','not_executed'
+    ),
+    'fallback',CASE WHEN status_value='eligible' THEN 'manual_review_required' ELSE 'blocked' END
+  );
   INSERT INTO source.account_template_compatibility(account_id,template_id,version_id,compatibility_profile,status_code,report,limitations) VALUES (p_account_id,p_template_id,p_version_id,p_profile,status_value,report,limitations);
   UPDATE source.account_reusable_template SET status_code=CASE WHEN status_value='eligible' THEN 'eligible' ELSE 'blocked' END,row_version=row_version+1 WHERE id=p_template_id AND account_id=p_account_id;
   PERFORM app.record_audit('account_template_preflight_completed','completed','account_reusable_template_version',p_version_id::text,status_value,gen_random_uuid()::text);
@@ -350,6 +380,7 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM source.account_reusable_template_version WHERE id=p_version_id AND account_id=p_account_id) THEN RAISE EXCEPTION 'account_template_scope_mismatch' USING ERRCODE='42501'; END IF;
   INSERT INTO object_store.protected_account_object(id,account_id,template_version_id,storage_key,plaintext_sha256,ciphertext_sha256,byte_length,media_type,envelope_version,kms_key_version,wrapped_dek) VALUES (object_id,p_account_id,p_version_id,p_storage_key,p_plaintext_sha256,p_ciphertext_sha256,p_byte_length,p_media_type,p_envelope_version,p_kms_key_version,p_wrapped_dek) ON CONFLICT (storage_key) DO NOTHING;
   SELECT id INTO object_id FROM object_store.protected_account_object WHERE storage_key=p_storage_key AND account_id=p_account_id;
+  PERFORM app.record_audit('account_template_object_stored','completed','protected_account_object',object_id::text,'envelope_encrypted',gen_random_uuid()::text);
   RETURN object_id;
 END
 $$;
@@ -382,8 +413,8 @@ END
 $$;
 
 CREATE OR REPLACE FUNCTION source.create_web_evidence_observation(p_account_id uuid,p_actor_id uuid,p_deal_id uuid,p_payload jsonb)
-RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=source,app,pg_catalog AS $$
-DECLARE observation_id uuid:=gen_random_uuid(); material_id uuid; previous_id uuid; ordinal integer; impact_id uuid:=gen_random_uuid(); rights jsonb:=p_payload->'rights_posture'; limitations jsonb:=coalesce(p_payload->'retrieval_limitations','[]'::jsonb); capture text:=p_payload->>'capture_mode'; final_capture text; stale timestamptz; source_name text:=left('Public Web · '||coalesce(p_payload->>'canonical_url','public resource'),240); rec_date date:=coalesce((p_payload->>'as_of_time')::date,current_date); fake_session uuid:=gen_random_uuid(); fake_upload uuid:=gen_random_uuid(); digest text:=p_payload->>'content_sha256'; bytes bigint:=greatest(coalesce((p_payload->>'byte_length')::bigint,1),1);
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=source,object_store,app,pg_catalog AS $$
+DECLARE observation_id uuid:=coalesce(NULLIF(p_payload->>'source_record_id','')::uuid,gen_random_uuid()); material_id uuid; previous_id uuid; ordinal integer; impact_id uuid:=gen_random_uuid(); rights jsonb:=p_payload->'rights_posture'; limitations jsonb:=coalesce(p_payload->'retrieval_limitations','[]'::jsonb); capture text:=p_payload->>'capture_mode'; final_capture text; stale timestamptz; source_name text:=left('Public Web · '||coalesce(p_payload->>'canonical_url','public resource'),240); rec_date date:=coalesce((p_payload->>'as_of_time')::date,current_date); fake_session uuid:=gen_random_uuid(); fake_upload uuid:=gen_random_uuid(); digest text:=p_payload->>'content_sha256'; bytes bigint:=greatest(coalesce((p_payload->>'byte_length')::bigint,1),1); protected jsonb:=p_payload->'protected_object'; protected_id uuid:=coalesce(NULLIF(protected->>'id','')::uuid,observation_id); coverage_id uuid:=gen_random_uuid(); representation_id uuid:=gen_random_uuid();
 BEGIN
   IF p_account_id IS DISTINCT FROM app.policy_account_id() OR p_actor_id IS DISTINCT FROM app.policy_actor_id() OR p_deal_id IS DISTINCT FROM app.policy_deal_id() THEN RAISE EXCEPTION 'web_observation_scope_mismatch' USING ERRCODE='42501'; END IF;
   SELECT id INTO material_id FROM source.source_material WHERE account_id=p_account_id AND deal_id=p_deal_id AND stable_name=source_name ORDER BY created_at LIMIT 1;
@@ -396,6 +427,12 @@ BEGIN
   INSERT INTO source.upload_session(id,account_id,deal_id,actor_id,purpose_code,batch_id,consent_digest,max_files,max_total_bytes,expires_at) VALUES (fake_session,p_account_id,p_deal_id,p_actor_id,'source_intake',gen_random_uuid(),'public-web-observation',1,bytes,clock_timestamp()+interval '1 minute');
   INSERT INTO source.quarantined_upload(id,account_id,deal_id,actor_id,upload_session_id,client_file_id,display_name,quarantine_storage_key,declared_media_type,declared_byte_length,observed_byte_length,transport_sha256,source_declaration,rights_posture_inputs,confidentiality_posture,processing_posture,scan_result,status_code,received_at,expires_at) VALUES (fake_upload,p_account_id,p_deal_id,p_actor_id,fake_session,'web-observation',source_name,'quarantine/observation/'||observation_id::text||'.bin',coalesce(p_payload->>'media_type','text/html'),bytes,bytes,digest,jsonb_build_object('origin','public_https_capture','url',p_payload->>'canonical_url'),rights,jsonb_build_object('confidentiality_class','public','de_identification_posture','not_applicable'),jsonb_build_object('expected_file_family','web'),jsonb_build_object('clean',true), 'accepted',clock_timestamp(),clock_timestamp()+interval '1 minute');
   INSERT INTO source.source_record(id,account_id,deal_id,source_material_id,version_ordinal,version_label,origin_code,acquisition_method,authority_basis,provenance_class,confidentiality_class,de_identification_posture,rights_posture,rights_basis,content_sha256,byte_length,media_type,record_date,received_at,accepted_at,native_locator_profile_code,native_locator_profile_version,provenance_receipt,limitations,supersedes_id,accepted_upload_id) VALUES (observation_id,p_account_id,p_deal_id,material_id,ordinal,coalesce(p_payload->>'version_label','observation-'||ordinal::text),'public_observation','public_https_capture',coalesce(rights->>'basis','publisher_terms'), 'real','public','not_applicable',coalesce(rights->>'reliance_posture','reliance_limited'),rights,digest,bytes,coalesce(p_payload->>'media_type','text/html'),rec_date,coalesce((p_payload->>'retrieved_at')::timestamptz,clock_timestamp()),clock_timestamp(),'web-observation-v1','v1',jsonb_build_object('requested_url',p_payload->>'requested_url','canonical_url',p_payload->>'canonical_url','retrieved_at',p_payload->>'retrieved_at','as_of_time',p_payload->>'as_of_time'),limitations,previous_id,fake_upload);
+  IF protected ? 'storage_key' THEN
+    INSERT INTO object_store.protected_object(id,account_id,deal_id,storage_key,plaintext_sha256,ciphertext_sha256,byte_length,media_type,envelope_version,kms_key_version,wrapped_dek) VALUES (protected_id,p_account_id,p_deal_id,protected->>'storage_key',protected->>'plaintext_sha256',protected->>'ciphertext_sha256',(protected->>'byte_length')::bigint,coalesce(p_payload->>'media_type','text/html'),protected->>'envelope_version',protected->>'kms_key_version',protected->'wrapped_dek');
+    INSERT INTO source.processing_coverage(id,account_id,deal_id,source_record_id,coverage_code,parser_identity,coverage_payload) VALUES (coverage_id,p_account_id,p_deal_id,observation_id,'original_bytes_only','ticket07-public-web-v1',jsonb_build_object('original_bytes',true,'substantive_parsing',false,'ai',false,'rendering',false,'limitations',limitations));
+    INSERT INTO source.source_representation(id,account_id,deal_id,source_record_id,protected_object_id,content_sha256,parser_identity,processing_coverage_id) VALUES (representation_id,p_account_id,p_deal_id,observation_id,protected_id,digest,'ticket07-public-web-v1',coverage_id);
+    INSERT INTO source.accepted_source_object(account_id,deal_id,source_record_id,protected_object_id) VALUES (p_account_id,p_deal_id,observation_id,protected_id);
+  END IF;
   INSERT INTO source.web_evidence_observation(source_record_id,account_id,deal_id,source_material_id,observation_ordinal,requested_url,canonical_url,document_identity,retrieved_at,as_of_time,version_label,capture_mode,response_metadata,permitted_representation,content_sha256,byte_length,exact_locator,rights_posture,retrieval_limitations,reliance_state,stale_after,supersedes_id) VALUES (observation_id,p_account_id,p_deal_id,material_id,ordinal,p_payload->>'requested_url',p_payload->>'canonical_url',p_payload->'document_identity',(p_payload->>'retrieved_at')::timestamptz,(p_payload->>'as_of_time')::timestamptz,p_payload->>'version_label',final_capture,p_payload->'response_metadata',p_payload->'permitted_representation',digest,bytes,p_payload->'exact_locator',rights,limitations,coalesce(rights->>'reliance_state','reliance_limited'),stale,previous_id);
   INSERT INTO source.web_observation_impact(id,account_id,deal_id,observation_id,previous_observation_id,impact_code,affected_scope) VALUES (impact_id,p_account_id,p_deal_id,observation_id,previous_id,CASE WHEN previous_id IS NULL THEN 'new_observation' WHEN rights IS DISTINCT FROM (SELECT rights_posture FROM source.web_evidence_observation WHERE source_record_id=previous_id) THEN 'rights_changed' ELSE 'material_change' END,jsonb_build_object('previous_observation_id',previous_id,'reliance_revalidation_required',final_capture='citation_only'));
   PERFORM app.record_audit('public_web_observation_created','completed','web_evidence_observation',observation_id::text,CASE WHEN final_capture='citation_only' THEN 'citation_only_rights_limited' ELSE 'snapshot_digest_recorded' END,gen_random_uuid()::text);
@@ -433,10 +470,10 @@ ALTER FUNCTION source.get_web_evidence_observation(uuid,uuid,uuid,uuid) OWNER TO
 ALTER FUNCTION source.list_web_evidence_observations(uuid,uuid,uuid) OWNER TO app_source_owner;
 REVOKE CREATE ON SCHEMA source, object_store FROM app_source_owner;
 
-CREATE OR REPLACE FUNCTION source.prevent_web_observation_mutation() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'web_observation_immutable' USING ERRCODE='23514'; END $$;
+CREATE OR REPLACE FUNCTION source.prevent_web_observation_mutation() RETURNS trigger LANGUAGE plpgsql SET search_path=source,pg_catalog AS $$ BEGIN RAISE EXCEPTION 'web_observation_immutable' USING ERRCODE='23514'; END $$;
 DROP TRIGGER IF EXISTS web_observation_immutable ON source.web_evidence_observation;
 CREATE TRIGGER web_observation_immutable BEFORE UPDATE OR DELETE ON source.web_evidence_observation FOR EACH ROW EXECUTE FUNCTION source.prevent_web_observation_mutation();
-CREATE OR REPLACE FUNCTION source.prevent_account_template_version_mutation() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'account_template_version_immutable' USING ERRCODE='23514'; END $$;
+CREATE OR REPLACE FUNCTION source.prevent_account_template_version_mutation() RETURNS trigger LANGUAGE plpgsql SET search_path=source,pg_catalog AS $$ BEGIN RAISE EXCEPTION 'account_template_version_immutable' USING ERRCODE='23514'; END $$;
 DROP TRIGGER IF EXISTS account_template_version_immutable ON source.account_reusable_template_version;
 CREATE TRIGGER account_template_version_immutable BEFORE UPDATE OR DELETE ON source.account_reusable_template_version FOR EACH ROW EXECUTE FUNCTION source.prevent_account_template_version_mutation();
 

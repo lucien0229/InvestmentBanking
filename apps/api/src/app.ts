@@ -139,7 +139,9 @@ export async function buildApi(options: BuildApiOptions = {}): Promise<FastifyIn
   const syntheticProof = options.syntheticProofStore ?? new SyntheticProofStore();
   const checkoutAdapter = options.checkoutAdapter ?? StripeCheckoutAdapter.fromEnv() ?? new StripeTestCheckoutAdapter();
   if (process.env.APP_ENV === "production" && checkoutAdapter.name === "stripe_test_adapter") throw new Error("live Stripe Checkout adapter is required in production");
-  const api = Fastify({ logger: false }) as unknown as FastifyInstance & { database: Database; referenceJobRuntime: ReferenceJobRuntime };
+  // Account template TUS chunks are bounded by the Ticket 07 100 MiB file
+  // ceiling; keep Fastify's parser from rejecting a valid final chunk first.
+  const api = Fastify({ logger: false, bodyLimit: 100 * 1024 * 1024 }) as unknown as FastifyInstance & { database: Database; referenceJobRuntime: ReferenceJobRuntime };
   const publicMutationBuckets = new Map<string, { tokens: number; updatedAt: number }>();
   const allowPublicMutation = (request: FastifyRequest, reply: FastifyReply) => {
     const origin = request.headers.origin;

@@ -13,6 +13,7 @@ test("Ticket 07 migration declares immutable public observations and Account tem
     "source.account_template_compatibility",
     "source.prevent_web_observation_mutation",
     "source.prevent_account_template_version_mutation",
+    "web_evidence_observation_source_record_fk",
     "account_reusable_template",
     "public_https_capture",
   ]) assert.match(migration, new RegExp(token.replaceAll(".", "\\.")), token);

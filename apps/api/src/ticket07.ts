@@ -8,6 +8,7 @@ import { Database } from "./database.js";
 const uuid = z.string().uuid();
 const problemType = "https://investment-banking.local/problems";
 const MAX_TEMPLATE_BYTES = 100 * 1024 * 1024;
+const MAX_PUBLIC_RESPONSE_BYTES = 10 * 1024 * 1024;
 const supportedTemplateMedia = new Set([
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   "application/vnd.openxmlformats-officedocument.presentationml.presentation",
@@ -60,6 +61,8 @@ function ticket07Error(error: unknown, request: FastifyRequest, reply: FastifyRe
     account_template_scan_incomplete: [409, "safety_check_incomplete", "retry_safety_check"],
     account_template_quarantine_required: [409, "template_quarantine_required", "complete_quarantine"],
     account_template_rights_attestation_required: [409, "rights_attestation_required", "provide_rights_attestation"],
+    live_deal_material_forbidden: [409, "live_deal_material_forbidden", "provide_account_only_template"],
+    public_response_too_large: [413, "public_response_too_large", "use_smaller_public_resource"],
     template_not_production_ready: [409, "template_not_production_ready", "complete_template_preflight_and_review"],
     template_selection_scope_mismatch: [404, "resource_not_found", "return_to_safe_parent"],
     idempotency_key_reused: [409, "idempotency_key_reused", "use_new_idempotency_key"],
@@ -109,15 +112,17 @@ function accountKeyMaterial() {
   return crypto.createHash("sha256").update("ticket07-development-account-template-key-v1").digest();
 }
 
-async function protectAccountTemplate(bytes: Buffer, mediaType: string, versionId: string) {
+async function protectEncrypted(bytes: Buffer, mediaType: string, objectId: string, scope: "account" | "deal") {
   const dek = crypto.randomBytes(32); const iv = crypto.randomBytes(12);
   const cipher = crypto.createCipheriv("aes-256-gcm", dek, iv); const ciphertext = Buffer.concat([cipher.update(bytes), cipher.final()]);
   const wrapIv = crypto.randomBytes(12); const wrapper = crypto.createCipheriv("aes-256-gcm", accountKeyMaterial(), wrapIv); const wrapped = Buffer.concat([wrapper.update(dek), wrapper.final()]);
-  const header = { magic: "IBPO1", envelope_version: "aes-256-gcm-account-template-v1", iv: iv.toString("base64url"), tag: cipher.getAuthTag().toString("base64url"), wrapped_dek: { iv: wrapIv.toString("base64url"), tag: wrapper.getAuthTag().toString("base64url"), ciphertext: wrapped.toString("base64url") }, plaintext_sha256: crypto.createHash("sha256").update(bytes).digest("hex"), byte_length: bytes.length, media_type: mediaType };
+  const header = { magic: "IBPO1", envelope_version: `aes-256-gcm-${scope}-v1`, iv: iv.toString("base64url"), tag: cipher.getAuthTag().toString("base64url"), wrapped_dek: { iv: wrapIv.toString("base64url"), tag: wrapper.getAuthTag().toString("base64url"), ciphertext: wrapped.toString("base64url") }, plaintext_sha256: crypto.createHash("sha256").update(bytes).digest("hex"), byte_length: bytes.length, media_type: mediaType };
   const headerBytes = Buffer.from(JSON.stringify(header)); const container = Buffer.concat([Buffer.from("IBPO1"), Buffer.alloc(4), headerBytes, ciphertext]); container.writeUInt32BE(headerBytes.length, 5);
-  const storageKey = `protected/account/${versionId}.bin`; const filePath = quarantinePath(storageKey); await fs.mkdir(path.dirname(filePath), { recursive: true, mode: 0o700 }); await fs.writeFile(filePath, container, { mode: 0o600, flag: "wx" }).catch((error: NodeJS.ErrnoException) => { if (error.code !== "EEXIST") throw error; });
+  const storageKey = `protected/${scope}/${objectId}.bin`; const filePath = quarantinePath(storageKey); await fs.mkdir(path.dirname(filePath), { recursive: true, mode: 0o700 }); await fs.writeFile(filePath, container, { mode: 0o600, flag: "wx" }).catch((error: NodeJS.ErrnoException) => { if (error.code !== "EEXIST") throw error; });
   return { storageKey, plaintextSha256: header.plaintext_sha256, ciphertextSha256: crypto.createHash("sha256").update(container).digest("hex"), envelopeVersion: header.envelope_version, wrappedDek: header.wrapped_dek };
 }
+
+async function protectAccountTemplate(bytes: Buffer, mediaType: string, versionId: string) { return protectEncrypted(bytes, mediaType, versionId, "account"); }
 
 function isPrivateHostname(hostname: string) {
   const host = hostname.toLowerCase().replace(/\.$/, "");
@@ -142,7 +147,12 @@ function header(headers: Record<string, string>, name: string) {
 const webSchema = z.object({
   url: z.string().url().max(2048),
   purpose: z.string().min(1).max(160),
-  rights_basis: z.record(z.string(), z.unknown()),
+  rights_basis: z.object({
+    publisher_rights: z.enum(["snapshot_permitted", "citation_only", "unknown"]),
+    source_terms: z.enum(["permitted", "no_archival_copy", "restricted", "unknown"]),
+    robots_posture: z.enum(["allowed", "disallowed", "unknown"]),
+    retention_limit_days: z.union([z.number(), z.string()]).refine((value) => Number.isFinite(Number(value)) && Number(value) >= 0 && Number(value) <= 3650),
+  }).passthrough(),
   capture_posture: z.enum(["snapshot", "citation_only"]),
 }).strict();
 
@@ -343,11 +353,25 @@ export function registerTicket07Routes(api: FastifyInstance, database: Database,
     let parsed: URL;
     try { parsed = publicUrl(body.url); } catch (error) { if (errorCode(error).includes("public_https_required")) return problem(reply, 400, "public_https_required", "Only public unauthenticated HTTPS URLs are allowed.", "provide_public_https_url", request.url); throw error; }
     try {
-      const fetched = await (deps.publicWebFetcher ? deps.publicWebFetcher(parsed.toString()) : (async () => { const response = await fetch(parsed, { redirect: "error" }); return { status: response.status, headers: Object.fromEntries(response.headers.entries()), body: Buffer.from(await response.arrayBuffer()) }; })());
+      let fetched: Awaited<ReturnType<PublicWebFetcher>>;
+      try {
+        fetched = await (deps.publicWebFetcher ? deps.publicWebFetcher(parsed.toString()) : (async () => {
+          const response = await fetch(parsed, { redirect: "error", signal: AbortSignal.timeout(10_000) });
+          const declaredLength = Number(response.headers.get("content-length") ?? 0);
+          if (Number.isFinite(declaredLength) && declaredLength > MAX_PUBLIC_RESPONSE_BYTES) throw new Error("public_response_too_large");
+          return { status: response.status, headers: Object.fromEntries(response.headers.entries()), body: Buffer.from(await response.arrayBuffer()) };
+        })());
+      } catch (error) {
+        if (errorCode(error).includes("public_response_too_large")) return ticket07Error(error, request, reply);
+        return problem(reply, 502, "public_retrieval_failed", "The public resource could not be retrieved within the bounded fetch window.", "retry_retrieval", request.url);
+      }
       if (fetched.status < 200 || fetched.status >= 300) return problem(reply, 502, "public_retrieval_failed", "The public resource could not be retrieved.", "retry_retrieval", request.url);
       const bytes = Buffer.isBuffer(fetched.body) ? fetched.body : Buffer.from(fetched.body, "utf8");
+      const declaredLength = Number(header(fetched.headers, "content-length") ?? bytes.length);
+      if (!Number.isFinite(declaredLength) || declaredLength > MAX_PUBLIC_RESPONSE_BYTES || bytes.length > MAX_PUBLIC_RESPONSE_BYTES) return problem(reply, 413, "public_response_too_large", "The public response exceeds the bounded observation size.", "use_smaller_public_resource", request.url);
       const digest = crypto.createHash("sha256").update(bytes).digest("hex");
       const retentionDays = Number(body.rights_basis.retention_limit_days ?? 0);
+      if (!Number.isFinite(retentionDays) || retentionDays < 0 || retentionDays > 3650) return problem(reply, 400, "invalid_rights_basis", "The retention limit must be a bounded non-negative number of days.", "correct_rights_basis", request.url);
       const snapshotPermitted = body.rights_basis.publisher_rights === "snapshot_permitted" && body.rights_basis.source_terms === "permitted" && body.rights_basis.robots_posture === "allowed" && retentionDays > 0;
       const limitations = [
         ...(snapshotPermitted ? [] : ["snapshot_prohibited_by_rights"]),
@@ -356,7 +380,11 @@ export function registerTicket07Routes(api: FastifyInstance, database: Database,
       ];
       const retrievedAt = new Date().toISOString();
       const rights = { ...body.rights_basis, snapshot_permitted: snapshotPermitted, reliance_state: snapshotPermitted ? "reliance_eligible" : "reliance_limited" };
+      const observationId = crypto.randomUUID();
+      const mediaType = header(fetched.headers, "content-type")?.split(";", 1)[0] ?? "text/html";
+      const protectedObject = snapshotPermitted && body.capture_posture === "snapshot" ? await protectEncrypted(bytes, mediaType, observationId, "deal") : null;
       const payload = {
+        source_record_id: observationId,
         requested_url: body.url,
         canonical_url: parsed.toString(),
         document_identity: { etag: header(fetched.headers, "etag") ?? null, last_modified: header(fetched.headers, "last-modified") ?? null, content_type: header(fetched.headers, "content-type") ?? null },
@@ -364,16 +392,28 @@ export function registerTicket07Routes(api: FastifyInstance, database: Database,
         as_of_time: retrievedAt,
         version_label: header(fetched.headers, "etag") ?? `retrieved-${retrievedAt}`,
         capture_mode: body.capture_posture,
-        effective_capture_mode: snapshotPermitted && body.capture_posture === "snapshot" ? "snapshot" : "citation_only",
+        effective_capture_mode: protectedObject ? "snapshot" : "citation_only",
         response_metadata: { status: fetched.status, headers: fetched.headers },
-        permitted_representation: snapshotPermitted ? { mode: "exact_bytes", bytes_retained: true } : { mode: "citation_context", bytes_retained: false },
+        permitted_representation: protectedObject ? { mode: "exact_bytes", bytes_retained: true, protected_object_scope: "deal" } : { mode: "citation_context", bytes_retained: false },
         content_sha256: digest,
         byte_length: bytes.length,
         exact_locator: { url: parsed.toString(), etag: header(fetched.headers, "etag") ?? null },
         rights_posture: rights,
         retrieval_limitations: limitations,
         stale_after: retentionDays > 0 ? new Date(Date.now() + retentionDays * 86400000).toISOString() : null,
-        media_type: header(fetched.headers, "content-type")?.split(";", 1)[0] ?? "text/html",
+        media_type: mediaType,
+        ...(protectedObject ? {
+          protected_object: {
+            id: observationId,
+            storage_key: protectedObject.storageKey,
+            plaintext_sha256: protectedObject.plaintextSha256,
+            ciphertext_sha256: protectedObject.ciphertextSha256,
+            byte_length: bytes.length,
+            envelope_version: protectedObject.envelopeVersion,
+            kms_key_version: process.env.PROTECTED_OBJECT_KMS_KEY_VERSION ?? "local-development-kek-v1",
+            wrapped_dek: protectedObject.wrappedDek,
+          },
+        } : {}),
       };
       const result = await database.withContext(session, dealId, async (client, context) => (await client.query<{ observation: Record<string, unknown> }>("SELECT source.create_web_evidence_observation($1,$2,$3,$4) AS observation", [context.accountId, context.actorId, dealId, JSON.stringify(payload)])).rows[0]?.observation ?? null);
       if (result.kind === "invalid") return problem(reply, 401, "session_expired", "The session is no longer valid.", "reauthenticate", request.url);
