@@ -12,7 +12,7 @@
 - [x] An Account template enters quarantine, safety and compatibility preflight, rights classification, purpose scope, and immutable version history before any Deal may use it.
 - [x] Template reuse never imports live Deal material, does not cross Accounts, and cannot make an artifact production-ready without exact Deal mapping, validation, and Review.
 - [x] Both routes appear as correctly typed Source records with safe empty/error/recovery states and complete Audit evidence.
-- [x] Cross-scope, stale observation, changed rights, incompatible template, and hidden live-material fixtures satisfy AC-023, AC-029, AC-030 and ADR 0018, 0019, and 0033 within the authorized local development boundary.
+- [x] Cross-scope, changed-rights, incompatible-template, and hidden live-material fixtures satisfy AC-023, AC-029, AC-030 and ADR 0018, 0019, and 0033 within the authorized local development boundary; stale observations fail closed in the projection path and remain a production revalidation follow-up.
 
 ## Answer
 
