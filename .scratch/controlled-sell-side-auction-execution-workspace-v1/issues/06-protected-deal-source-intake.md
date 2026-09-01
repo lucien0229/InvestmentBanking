@@ -6,13 +6,13 @@
 
 **Status:** resolved
 
-- [ ] Upload transfer is resumable and scoped to the exact Account, Deal, session, purpose, limits, and quarantine-only authority.
-- [ ] Unsafe archive paths, executable content, unsupported active content, malformed packages, and malware-policy failures are quarantined or rejected before substantive parsing, AI, or rendering.
-- [ ] Macros and embedded code never execute, external links never refresh, protected files are not cracked, and every limitation is visible in preflight and downstream posture.
-- [ ] Accepted bytes are envelope-encrypted, streamed only through the typed Protected Object Gateway or exact Job Scope, and never exposed through a reusable public URL.
-- [ ] Every accepted Source Record preserves original bytes, content identity, provenance receipt, rights, confidentiality, version, dates, coverage, and a version-bound native locator profile.
-- [ ] Later versions do not overwrite prior Source Records; identical bytes with distinct provenance or authority keep distinct receipt records.
-- [ ] Wrong-Account, wrong-Deal, manipulated object ID/key, queue payload swap, and storage-key swap tests disclose nothing and satisfy AC-022 through AC-025, AC-030, and applicable AC-065 through AC-067 controls.
+- [x] Upload transfer is resumable and scoped to the exact Account, Deal, session, purpose, limits, and quarantine-only authority.
+- [x] Unsafe archive paths, executable content, unsupported active content, malformed packages, and malware-policy failures are quarantined or rejected before substantive parsing, AI, or rendering.
+- [x] Macros and embedded code never execute, external links never refresh, protected files are not cracked, and every limitation is visible in preflight and downstream posture.
+- [x] Accepted bytes are envelope-encrypted, streamed only through the typed Protected Object Gateway or exact Job Scope, and never exposed through a reusable public URL.
+- [x] Every accepted Source Record preserves original bytes, content identity, provenance receipt, rights, confidentiality, version, dates, coverage, and a version-bound native locator profile.
+- [x] Later versions do not overwrite prior Source Records; identical bytes with distinct provenance or authority keep distinct receipt records.
+- [x] Wrong-Account, wrong-Deal, manipulated object ID/key, queue payload swap, and storage-key swap tests disclose nothing and satisfy AC-022 through AC-025, AC-030, and applicable AC-065 through AC-067 controls.
 
 ## Comments
 
