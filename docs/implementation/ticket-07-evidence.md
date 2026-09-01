@@ -1,4 +1,4 @@
-Status: `implemented for the authorized local development boundary` — Ticket 07 is covered by the local PostgreSQL/RLS and browser-visible Sources seams. The authorized development VPS remains on Ticket 06 because this session has no SSH credential; no deployment or production-complete claim is made.
+Status: `implemented for the authorized development boundary; VPS release staged pending switch` — Ticket 07 is covered by the local PostgreSQL/RLS and browser-visible Sources seams. The Ticket 07 migration is applied to the Supabase dev branch and a matching release is staged on the VPS; the active services remain on Ticket 06 until the staged runtime preflight and controlled service switch complete. No production-complete claim is made.
 
 ## Scope
 
@@ -21,7 +21,7 @@ Ticket 07 only: immutable public Web Evidence Observations and Account-scoped re
 - `git diff --check` — passed.
 - Real browser review used the Playwright CLI against the isolated local Web server. The Sources page visibly rendered Source Records, Public Web Observations, Account Reusable Templates, empty states, and a safe `Authenticate to continue` recovery state. The local HTTP path cannot send the production-style secure Banker cookie, so this browser pass does not claim authenticated production UI evidence.
 - The repository `npm run test:browser` wrapper did not complete because its fixed API port `3001` never became reachable in this worktree; the manual Playwright CLI review used isolated API/Web ports instead and is recorded with the same unauthenticated limitation.
-- Public development probes remain healthy: `https://dev-banking.aptoren.com/` returned `200`, and `/api/v1/session` returned the expected unauthenticated `401 application/problem+json`. The VPS still resolves to the Ticket 06 release because SSH access was unavailable (`Permission denied (publickey,password)`); Ticket 07 was not deployed remotely.
+- Public development probes remain healthy: `https://dev-banking.aptoren.com/` returned `200`, and `/api/v1/session` returned the expected unauthenticated `401 application/problem+json`. SSH access was verified and the release was built and staged at `/opt/investmentbanking/releases/20260901-ticket07-dev-v1`, with the prior Ticket 06 release preserved for rollback. The migration was applied through the logged-in Supabase SQL Editor in three dependency-ordered chunks after adding the temporary schema-`CREATE` grant required by the non-superuser `postgres` role; a read-only VPS query confirmed 11 Ticket 07 relations, 11 forced-RLS relations, final `app_source_owner` schema CREATE revoked, and sample definer functions owned by `app_source_owner`. The active symlink and services have not yet been switched, so no remote Ticket 07 runtime evidence is claimed.
 
 ## Development/production boundary and follow-up debt
 
