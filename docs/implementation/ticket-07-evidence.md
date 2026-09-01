@@ -20,6 +20,7 @@ Ticket 07 only: immutable public Web Evidence Observations and Account-scoped re
 - `npm run web:build` — passed.
 - `git diff --check` — passed.
 - Real browser review used the Playwright CLI against the isolated local Web server. The Sources page visibly rendered Source Records, Public Web Observations, Account Reusable Templates, empty states, and a safe `Authenticate to continue` recovery state. The local HTTP path cannot send the production-style secure Banker cookie, so this browser pass does not claim authenticated production UI evidence.
+- The repository `npm run test:browser` wrapper did not complete because its fixed API port `3001` never became reachable in this worktree; the manual Playwright CLI review used isolated API/Web ports instead and is recorded with the same unauthenticated limitation.
 - Public development probes remain healthy: `https://dev-banking.aptoren.com/` returned `200`, and `/api/v1/session` returned the expected unauthenticated `401 application/problem+json`. The VPS still resolves to the Ticket 06 release because SSH access was unavailable (`Permission denied (publickey,password)`); Ticket 07 was not deployed remotely.
 
 ## Development/production boundary and follow-up debt
