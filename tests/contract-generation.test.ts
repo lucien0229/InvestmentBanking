@@ -36,3 +36,22 @@ test("generated API contract declares the isolated Project Northstar synthetic p
   assert.ok(contract.components.schemas.SyntheticArtifactMetadata.properties?.sha256);
   assert.ok(contract.components.schemas.SyntheticProofObservation);
 });
+
+test("generated API contract declares Ticket 06 protected Source intake and Object Gateway seams", () => {
+  const contract = JSON.parse(fs.readFileSync("contracts/openapi.json", "utf8")) as {
+    paths: Record<string, { get?: any; post?: any; patch?: any }>;
+    components: { schemas: Record<string, any> };
+  };
+  assert.ok(contract.paths["/api/v1/deals/{deal_id}/upload-sessions"]?.post);
+  assert.ok(contract.paths["/api/v1/upload-sessions/{upload_session_id}/files/{file_id}"]?.patch);
+  assert.ok(contract.paths["/api/v1/upload-sessions/{upload_session_id}/finalizations"]?.post);
+  assert.ok(contract.paths["/api/v1/deals/{deal_id}/source-materials/{source_material_id}/record-acceptances"]?.post);
+  assert.ok(contract.paths["/objects/{protected_object_id}"]?.get);
+  assert.equal(contract.paths["/api/v1/upload-sessions/{upload_session_id}/files/{file_id}"]?.patch?.parameters?.some((p: any) => /authorization|cookie|token/i.test(p.name)), false);
+  assert.equal(contract.components.schemas.UploadSessionCreate.properties.purpose.const, "source_intake");
+  assert.ok(contract.components.schemas.UploadSessionCreate.required.includes("operation_preview_id"));
+  assert.equal(contract.components.schemas.UploadSessionCreate.properties.files.maxItems, 50);
+  assert.equal(contract.paths["/api/v1/upload-sessions/{upload_session_id}/cancellations"]?.post?.parameters?.some((p: any) => p.name === "If-Match" || p.$ref === "#/components/parameters/IfMatch"), true);
+  assert.equal(contract.components.schemas.ObjectGrant.properties.operation.const, "read");
+  assert.ok(contract.components.schemas.SourceRecord.required.includes("limitations"));
+});

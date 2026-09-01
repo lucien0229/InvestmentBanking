@@ -43,6 +43,6 @@ export default function DealSetupPage() {
       <label>Source-use rights<select value={rights} onChange={(event) => setRights(event.target.value)}><option value="missing">Missing</option><option value="confirmed">Confirmed</option><option value="limited">Limited</option><option value="blocked">Blocked</option></select></label>
       <button type="submit">Save setup</button>
     </form>
-    <p><a href={`/app/deals/${dealId}/controls/preflight`}>Run Paid Preflight →</a> · <a href={`/app/deals/${dealId}/guide`}>First Deal Guide</a></p>
+    <p><a href={`/app/deals/${dealId}/controls/preflight`}>Run Paid Preflight →</a> · <a href={`/app/deals/${dealId}/sources`}>Sources →</a> · <a href={`/app/deals/${dealId}/sources/add`}>Add Source →</a> · <a href={`/app/deals/${dealId}/guide`}>First Deal Guide</a></p>
   </main>;
 }

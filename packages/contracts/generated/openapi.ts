@@ -1760,6 +1760,619 @@ export const openApiContract = {
         }
       }
     },
+    "/api/v1/deals/{deal_id}/upload-sessions": {
+      "post": {
+        "operationId": "create_upload_session",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadSessionCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Deal-bound upload session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadSession"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "413": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/upload-sessions/{upload_session_id}": {
+      "get": {
+        "operationId": "get_upload_session",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "upload_session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Upload progress projection",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadSession"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/upload-sessions/{upload_session_id}/files/{file_id}": {
+      "head": {
+        "operationId": "head_upload_file",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "upload_session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "file_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "TUS offset headers"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      },
+      "patch": {
+        "operationId": "append_upload_chunk",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "upload_session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "file_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Upload-Offset",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "Tus-Resumable",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "const": "1.0.0"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/offset+octet-stream": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Chunk accepted"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "413": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/upload-sessions/{upload_session_id}/finalizations": {
+      "post": {
+        "operationId": "create_upload_finalization",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "upload_session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "file_ids"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "file_ids": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 50,
+                    "items": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Per-file quarantine outcomes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadFinalization"
+                }
+              }
+            }
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/upload-sessions/{upload_session_id}/cancellations": {
+      "post": {
+        "operationId": "create_upload_cancellation",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "upload_session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\"upload-session-[0-9]+\"$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "oneOf": [
+                  {
+                    "required": [
+                      "file_ids"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "all_remaining"
+                    ]
+                  }
+                ],
+                "properties": {
+                  "file_ids": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 50,
+                    "items": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  },
+                  "all_remaining": {
+                    "const": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Upload cancellation"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "412": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "428": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/source-materials": {
+      "get": {
+        "operationId": "list_source_materials",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deal Source Materials"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/source-materials/{source_material_id}": {
+      "get": {
+        "operationId": "get_source_material",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "name": "source_material_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Source Material"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/source-materials/{source_material_id}/records": {
+      "get": {
+        "operationId": "list_source_records",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "name": "source_material_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Immutable Source Record history"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/source-materials/{source_material_id}/record-acceptances": {
+      "post": {
+        "operationId": "create_source_record_acceptance",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "name": "source_material_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SourceRecordAcceptance"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Source acceptance Job"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/source-materials/{source_material_id}/records/{source_record_id}": {
+      "get": {
+        "operationId": "get_source_record",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "name": "source_material_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "source_record_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Immutable Source Record"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/source-records/{source_record_id}/object-grants": {
+      "post": {
+        "operationId": "create_protected_object_grant",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "name": "source_record_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "purpose"
+                ],
+                "properties": {
+                  "purpose": {
+                    "const": "source_inspection"
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Short-lived Object Grant"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/objects/{protected_object_id}": {
+      "get": {
+        "operationId": "stream_protected_object",
+        "security": [
+          {
+            "bankerSession": [],
+            "objectGrant": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "protected_object_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Range",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^bytes=\\d+-\\d*$"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^ObjectGrant\\s+"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Decrypted bytes streamed only after grant validation"
+          },
+          "206": {
+            "description": "Single byte range"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
     "/webhooks/stripe": {
       "post": {
         "operationId": "receive_stripe_webhook",
@@ -3438,6 +4051,357 @@ export const openApiContract = {
             "type": "integer"
           }
         }
+      },
+      "UploadFileDeclaration": {
+        "type": "object",
+        "required": [
+          "client_file_id",
+          "display_name",
+          "byte_length",
+          "media_type",
+          "source_declaration",
+          "rights_posture_inputs",
+          "confidentiality_posture",
+          "processing_posture"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "client_file_id": {
+            "type": "string"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "byte_length": {
+            "type": [
+              "string",
+              "integer"
+            ],
+            "minimum": 1
+          },
+          "media_type": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "source_declaration": {
+            "type": "object",
+            "required": [
+              "origin",
+              "authority_basis",
+              "intended_purpose"
+            ],
+            "properties": {
+              "source_material_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uuid"
+              },
+              "new_source_material_name": {
+                "type": "string"
+              },
+              "origin": {
+                "type": "string"
+              },
+              "authority_basis": {
+                "type": "string"
+              },
+              "intended_purpose": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          },
+          "rights_posture_inputs": {
+            "type": "object"
+          },
+          "confidentiality_posture": {
+            "type": "object"
+          },
+          "processing_posture": {
+            "type": "object"
+          }
+        }
+      },
+      "UploadSessionCreate": {
+        "type": "object",
+        "required": [
+          "purpose",
+          "operation_preview_id",
+          "consent_digest",
+          "files"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "purpose": {
+            "const": "source_intake"
+          },
+          "operation_preview_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "consent_digest": {
+            "type": "string"
+          },
+          "files": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 50,
+            "items": {
+              "$ref": "#/components/schemas/UploadFileDeclaration"
+            }
+          }
+        }
+      },
+      "UploadSession": {
+        "type": "object",
+        "required": [
+          "id",
+          "deal_id",
+          "purpose",
+          "expires_at",
+          "status",
+          "files"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "account_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "deal_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "purpose": {
+            "const": "source_intake"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string"
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "server_file_id",
+                "offset",
+                "state",
+                "tus_url",
+                "tus_headers"
+              ]
+            }
+          }
+        }
+      },
+      "UploadFinalization": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "item_id",
+                "outcome"
+              ],
+              "properties": {
+                "item_id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "outcome": {
+                  "enum": [
+                    "succeeded",
+                    "failed"
+                  ]
+                },
+                "source_material_id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "uuid"
+                },
+                "problem": {
+                  "$ref": "#/components/schemas/Problem"
+                },
+                "safety": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      },
+      "SourceRecordAcceptance": {
+        "type": "object",
+        "required": [
+          "server_file_id",
+          "authority_basis",
+          "record_date",
+          "version_label",
+          "rights_posture",
+          "confidentiality_class"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "server_file_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "authority_basis": {
+            "type": "string"
+          },
+          "record_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "version_label": {
+            "type": "string"
+          },
+          "rights_posture": {
+            "type": "string"
+          },
+          "confidentiality_class": {
+            "enum": [
+              "public",
+              "internal",
+              "confidential",
+              "restricted"
+            ]
+          },
+          "provenance_class": {
+            "enum": [
+              "synthetic",
+              "real"
+            ]
+          },
+          "de_identification_posture": {
+            "type": "string"
+          }
+        }
+      },
+      "SourceRecord": {
+        "type": "object",
+        "required": [
+          "id",
+          "deal_id",
+          "source_material_id",
+          "version",
+          "content_identity",
+          "provenance",
+          "classification",
+          "rights",
+          "coverage",
+          "representation",
+          "native_locator_profile",
+          "limitations"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "deal_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "source_material_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "version": {
+            "type": "integer"
+          },
+          "content_identity": {
+            "type": "object"
+          },
+          "provenance": {
+            "type": "object"
+          },
+          "classification": {
+            "type": "object"
+          },
+          "rights": {
+            "type": "object"
+          },
+          "coverage": {
+            "type": "object"
+          },
+          "representation": {
+            "type": "object",
+            "required": [
+              "original_bytes_preserved"
+            ]
+          },
+          "native_locator_profile": {
+            "type": "object"
+          },
+          "limitations": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "ObjectGrant": {
+        "type": "object",
+        "required": [
+          "token",
+          "grant_id",
+          "protected_object_id",
+          "attachment_scope",
+          "attachment_id",
+          "operation",
+          "expires_at",
+          "stream_url"
+        ],
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "grant_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "protected_object_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "attachment_scope": {
+            "const": "deal"
+          },
+          "attachment_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "operation": {
+            "const": "read"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "stream_url": {
+            "type": "string"
+          }
+        }
       }
     },
     "securitySchemes": {
@@ -3446,6 +4410,12 @@ export const openApiContract = {
         "in": "cookie",
         "name": "__Host-banker_session",
         "description": "Passkey-backed Banker Session cookie; API authorization remains product-owned."
+      },
+      "objectGrant": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Short-lived ObjectGrant token bound to the same Banker Session, Deal, Source Record, object, purpose, and operation."
       }
     },
     "responses": {

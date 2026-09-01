@@ -12,6 +12,7 @@ import {
   SyntheticProofStore,
 } from "./synthetic-proof.js";
 import { ReferenceJobRuntime, type ReferenceJobRuntimeOptions } from "./jobs.js";
+import { registerSourceRoutes } from "./sources.js";
 
 const dealIdSchema = z.string().uuid();
 const emailSchema = z.string().email().max(320);
@@ -174,6 +175,9 @@ export async function buildApi(options: BuildApiOptions = {}): Promise<FastifyIn
       done(new Error("invalid json"));
     }
   });
+  for (const mediaType of ["application/octet-stream", "application/offset+octet-stream"]) {
+    api.addContentTypeParser(mediaType, { parseAs: "buffer" }, (_request, body, done) => done(null, body));
+  }
   const ownsReferenceJobRuntime = !(options.referenceJobRuntime instanceof ReferenceJobRuntime);
   api.referenceJobRuntime = options.referenceJobRuntime instanceof ReferenceJobRuntime
     ? options.referenceJobRuntime
@@ -306,6 +310,8 @@ export async function buildApi(options: BuildApiOptions = {}): Promise<FastifyIn
     }
     return key;
   }
+
+  registerSourceRoutes(api, database, { requireBanker, commandKey });
 
   async function dealProjection(client: import("pg").PoolClient, accountId: string, actorId: string, dealId: string) {
     const result = await client.query<{ projection: Record<string, unknown> | null }>("SELECT app.get_deal_setup_projection($1,$2,$3) AS projection", [accountId, actorId, dealId]);
