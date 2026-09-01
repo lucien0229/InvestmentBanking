@@ -4,7 +4,7 @@
 
 **Blocked by:** 05 — Create an exact Deal and complete Paid Preflight.
 
-**Status:** ready-for-agent
+**Status:** claimed
 
 - [ ] Public retrieval records URL, document identity, permitted representation or digest, access/as-of time, version, exact locator, rights posture, and retrieval limitations.
 - [ ] Refreshing mutable public material creates a new immutable observation and never rewrites an earlier observation or silently changes downstream Evidence.

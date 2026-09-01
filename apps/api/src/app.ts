@@ -13,6 +13,7 @@ import {
 } from "./synthetic-proof.js";
 import { ReferenceJobRuntime, type ReferenceJobRuntimeOptions } from "./jobs.js";
 import { registerSourceRoutes } from "./sources.js";
+import { registerTicket07Routes, type PublicWebFetcher } from "./ticket07.js";
 
 const dealIdSchema = z.string().uuid();
 const emailSchema = z.string().email().max(320);
@@ -68,6 +69,7 @@ export interface BuildApiOptions {
   syntheticProofStore?: SyntheticProofStore;
   checkoutAdapter?: CheckoutProviderAdapter;
   referenceJobRuntime?: ReferenceJobRuntime | ReferenceJobRuntimeOptions;
+  publicWebFetcher?: PublicWebFetcher;
 }
 
 function traceId() { return crypto.randomUUID(); }
@@ -312,6 +314,7 @@ export async function buildApi(options: BuildApiOptions = {}): Promise<FastifyIn
   }
 
   registerSourceRoutes(api, database, { requireBanker, commandKey });
+  registerTicket07Routes(api, database, { requireBanker, commandKey, publicWebFetcher: options.publicWebFetcher });
 
   async function dealProjection(client: import("pg").PoolClient, accountId: string, actorId: string, dealId: string) {
     const result = await client.query<{ projection: Record<string, unknown> | null }>("SELECT app.get_deal_setup_projection($1,$2,$3) AS projection", [accountId, actorId, dealId]);
