@@ -8,7 +8,7 @@ This change is limited to identity-complete paid Deal Setup, Active Deal capacit
 
 ## Implementation surface
 
-- `db/migrations/0004_deal_setup_paid_preflight.sql` adds identity fields and digest immutability to `app.deal`, versioned Setup drafts, capacity reservations with a per-account advisory lock and partial unique slot index, Paid Preflight/control-result history, First Deal Guide checkpoint, command idempotency, forced RLS, and closed `SECURITY DEFINER` procedures owned by the NOLOGIN `app_commerce_owner` role.
+- `supabase/migrations/20260830040000_deal_setup_paid_preflight.sql` adds identity fields and digest immutability to `app.deal`, versioned Setup drafts, capacity reservations with a per-account advisory lock and partial unique slot index, Paid Preflight/control-result history, First Deal Guide checkpoint, command idempotency, forced RLS, and closed `SECURITY DEFINER` procedures owned by the NOLOGIN `app_commerce_owner` role.
 - `apps/api/src/app.ts` adds account/deal-scoped create/list/setup/preflight/limited-proceed/identity-change/guide routes and a processing guard that rejects preflight-restricted and Confidential/Restricted operations before parsing, AI, rendering, or provider egress.
 - `apps/web/app/app/page.tsx`, `apps/web/app/app/deals/new/page.tsx`, and the dynamic Deal Setup, Paid Preflight, and First Deal Guide routes provide a resumable minimum UI without accepting source bytes.
 - `contracts/openapi.json` and generated `packages/contracts/generated/openapi.ts` describe the Ticket 05 routes and payloads.
