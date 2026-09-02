@@ -23,6 +23,9 @@ on:
 permissions:
   contents: read
 
+# The development enable flag is repository-scoped so it is available while
+# GitHub evaluates the job-level branch gate; the baseline flag remains scoped
+# to the development Environment and is read after that Environment loads.
 jobs:
   validate:
     name: Validate migrations
