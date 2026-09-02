@@ -35,7 +35,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run db:validate
-      - run: docker compose up -d postgres
+      - run: docker compose up -d --wait postgres
       - run: npm run db:migrate
       - run: npm run db:seed
       - if: always()
