@@ -1,9 +1,9 @@
 # Product-wide database migration automation
 
-Status: the repository-side migration gate is implemented. The GitHub
-`development` Environment and its `SUPABASE_DB_URL` secret were configured on
-2026-09-02. The one-time remote schema/history baseline is still pending until
-the live development schema and migration history are reconciled.
+Status: the repository-side migration gate is implemented and the development
+baseline was reconciled on 2026-09-02. The GitHub `development` Environment and
+its `SUPABASE_DB_URL` secret were configured on the same date. No pending Ticket
+08 migration was applied during the baseline operation.
 
 ## Scope
 
@@ -40,34 +40,42 @@ down migration.
   with per-environment serialization.
 
 The current legacy migrations were renamed to the Supabase CLI timestamp format
-while preserving their dependency order. The first remote automation run must
-still reconcile the existing hosted history before any of these files are
-allowed to be pushed.
+while preserving their dependency order. The hosted history has now been
+reconciled against the canonical files before enabling remote automation.
 
-## One-time remote baseline
+## One-time remote baseline (completed 2026-09-02)
 
 当前只推进 development。production job 保留在工作流中但保持 dormant；生产基线、
 生产 secret 和审批策略等到产品开发完成后再配置。
 
-对 development 必须完成以下一次性步骤：
+对 development 已完成以下一次性步骤：
 
-1. Freeze direct schema changes in the Dashboard SQL/Table Editor.
-2. Run `supabase migration list --db-url "$SUPABASE_DB_URL"` and save the
-   reviewed output as release evidence.
-3. Pull or dump the remote schema and compare it with the canonical migrations.
-4. If the schema is already present but the history table is incomplete, create
-   a reviewed baseline and use `supabase migration repair --status applied` only
-   after the schema comparison passes. `repair` changes history only; it does
-   not execute SQL.
-5. If the schema has drift, write an explicit reconciliation migration and stop
-   the release until it is reviewed. Never make the first `db push` guess at
-   which manually executed statements were applied.
-6. Run `supabase db push --dry-run` and then a controlled development push before
-   enabling the development workflow.
+1. Direct Dashboard SQL/Table Editor changes are frozen for the migration
+   baseline.
+2. `supabase migration list --db-url "$SUPABASE_DB_URL"` was reviewed before
+   and after repair. The final list has the seven canonical migrations through
+   Ticket 07 marked as both local and remote.
+3. A targeted catalog comparison against the canonical migrations found the
+   same 63 business tables, 731 columns, forced-RLS flags on all 63 tables, 54
+   policies, 15 triggers, and 72 function signatures/definitions for the
+   already-applied scope. A full `pg_dump` through the Supavisor pooler was
+   abnormally slow, so the comparison used bounded `pg_catalog` and
+   `information_schema` queries instead of waiting indefinitely.
+4. The old remote-only history versions
+   `20260826063452`, `20260826151357`, `20260826152433`, `20260831071415`,
+   `20260831085848`, `20260831090300`, and `20260901050612` were repaired as
+   `reverted`, and the seven matching repository versions
+   `20260830000000` through `20260830060000` were repaired as `applied`.
+   Supabase CLI `migration repair` changed only
+   `supabase_migrations.schema_migrations`; it did not execute DDL, delete
+   data, or roll back the already-present schema.
+5. `supabase db push --dry-run` now succeeds and reports exactly the nine
+   Ticket 08+ migrations (`20260830070000` through `20260830150000`) as
+   pending. No remote migration push was executed.
 
-The current repository evidence records hosted migrations that were applied
-through the SQL Editor with timestamps different from the old `000x` filenames,
-so this baseline step is mandatory rather than optional.
+The final migration list and the reviewed history repair are recorded above;
+future releases can therefore use `db push` without replaying the existing
+Ticket 01–07 schema.
 
 ## Live inventory before enabling the gate
 
@@ -75,15 +83,15 @@ The read-only Supabase inventory on 2026-09-02 found:
 
 - Main project `bwwtzxfatsnqffbjndck`: only the provider `remote_schema` migration
   is recorded and no InvestmentBanking application tables are present.
-- Persistent `dev` branch `xuysyaxzcpntvvzsgkdy`: migrations are recorded through
-  `20260901050612 protected_source_intake_v1`, while Ticket 07 tables are already
-  present without a corresponding recorded migration. Ticket 08 tables are not
-  present in the inspected application schemas.
+- Persistent `dev` branch `xuysyaxzcpntvvzsgkdy`: the schema contains the
+  canonical Ticket 01–07 objects, and the repaired history now records the
+  seven matching repository versions. Ticket 08 tables are not present in the
+  inspected application schemas; the dry-run lists its nine migrations as
+  pending.
 
-This is a schema/history mismatch, not a safe `db push` starting point. The first
-remote rollout must therefore produce and review a baseline/reconciliation for
-the dev branch. The main/production project is intentionally out of the current
-scope. No remote migration was executed by this inventory.
+The main/production project is intentionally out of the current scope. The
+baseline operation changed migration history only; it did not execute a remote
+schema migration.
 
 ## Release policy
 
@@ -124,9 +132,9 @@ Repository/environment configuration still needed before remote execution:
 - `SUPABASE_DB_URL` secret in the `development` GitHub Environment.
 - `SUPABASE_MIGRATIONS_ENABLED_DEV=true` repository/environment variable after
   the development baseline is reconciled.
-- `SUPABASE_MIGRATION_BASELINE_CONFIRMED_DEV=true` only after the development
-  schema and `supabase_migrations.schema_migrations` reconciliation has been
-  reviewed.
+- `SUPABASE_MIGRATION_BASELINE_CONFIRMED_DEV=true` after the completed
+  development schema and `supabase_migrations.schema_migrations` reconciliation
+  recorded above.
 - Production `SUPABASE_DB_URL`, enable/baseline variables, and required reviewer
   protection are deferred and must not be added in this phase.
 - The chosen Supabase CLI version policy (`2.116.0` is pinned in the workflow;
