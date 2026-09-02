@@ -60,7 +60,7 @@ services:
       PORT: 3000
     command:
       - node
-      - /opt/app/apps/web/.next/standalone/apps/web/server.cjs
+      - /opt/web/apps/web/.next/standalone/apps/web/server.cjs
     depends_on:
       api:
         condition: service_healthy
@@ -68,8 +68,8 @@ services:
       - "127.0.0.1:${INVESTMENTBANKING_DEV_WEB_PORT:-3102}:3000"
     volumes:
       - type: bind
-        source: ${APP_RELEASE_PATH:?APP_RELEASE_PATH must point to an immutable application release}
-        target: /opt/app
+        source: ${WEB_RELEASE_PATH:?WEB_RELEASE_PATH must point to the web runtime release}
+        target: /opt/web
         read_only: true
     networks:
       - private
@@ -97,4 +97,3 @@ services:
 networks:
   private:
     name: investmentbanking-dev-private
-    internal: true

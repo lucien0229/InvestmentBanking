@@ -24,11 +24,14 @@ Set `CELL_ROOT` and `RELEASE_ID` for this Cell, then use the release helper:
 CELL_ROOT=/opt/cells/investmentbanking/dev \
 RELEASE_ID=74436b5 \
 APP_RELEASE_PATH=/opt/investmentbanking/releases/20260902-ticket08-dev-v1 \
+WEB_RELEASE_PATH=/opt/cells/investmentbanking/dev/web-releases/20260902-ticket08-dev-v1 \
   bash scripts/deploy-docker-cell.sh
 ```
 
 `APP_RELEASE_PATH` must contain the built `.next/standalone` output and the
-runtime `node_modules`; it is never writable by the containers. Set
+runtime `node_modules`; `WEB_RELEASE_PATH` contains the standalone web runtime
+with its API upstream set to the Cell's `api:3001` service. Both are never
+writable by the containers. Set
 `NODE_RUNTIME_IMAGE` when CI publishes a digest-pinned runtime image.
 
 The published ports default to `127.0.0.1:3101` (API) and
