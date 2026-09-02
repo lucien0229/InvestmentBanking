@@ -1,0 +1,99 @@
+name: investmentbanking-dev
+
+services:
+  api:
+    image: ${NODE_RUNTIME_IMAGE:-node:22-bookworm-slim}
+    env_file:
+      - path: ${RUNTIME_ENV_FILE:-./runtime.env}
+        required: false
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+      HOST: 0.0.0.0
+      PORT: 3001
+      PROTECTED_STORAGE_ROOT: /var/lib/investmentbanking/protected
+      DATABASE_SSL_CA_FILE: /run/secrets/supabase-chain.pem
+    command:
+      - node
+      - /opt/app/node_modules/tsx/dist/cli.mjs
+      - /opt/app/apps/api/src/server.ts
+    ports:
+      - "127.0.0.1:${INVESTMENTBANKING_DEV_API_PORT:-3101}:3001"
+    volumes:
+      - type: bind
+        source: ${APP_RELEASE_PATH:?APP_RELEASE_PATH must point to an immutable application release}
+        target: /opt/app
+        read_only: true
+      - type: bind
+        source: ${PROTECTED_VOLUME_PATH:-./volumes/protected}
+        target: /var/lib/investmentbanking/protected
+      - type: bind
+        source: ${DATABASE_SSL_CA_HOST_PATH:-./supabase-chain.pem}
+        target: /run/secrets/supabase-chain.pem
+        read_only: true
+    networks:
+      - private
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3001/api/v1/session').then(r=>process.exit(r.status===401?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.50"
+          memory: 768M
+
+  web:
+    image: ${NODE_RUNTIME_IMAGE:-node:22-bookworm-slim}
+    environment:
+      HOSTNAME: 0.0.0.0
+      PORT: 3000
+    command:
+      - node
+      - /opt/web/apps/web/server.cjs
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${INVESTMENTBANKING_DEV_WEB_PORT:-3102}:3000"
+    volumes:
+      - type: bind
+        source: ${WEB_RELEASE_PATH:?WEB_RELEASE_PATH must point to the web runtime release}
+        target: /opt/web
+        read_only: true
+    networks:
+      - private
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.status===200?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.00"
+          memory: 512M
+
+networks:
+  private:
+    name: investmentbanking-dev-private
