@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { CheckoutStepper } from "../../../components/deal-control/ui";
 
 const acknowledgements = [
   ["purchase_authority", "I have authority to purchase this Individual Deal Desk."],
@@ -48,12 +49,13 @@ export default function CheckoutTermsPage() {
     router.push(`/checkout/payment?order=${encodeURIComponent(order.id)}&terms=${encodeURIComponent(body.id)}`);
   }
 
-  return <main style={{ maxWidth: 900, margin: "0 auto", padding: 48 }}>
+  return <main className="dc-page">
     <a href="/checkout/order">← Saved Order</a>
     <p style={{ fontFamily: "monospace", fontSize: 12, marginTop: 32 }}>CHECKOUT / TERMS</p>
     <h1>Review terms and acknowledge boundaries</h1>
-    {message && <p role="status">{message}</p>}
-    {error && <p role="alert" style={{ color: "#a22" }}>{error}</p>}
+    <CheckoutStepper active="Terms" />
+    {message && !order ? <section className="dc-state-panel" data-tone="warning" role="status"><span className="dc-state-label">Terms status</span><strong className="dc-state-title">Checkout Order not available</strong><span className="dc-state-detail">{message}</span><div className="dc-page-actions"><a className="dc-button" href="/checkout/order">Return to saved Order</a><a className="dc-button dc-button-secondary" href="/account-access?return_to=%2Fcheckout%2Forder">Re-authenticate</a></div></section> : message ? <p role="status">{message}</p> : null}
+    {error && <p role="alert">{error}</p>}
     {order && <form onSubmit={submit} style={{ display: "grid", gap: 16, background: "white", border: "1px solid #ccd5d8", padding: 24 }}>
       <p><strong>{order.billing_term === "annual" ? "$10,950 per year paid upfront · $912.50/month equivalent · save $990 (8.29%)" : "$995 per month"}</strong> · 2 Active Deals · 250 files · 2,500 logical pages · 25 GB · 20 Full-Workflow Operations per Active Deal per billing month.</p>
       <p>Amount due now: ${(order.amount_due_now.amount_minor / 100).toLocaleString("en-US")} {order.amount_due_now.currency.toUpperCase()}. Tax: calculated before payment confirmation.</p>

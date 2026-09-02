@@ -28,7 +28,7 @@ export default function AccountAccessPage() {
         setProviderAccessToken(session.access_token);
         const response = await fetch("/api/v1/session");
         if (!cancelled && response.ok) {
-          const body = await response.json();
+          const body = await response.json().catch(() => ({}));
           setStatus(body.posture === "passkey_required" ? "Mailbox verified. Register the mandatory Passkey." : "Passkey registered. Authenticate with it to create the ordinary Banker Session.");
         }
       } catch {
@@ -43,7 +43,7 @@ export default function AccountAccessPage() {
     event.preventDefault();
     setError("");
     const response = await fetch("/api/v1/session/bootstrap", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email }) });
-    const body = await response.json();
+    const body = await response.json().catch(() => ({}));
     if (!response.ok) return setError(body.detail ?? "Magic Link request failed.");
     if (body.test_verification_token) setToken(body.test_verification_token);
     setStatus(supabaseMode ? "Magic Link sent. Open it from the same browser to continue." : "Magic Link sent. In the local acceptance adapter, the one-time verification token is shown for the black-box test only.");
@@ -53,7 +53,7 @@ export default function AccountAccessPage() {
     event.preventDefault();
     setError("");
     const response = await fetch("/api/v1/session/bootstrap/verify", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ token }) });
-    const body = await response.json();
+    const body = await response.json().catch(() => ({}));
     if (!response.ok) return setError(body.detail ?? "Magic Link verification failed.");
     setStatus("Mailbox verified. Register the mandatory Passkey.");
   }
@@ -69,7 +69,7 @@ export default function AccountAccessPage() {
         if (!session) throw new Error("The Supabase session is unavailable.");
         setProviderAccessToken(session.access_token);
         const response = await fetch("/api/v1/session/passkey/register", { method: "POST", headers: { authorization: `Bearer ${session.access_token}` } });
-        if (!response.ok) throw new Error((await response.json()).detail ?? "Passkey registration failed.");
+        if (!response.ok) throw new Error((await response.json().catch(() => ({}))).detail ?? "Passkey registration failed.");
         setStatus("Passkey registered. Authenticate with it to create the ordinary Banker Session.");
       } catch (error) {
         setError(error instanceof Error ? error.message : "Passkey registration failed.");
@@ -77,7 +77,7 @@ export default function AccountAccessPage() {
       return;
     }
     const response = await fetch("/api/v1/session/passkey/register", { method: "POST" });
-    const body = await response.json();
+    const body = await response.json().catch(() => ({}));
     if (!response.ok) return setError(body.detail ?? "Passkey registration failed.");
     setStatus("Passkey registered. Authenticate with it to create the ordinary Banker Session.");
   }
@@ -91,7 +91,7 @@ export default function AccountAccessPage() {
         if (error || !data.session) throw error ?? new Error("Passkey authentication failed.");
         setProviderAccessToken(data.session.access_token);
         const response = await fetch("/api/v1/session/passkey/authenticate", { method: "POST", headers: { authorization: `Bearer ${data.session.access_token}` } });
-        if (!response.ok) throw new Error((await response.json()).detail ?? "Passkey authentication failed.");
+        if (!response.ok) throw new Error((await response.json().catch(() => ({}))).detail ?? "Passkey authentication failed.");
         router.push(returnTo);
       } catch (error) {
         setError(error instanceof Error ? error.message : "Passkey authentication failed.");
@@ -99,17 +99,17 @@ export default function AccountAccessPage() {
       return;
     }
     const response = await fetch("/api/v1/session/passkey/authenticate", { method: "POST" });
-    const body = await response.json();
+    const body = await response.json().catch(() => ({}));
     if (!response.ok) return setError(body.detail ?? "Passkey authentication failed.");
     router.push(returnTo);
   }
 
   return (
-    <main style={{ maxWidth: 720, margin: "0 auto", padding: 48 }}>
+    <main className="dc-page">
       <a href="/">← Public entry</a>
       <h1>Account Access Gateway</h1>
       <p>{status}</p>
-      {error && <p role="alert" style={{ color: "#a22" }}>{error}</p>}
+      {error && <p role="alert">{error}</p>}
       <form onSubmit={requestMagicLink} style={{ display: "grid", gap: 12, maxWidth: 480 }}>
         <label htmlFor="email">Email</label>
         <input id="email" value={email} onChange={(event) => setEmail(event.target.value)} type="email" required />

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { CheckoutStepper } from "../../../components/deal-control/ui";
 
 type Order = { id: string; billing_term: string; amount_due_now: { amount_minor: number; currency: string }; tax: { posture: string; amount_minor: number }; renewal: { amount_minor: number; term: string }; current_step: string; payment_state: string };
 
@@ -40,12 +41,13 @@ export default function CheckoutPaymentPage() {
     setMessage("Provider payment session created. Open it, complete payment there, then return to this Checkout Order for product reconciliation.");
   }
 
-  return <main style={{ maxWidth: 900, margin: "0 auto", padding: 48 }}>
+  return <main className="dc-page">
     <a href={order ? `/checkout/terms?order=${encodeURIComponent(order.id)}` : "/checkout/order"}>← Terms</a>
     <p style={{ fontFamily: "monospace", fontSize: 12, marginTop: 32 }}>CHECKOUT / PAYMENT</p>
     <h1>Payment details</h1>
-    {message && <p role="status">{message}</p>}
-    {error && <p role="alert" style={{ color: "#a22" }}>{error}</p>}
+    <CheckoutStepper active="Payment" />
+    {message && !order ? <section className="dc-state-panel" data-tone="warning" role="status"><span className="dc-state-label">Payment status</span><strong className="dc-state-title">Saved Checkout context required</strong><span className="dc-state-detail">{message}</span><div className="dc-page-actions"><a className="dc-button" href="/checkout/order">Return to saved Order</a><a className="dc-button dc-button-secondary" href="/account-access?return_to=%2Fcheckout%2Forder">Re-authenticate</a></div></section> : message ? <p role="status">{message}</p> : null}
+    {error && <p role="alert">{error}</p>}
     {order && <section style={{ display: "grid", gap: 16, background: "white", border: "1px solid #ccd5d8", padding: 24 }}>
       <dl><dt>Billing name</dt><dd>Named Individual Banker account</dd><dt>Billing address</dt><dd>Collected by the payment provider at hosted checkout</dd><dt>Country / tax</dt><dd>Tax is calculated before payment confirmation ({order.tax.posture})</dd><dt>Amount due now</dt><dd>${(order.amount_due_now.amount_minor / 100).toLocaleString("en-US")} {order.amount_due_now.currency.toUpperCase()}</dd><dt>Renewal</dt><dd>${(order.renewal.amount_minor / 100).toLocaleString("en-US")} {order.renewal.term}{order.billing_term === "annual" ? " · $912.50/month equivalent · save $990 (8.29%)" : ""}</dd></dl>
       <p>Card details are collected only by the provider-hosted payment page; this product does not accept or store card numbers. Returning here is safe and does not create a second charge.</p>

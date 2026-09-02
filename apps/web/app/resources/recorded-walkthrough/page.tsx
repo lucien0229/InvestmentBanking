@@ -12,8 +12,7 @@ const chapters = [
 
 export default function RecordedWalkthroughPage() {
   return (
-    <main style={{ maxWidth: 900, margin: "0 auto", padding: "32px 24px 64px" }}>
-      <a href="#recorded-content" style={{ position: "absolute", left: -10000 }}>Skip to main content</a>
+    <PublicShell><main className="dc-page">
       <div id="recorded-content">
       <a href="/project-northstar" style={{ color: "#16724b" }}>← Interactive Project Northstar proof</a>
       <p style={{ fontFamily: "monospace", fontSize: 12, letterSpacing: 1 }}>RESOURCES / ACCESSIBLE RECORDED WALKTHROUGH</p>
@@ -42,6 +41,7 @@ export default function RecordedWalkthroughPage() {
       <section aria-labelledby="continuation-heading"><h2 id="continuation-heading">Continue</h2><p><a href="/project-northstar">Open the interactive proof</a> · <a href="/pricing">Review pricing</a> · <a href="/qualification">Check qualification</a></p></section>
       <p role="status">Interactive completion emitted by this route: <strong>no</strong>.</p>
       </div>
-    </main>
+    </main></PublicShell>
   );
 }
+import { PublicShell } from "../../../components/deal-control/ui";

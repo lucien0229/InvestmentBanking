@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { PublicShell } from "../../components/deal-control/ui";
 
 export default function QualificationPage() {
   const [status, setStatus] = useState("Provide categories only. Do not upload files or enter Deal content.");
@@ -12,7 +13,7 @@ export default function QualificationPage() {
     if (!id) return;
     fetch(`/api/v1/public/qualification-assessments/${encodeURIComponent(id)}`).then(async (response) => {
       if (!response.ok) return;
-      const body = await response.json();
+      const body = await response.json().catch(() => ({}));
       setStatus(`${body.result}. Restored non-confidential qualification assessment; Paid Preflight will re-evaluate exact sources, rights, processing, and minimum packet.`);
     }).catch(() => undefined);
   }, []);
@@ -26,15 +27,14 @@ export default function QualificationPage() {
     setStatus(`${body.result}. This is a non-confidential preview only; Paid Preflight will re-evaluate exact sources, rights, processing, and minimum packet.`);
   }
   return (
-    <main id="main-content" style={{ maxWidth: 760, margin: "0 auto", padding: 48 }}>
-      <a href="#main-content" style={{ position: "absolute", left: -10000 }}>Skip to main content</a>
-      <a href="/project-northstar" style={{ color: "#16724b" }}>← Project Northstar proof</a>
+    <PublicShell><main className="dc-page" id="main-content">
+      <a href="/project-northstar">← Project Northstar proof</a>
       <a href="/pricing">← Pricing</a>
-      <p style={{ fontFamily: "monospace", fontSize: 12, marginTop: 32 }}>DEAL CONTROL / QUALIFICATION</p>
+      <p className="dc-eyebrow">DEAL CONTROL / QUALIFICATION</p>
       <h1>Check product qualification</h1>
       <p>This check is informational and does not accept Deal Material. Do not submit confidential files or claims here.</p>
       <p>{status}</p>
-      {error && <p role="alert" style={{ color: "#a22" }}>{error}</p>}
+      {error && <p role="alert">{error}</p>}
       <form onSubmit={submit} style={{ display: "grid", gap: 14, background: "white", border: "1px solid #ccd5d8", padding: 24 }}>
         <label>Banker role<input value={form.banker_role} onChange={(event) => update("banker_role", event.target.value)} /></label>
         <label>Can purchase independently<select value={form.can_purchase_independently ? "yes" : "no"} onChange={(event) => update("can_purchase_independently", event.target.value === "yes")}><option value="yes">Yes</option><option value="no">No</option></select></label>
@@ -52,6 +52,6 @@ export default function QualificationPage() {
         <button type="submit">Review qualification</button>
       </form>
       <p style={{ marginTop: 20 }}><a href="/account-access?return_to=%2Fcheckout%2Forder">Continue to account access</a></p>
-    </main>
+    </main></PublicShell>
   );
 }

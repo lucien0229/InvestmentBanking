@@ -80,7 +80,10 @@ export default function ProofClient({ initialState }: { initialState?: string })
         if (body.id) setSessionId(body.id);
         setMessage(initialState ? `Inspecting the ${initialState.replaceAll("-", " ")} checkpoint.` : "Start a bounded synthetic session to inspect the control loop.");
       })
-      .catch((cause: Error) => setError(cause.message));
+      .catch((cause: Error) => {
+        setError(cause.message);
+        setMessage("The synthetic fixture is unavailable. Retry the proof or use the recorded walkthrough.");
+      });
   }, [initialState]);
 
   async function startSession() {
@@ -147,8 +150,7 @@ export default function ProofClient({ initialState }: { initialState?: string })
   const has = (checkpoint: string) => observed.includes(checkpoint);
 
   return (
-    <main id="main-content" style={{ maxWidth: 1120, margin: "0 auto", padding: "32px 24px 64px" }}>
-      <a href="#main-content" style={{ position: "absolute", left: -10000 }}>Skip to main content</a>
+    <main id="main-content" className="dc-page" style={{ maxWidth: 1120, margin: "0 auto", padding: "32px 24px 64px" }}>
       <header style={{ borderBottom: "1px solid #ccd5d8", paddingBottom: 24 }}>
         <a href="/" style={{ color: "#16724b" }}>← Public outcome</a>
         <p style={{ fontFamily: "monospace", fontSize: 12, letterSpacing: 1 }}>PROJECT NORTHSTAR / SYNTHETIC DEAL PROOF</p>

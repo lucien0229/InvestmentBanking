@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { CheckoutStepper } from "../../../components/deal-control/ui";
 
 type AddOn = "none" | "additional_active_deal" | "intensive_processing" | "archive_capacity";
 
@@ -23,12 +24,13 @@ export default function CheckoutOrderPage() {
     router.push(`/checkout/terms?order=${encodeURIComponent(body.id)}`);
   }
   return (
-    <main style={{ maxWidth: 900, margin: "0 auto", padding: 48 }}>
+    <main className="dc-page">
       <a href="/pricing">← Pricing</a>
       <p style={{ fontFamily: "monospace", fontSize: 12, marginTop: 32 }}>CHECKOUT / ORDER</p>
       <h1>Confirm Order</h1>
       <p>Order → Terms → Payment → Confirmation. Refresh, account recovery, and payment failure preserve this exact checkpoint.</p>
-      {error && <p role="alert" style={{ color: "#a22" }}>{error}</p>}
+      <CheckoutStepper active="Order" />
+      {error && <p role="alert">{error}</p>}
       <form onSubmit={submit} style={{ display: "grid", gap: 16, maxWidth: 520, background: "white", border: "1px solid #ccd5d8", padding: 24 }}>
         <label>Billing term<select value={term} onChange={(event) => { setTerm(event.target.value as "monthly" | "annual"); if (event.target.value === "annual" && addOn === "archive_capacity") { setAddOn("none"); setAddOnConsent(false); } }}><option value="monthly">Monthly · $995</option><option value="annual">Annual prepaid · $10,950 · $912.50/month equivalent · save $990 (8.29%)</option></select></label>
         <p>2 Active Deals · 250 files · 2,500 logical pages · 25 GB active storage · 20 Full-Workflow Operations per Active Deal per billing month.</p>

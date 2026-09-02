@@ -44,7 +44,7 @@ export default function DurableJobPage() {
     const load = async () => {
       try {
         const response = await fetch(`/api/v1/jobs/${jobId}`, { cache: "no-store" });
-        const body = await response.json();
+        const body = await response.json().catch(() => ({}));
         if (active && response.ok) setJob(body);
         else if (active) setError(body.detail ?? "The Job detail is unavailable.");
       } catch {
@@ -76,7 +76,7 @@ export default function DurableJobPage() {
         headers: { "content-type": "application/json", "if-match": `"job-${job.row_version}"` },
         body: body ? JSON.stringify(body) : undefined,
       });
-      const result = await response.json();
+      const result = await response.json().catch(() => ({}));
       if (!response.ok) setError(result.detail ?? "The Job command could not be completed.");
       else setJob((current) => current ? { ...current, state: result.state, row_version: result.row_version } : current);
     } catch {
@@ -87,12 +87,12 @@ export default function DurableJobPage() {
   };
 
   return (
-    <main style={{ maxWidth: 1180, margin: "0 auto", padding: 40 }}>
-      <p style={{ fontFamily: "monospace", fontSize: 12 }}>DEAL WORKSPACE / DURABLE JOB</p>
+    <main className="dc-page">
+      <p className="dc-eyebrow">DEAL WORKSPACE / DURABLE JOB</p>
       <p><a href="/app/deals/project-northstar/overview">Back to Deal Overview</a></p>
       <h1>Reference workspace operation</h1>
-      {error && <div role="alert" style={{ border: "1px solid #a22", padding: 16 }}>{error}</div>}
-      {!job && !error && <p role="status">Loading durable Job…</p>}
+      {error && <div role="alert">{error}<p><a href="/app/deals/project-northstar/overview">Return to Deal Overview →</a></p></div>}
+      {!job && !error && <div className="dc-state-panel" data-tone="info"><span className="dc-state-label">Job status</span><strong className="dc-state-title">Loading durable Job…</strong><span className="dc-state-detail">The page will show checkpoint, heartbeat and recovery controls when the authoritative Job is available.</span></div>}
       {job && <>
         <section aria-label="Job status" style={{ border: "1px solid #ccd5d8", background: "white", padding: 20 }}>
           <h2>{job.state.replaceAll("_", " ")}</h2>

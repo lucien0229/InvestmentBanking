@@ -1,0 +1,5 @@
+import { CheckoutStepper } from "../../../components/deal-control/ui";
+
+export default function CheckoutRecoveryPage() {
+  return <main className="dc-page"><a href="/checkout/order">← Saved Order</a><p className="dc-eyebrow">CHECKOUT / RECOVERY</p><h1>Recover your saved Checkout</h1><p>Payment was not confirmed. This recovery surface keeps the exact Order checkpoint and avoids creating a duplicate charge.</p><CheckoutStepper active="Payment" /><section className="dc-state-panel" data-tone="warning"><span className="dc-state-label">Safe recovery</span><strong className="dc-state-title">Return to the saved Order</strong><span className="dc-state-detail">Review the current Order, Terms acceptance and payment posture before retrying. No entitlement is granted until product-owned reconciliation succeeds.</span><div className="dc-page-actions"><a className="dc-button" href="/checkout/order">Open saved Order</a><a className="dc-button dc-button-secondary" href="/account-access?return_to=%2Fcheckout%2Forder">Re-authenticate</a></div></section></main>;
+}

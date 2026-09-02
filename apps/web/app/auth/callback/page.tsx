@@ -32,5 +32,5 @@ export default function AuthCallbackPage() {
     return () => { cancelled = true; };
   }, [router]);
 
-  return <main style={{ maxWidth: 720, margin: "0 auto", padding: 48 }}><h1>Account Access Gateway</h1><p role="status">{message}</p></main>;
+  return <main className="dc-page"><p className="dc-eyebrow">ACCOUNT ACCESS / CALLBACK</p><h1>Account Access Gateway</h1><div className="dc-state-panel" data-tone="info"><span className="dc-state-label">Verification status</span><strong className="dc-state-title">{message}</strong><a href="/account-access">Return to Account Access</a></div></main>;
 }

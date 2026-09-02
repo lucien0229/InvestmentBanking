@@ -18,17 +18,18 @@ export default function DealOverviewPage() {
   const [startingJob, setStartingJob] = useState(false);
   useEffect(() => {
     fetch(`/api/v1/deals/${dealId}/overview`).then(async (response) => {
-      const body = await response.json();
+      const body = await response.json().catch(() => ({}));
       if (!response.ok) return setError(body.detail ?? "The Deal Overview is unavailable.");
       setOverview(body);
     }).catch(() => setError("The API could not be reached."));
   }, []);
 
   return (
-    <main style={{ maxWidth: 1180, margin: "0 auto", padding: 40 }}>
-      <p style={{ fontFamily: "monospace", fontSize: 12 }}>BANKER ACCOUNT / DEAL WORKSPACE</p>
+    <main className="dc-page">
+      <p className="dc-eyebrow">BANKER ACCOUNT / DEAL WORKSPACE</p>
       <h1>Project Northstar — Deal Overview</h1>
       {error && <div role="alert" style={{ border: "1px solid #a22", padding: 16 }}>{error} <a href="/account-access">Return to Account Access</a></div>}
+      {!overview && <section className="dc-state-panel" data-tone={error ? "critical" : "info"} role={error ? "alert" : "status"}><span className="dc-state-label">Deal Overview status</span><strong className="dc-state-title">{error ? "Deal Overview unavailable" : "Loading Deal Overview…"}</strong><span className="dc-state-detail">{error || "The exact Account, Deal and Workspace projection is being loaded."}</span><a href={error ? "/account-access" : "/app/deals"}>{error ? "Return to Account Access →" : "Return to Deals →"}</a></section>}
       {overview && <>
         <section aria-label="Deal identity" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
           <article><h2>Account</h2><p>{overview.account.display_name}</p></article>
@@ -52,7 +53,7 @@ export default function DealOverviewPage() {
                 headers: { "content-type": "application/json", "idempotency-key": `reference-ui-${crypto.randomUUID()}` },
                 body: JSON.stringify({ purpose: "reference_workspace_build", inputs: { source_packet: "northstar-source-packet-v1", requested_scope: "synthetic_reference_fixture" } }),
               });
-              const body = await response.json();
+              const body = await response.json().catch(() => ({}));
               if (!response.ok) setError(body.detail ?? "The Reference Job could not be started.");
               else setJobLink(`/app/deals/project-northstar/actions/jobs/${body.id}`);
             } catch {
