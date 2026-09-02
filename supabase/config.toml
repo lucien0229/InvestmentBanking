@@ -8,3 +8,7 @@ enabled = true
 rp_display_name = "Deal Control"
 rp_id = "localhost"
 rp_origins = ["http://localhost:3000"]
+
+[db.seed]
+enabled = true
+sql_paths = ["./seed.sql"]
