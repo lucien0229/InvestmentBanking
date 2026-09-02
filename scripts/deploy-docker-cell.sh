@@ -18,7 +18,7 @@ test -f "${ca_file}"
 test -f "${APP_RELEASE_PATH}/package.json"
 test -f "${APP_RELEASE_PATH}/apps/api/src/server.ts"
 test -f "${APP_RELEASE_PATH}/apps/web/.next/standalone/apps/web/server.cjs"
-test -f "${WEB_RELEASE_PATH}/apps/web/.next/standalone/apps/web/server.cjs"
+test -f "${WEB_RELEASE_PATH}/apps/web/server.cjs"
 mkdir -p "${protected_volume}"
 
 export RUNTIME_ENV_FILE="${runtime_env}"

@@ -60,7 +60,7 @@ services:
       PORT: 3000
     command:
       - node
-      - /opt/web/apps/web/.next/standalone/apps/web/server.cjs
+      - /opt/web/apps/web/server.cjs
     depends_on:
       api:
         condition: service_healthy
