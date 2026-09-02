@@ -1,0 +1,91 @@
+name: Database migrations
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Environment to migrate
+        required: true
+        type: choice
+        options:
+          - development
+          - production
+      dry_run:
+        description: Only show pending migrations
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate migrations
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run db:validate
+      - run: docker compose up -d postgres
+      - run: npm run db:migrate
+      - run: npm run db:seed
+      - if: always()
+        run: docker compose down -v
+
+  migrate-development:
+    name: Migrate development Supabase
+    needs: validate
+    if: >-
+      (github.ref == 'refs/heads/develop' ||
+      (github.event_name == 'workflow_dispatch' && inputs.environment == 'development')) &&
+      (github.event_name == 'workflow_dispatch' || vars.SUPABASE_MIGRATIONS_ENABLED_DEV == 'true')
+    runs-on: ubuntu-latest
+    environment: development
+    concurrency:
+      group: investmentbanking-database-development
+      cancel-in-progress: false
+    env:
+      MIGRATION_ENVIRONMENT: development
+      MIGRATION_BASELINE_CONFIRMED: ${{ vars.SUPABASE_MIGRATION_BASELINE_CONFIRMED_DEV }}
+      MIGRATION_DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || 'false' }}
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v2
+        with:
+          version: 2.116.0
+      - run: bash scripts/run-supabase-migrations.sh
+
+  migrate-production:
+    name: Migrate production Supabase
+    needs: validate
+    if: >-
+      (github.ref == 'refs/heads/main' ||
+      (github.event_name == 'workflow_dispatch' && inputs.environment == 'production')) &&
+      (github.event_name == 'workflow_dispatch' || vars.SUPABASE_MIGRATIONS_ENABLED_PROD == 'true')
+    runs-on: ubuntu-latest
+    environment: production
+    concurrency:
+      group: investmentbanking-database-production
+      cancel-in-progress: false
+    env:
+      MIGRATION_ENVIRONMENT: production
+      MIGRATION_APPROVED: true
+      MIGRATION_BASELINE_CONFIRMED: ${{ vars.SUPABASE_MIGRATION_BASELINE_CONFIRMED_PROD }}
+      MIGRATION_DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || 'false' }}
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v2
+        with:
+          version: 2.84.2
+      - run: bash scripts/run-supabase-migrations.sh
