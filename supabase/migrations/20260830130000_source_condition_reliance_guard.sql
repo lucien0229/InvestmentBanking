@@ -23,4 +23,6 @@ BEGIN
   RETURN jsonb_build_object('id',assessment_id,'source_record_id',p_source_record_id,'purpose',p_purpose_code,'freshness',p_freshness_code,'conflict',p_conflict_code,'disposition',p_disposition_code,'supersedes_id',prior_id,'prospective_reliance',CASE WHEN p_disposition_code='withdrawn' THEN 'removed' ELSE 'unchanged_until_reassessed' END,'impact_assessment_candidate',true,'circulation_blocked',p_disposition_code='withdrawn' OR p_freshness_code='stale' OR p_conflict_code='conflicted');
 END $$;
 
+GRANT CREATE ON SCHEMA source TO app_source_owner;
 ALTER FUNCTION source.create_source_condition_assessment(uuid,uuid,uuid,uuid,text,text,text,text,jsonb,timestamptz) OWNER TO app_source_owner;
+REVOKE CREATE ON SCHEMA source FROM app_source_owner;

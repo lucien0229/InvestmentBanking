@@ -80,5 +80,6 @@ BEGIN
 END $$;
 REVOKE ALL ON FUNCTION source.record_reliance_assessment(uuid,uuid,uuid,uuid,text,text,jsonb,jsonb) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION source.record_reliance_assessment(uuid,uuid,uuid,uuid,text,text,jsonb,jsonb) TO app_source_owner;
+GRANT CREATE ON SCHEMA source TO app_source_owner;
 ALTER FUNCTION source.record_reliance_assessment(uuid,uuid,uuid,uuid,text,text,jsonb,jsonb) OWNER TO app_source_owner;
 REVOKE CREATE ON SCHEMA source FROM app_source_owner;

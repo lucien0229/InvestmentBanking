@@ -103,9 +103,11 @@ BEGIN
   );
 END $$;
 
+GRANT CREATE ON SCHEMA source TO app_source_owner;
 ALTER FUNCTION source.get_source_packet_version_projection(uuid,uuid,uuid,uuid,uuid) OWNER TO app_source_owner;
 REVOKE ALL ON FUNCTION source.get_source_packet_version_projection(uuid,uuid,uuid,uuid,uuid) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION source.get_source_packet_version_projection(uuid,uuid,uuid,uuid,uuid) TO app_runtime;
+REVOKE CREATE ON SCHEMA source FROM app_source_owner;
 
 -- Internal ceiling helpers are only callable by the definer procedures; they
 -- are not an API or worker surface.
