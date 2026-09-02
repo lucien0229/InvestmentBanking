@@ -2898,6 +2898,499 @@ export const openApiContract = {
         }
       }
     },
+    "/api/v1/deals/{deal_id}/source-packets": {
+      "get": {
+        "operationId": "list_source_packets",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deal-scoped Source Packet roots"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      },
+      "post": {
+        "operationId": "create_source_packet",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SourcePacketCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Source Packet root"
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/source-packets/{source_packet_id}": {
+      "get": {
+        "operationId": "get_source_packet",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "$ref": "#/components/parameters/SourcePacketId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current Source Packet projection"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/source-packets/{source_packet_id}/versions": {
+      "get": {
+        "operationId": "list_source_packet_versions",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "$ref": "#/components/parameters/SourcePacketId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Immutable Source Packet version history"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      },
+      "post": {
+        "operationId": "create_source_packet_version",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "$ref": "#/components/parameters/SourcePacketId"
+          },
+          {
+            "$ref": "#/components/parameters/IfMatchRequired"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SourcePacketVersionCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Immutable exact-membership Source Packet version"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "412": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "428": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/source-packets/{source_packet_id}/versions/{version_id}": {
+      "get": {
+        "operationId": "get_source_packet_version",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "$ref": "#/components/parameters/SourcePacketId"
+          },
+          {
+            "$ref": "#/components/parameters/SourcePacketVersionId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Exact immutable Source Packet version projection"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/work-objectives": {
+      "get": {
+        "operationId": "list_work_objectives",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deal Work Objectives"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      },
+      "post": {
+        "operationId": "create_work_objective",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkObjectiveCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Packet-bound Work Objective and Output Ceiling"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/work-objectives/{work_objective_id}": {
+      "get": {
+        "operationId": "get_work_objective",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "name": "work_objective_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Packet-bound Work Objective"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/source-records/{source_record_id}/condition-assessments": {
+      "post": {
+        "operationId": "create_source_condition_assessment",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "$ref": "#/components/parameters/SourceRecordId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SourceConditionAssessmentCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Immutable Source Record condition assessment"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/rights-assessments": {
+      "get": {
+        "operationId": "list_rights_assessments",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Immutable Source Record rights assessment history"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      },
+      "post": {
+        "operationId": "create_source_rights_assessment",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SourceRightsAssessmentCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Immutable Source Record rights assessment"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/rights-assessments/{assessment_id}": {
+      "get": {
+        "operationId": "get_rights_assessment",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "name": "assessment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Immutable Source Record rights assessment"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/condition-assessments": {
+      "get": {
+        "operationId": "list_condition_assessments",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Immutable Source Record condition history"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      },
+      "post": {
+        "operationId": "create_condition_assessment",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SourceConditionCommandCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Immutable Source Record condition assessment"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/condition-assessments/{assessment_id}": {
+      "get": {
+        "operationId": "get_condition_assessment",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "name": "assessment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Immutable Source Record condition assessment"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
     "/objects/{protected_object_id}": {
       "get": {
         "operationId": "stream_protected_object",
@@ -3015,6 +3508,42 @@ export const openApiContract = {
         "required": false,
         "schema": {
           "type": "string"
+        }
+      },
+      "IfMatchRequired": {
+        "name": "If-Match",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "pattern": "^(W/)?\\\"source-packet-[0-9]+\\\"$"
+        }
+      },
+      "SourcePacketId": {
+        "name": "source_packet_id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "SourcePacketVersionId": {
+        "name": "version_id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "SourceRecordId": {
+        "name": "source_record_id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid"
         }
       }
     },
@@ -3153,6 +3682,286 @@ export const openApiContract = {
           },
           "compatibility": {
             "type": "string"
+          }
+        }
+      },
+      "SourcePacketCreate": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "packet_name",
+          "purpose"
+        ],
+        "properties": {
+          "packet_name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "purpose": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          }
+        }
+      },
+      "SourcePacketMember": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source_record_id",
+          "inclusion_reason"
+        ],
+        "properties": {
+          "source_record_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "member_role": {
+            "type": "string"
+          },
+          "inclusion_reason": {
+            "type": "string"
+          },
+          "sort_key": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "SourcePacketVersionCreate": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "purpose",
+          "scope_statement",
+          "change_reason",
+          "members"
+        ],
+        "properties": {
+          "purpose": {
+            "type": "string"
+          },
+          "scope_statement": {
+            "type": "string"
+          },
+          "change_reason": {
+            "type": "string"
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SourcePacketMember"
+            }
+          },
+          "declared_exclusions": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "material"
+                  ],
+                  "properties": {
+                    "material": {
+                      "type": "string"
+                    },
+                    "reason": {
+                      "type": "string"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      },
+      "WorkObjectiveCreate": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "packet_version_id",
+          "objective_type",
+          "purpose",
+          "objective_text",
+          "intended_use",
+          "intended_audience",
+          "requested_scope"
+        ],
+        "properties": {
+          "packet_version_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "objective_type": {
+            "type": "string",
+            "enum": [
+              "analysis",
+              "deliverable",
+              "process",
+              "question"
+            ]
+          },
+          "purpose": {
+            "type": "string"
+          },
+          "objective_text": {
+            "type": "string"
+          },
+          "intended_use": {
+            "type": "string"
+          },
+          "intended_audience": {
+            "type": "string"
+          },
+          "requested_scope": {
+            "type": "string"
+          }
+        }
+      },
+      "SourceConditionAssessmentCreate": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "purpose",
+          "freshness",
+          "conflict",
+          "disposition"
+        ],
+        "properties": {
+          "purpose": {
+            "type": "string"
+          },
+          "freshness": {
+            "type": "string",
+            "enum": [
+              "current",
+              "stale",
+              "unknown"
+            ]
+          },
+          "conflict": {
+            "type": "string",
+            "enum": [
+              "none",
+              "conflicted",
+              "unknown"
+            ]
+          },
+          "disposition": {
+            "type": "string",
+            "enum": [
+              "active",
+              "superseded",
+              "withdrawn",
+              "historical"
+            ]
+          },
+          "basis": {
+            "type": "object"
+          },
+          "effective_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "SourceConditionCommandCreate": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source_record_id",
+          "purpose",
+          "freshness",
+          "conflict",
+          "disposition"
+        ],
+        "properties": {
+          "source_record_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "purpose": {
+            "type": "string"
+          },
+          "freshness": {
+            "type": "string",
+            "enum": [
+              "current",
+              "stale",
+              "unknown"
+            ]
+          },
+          "conflict": {
+            "type": "string",
+            "enum": [
+              "none",
+              "conflicted",
+              "unknown"
+            ]
+          },
+          "disposition": {
+            "type": "string",
+            "enum": [
+              "active",
+              "superseded",
+              "withdrawn",
+              "historical"
+            ]
+          },
+          "basis": {
+            "type": "object"
+          },
+          "effective_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "SourceRightsAssessmentCreate": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source_record_id",
+          "purpose",
+          "rights"
+        ],
+        "properties": {
+          "source_record_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "purpose": {
+            "type": "string"
+          },
+          "rights": {
+            "type": "string",
+            "enum": [
+              "unassessed",
+              "allowed",
+              "limited",
+              "blocked",
+              "withdrawn"
+            ]
+          },
+          "permitted_operations": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "conditions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "basis": {
+            "type": "object"
           }
         }
       },
