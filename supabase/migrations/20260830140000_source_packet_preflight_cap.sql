@@ -37,6 +37,8 @@ BEGIN
   RETURN assessment_id;
 END $$;
 
+GRANT CREATE ON SCHEMA source TO app_source_owner;
 ALTER FUNCTION source.create_packet_ceiling(uuid,uuid,uuid,uuid) OWNER TO app_source_owner;
 REVOKE ALL ON FUNCTION source.create_packet_ceiling(uuid,uuid,uuid,uuid) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION source.create_packet_ceiling(uuid,uuid,uuid,uuid) TO app_source_owner;
+REVOKE CREATE ON SCHEMA source FROM app_source_owner;

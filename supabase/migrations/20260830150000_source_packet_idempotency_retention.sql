@@ -28,4 +28,6 @@ BEGIN
   RETURN QUERY SELECT NULL::jsonb, NULL::integer, false;
 END $$;
 
+GRANT CREATE ON SCHEMA source TO app_source_owner;
 ALTER FUNCTION source.ticket08_command_replay(uuid,uuid,uuid,text,text,text) OWNER TO app_source_owner;
+REVOKE CREATE ON SCHEMA source FROM app_source_owner;

@@ -643,6 +643,10 @@ GRANT EXECUTE ON FUNCTION source.create_source_packet(uuid,uuid,uuid,text,text),
 -- adapter must add Job Scope, lease, and runtime-principal binding first.
 REVOKE EXECUTE ON FUNCTION source.get_packet_worker_input(uuid,uuid,uuid,uuid,text) FROM job_worker;
 
+-- Supabase's postgres role is not a superuser. PostgreSQL requires the
+-- target function owner to have CREATE on the containing schema; grant that
+-- privilege only for the ownership transfer and revoke it immediately after.
+GRANT CREATE ON SCHEMA source, analysis TO app_source_owner;
 ALTER FUNCTION source.create_source_packet(uuid,uuid,uuid,text,text) OWNER TO app_source_owner;
 ALTER FUNCTION source.create_source_packet_version(uuid,uuid,uuid,uuid,bigint,text,text,text,jsonb,jsonb) OWNER TO app_source_owner;
 ALTER FUNCTION source.create_work_objective(uuid,uuid,uuid,uuid,text,text,text,text,text,text) OWNER TO app_source_owner;

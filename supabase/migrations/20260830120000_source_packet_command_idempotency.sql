@@ -67,6 +67,7 @@ BEGIN
   VALUES (p_account_id, p_actor_id, p_deal_id, p_command_type, p_key_hash, p_request_digest, p_response, p_status_code);
 END $$;
 
+GRANT CREATE ON SCHEMA source TO app_source_owner;
 ALTER FUNCTION source.ticket08_command_replay(uuid,uuid,uuid,text,text,text) OWNER TO app_source_owner;
 ALTER FUNCTION source.ticket08_command_record(uuid,uuid,uuid,text,text,text,jsonb,integer) OWNER TO app_source_owner;
 REVOKE ALL ON FUNCTION source.ticket08_command_replay(uuid,uuid,uuid,text,text,text), source.ticket08_command_record(uuid,uuid,uuid,text,text,text,jsonb,integer) FROM PUBLIC;
