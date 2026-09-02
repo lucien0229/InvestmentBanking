@@ -129,7 +129,8 @@ Repository/environment configuration still needed before remote execution:
   reviewed.
 - Production `SUPABASE_DB_URL`, enable/baseline variables, and required reviewer
   protection are deferred and must not be added in this phase.
-- The chosen Supabase CLI version policy if `2.84.2` in the workflow is changed.
+- The chosen Supabase CLI version policy (`2.116.0` is pinned in the workflow;
+  upgrade it deliberately and re-run the migration gate when changing it).
 
 No migration credential belongs on the development VPS or inside the API/Web
 runtime environment.
