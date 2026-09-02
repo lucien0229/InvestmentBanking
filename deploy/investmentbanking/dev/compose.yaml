@@ -1,0 +1,94 @@
+name: investmentbanking-dev
+
+services:
+  api:
+    build:
+      context: ../../../
+      dockerfile: deploy/docker/Dockerfile
+      target: api
+      args:
+        API_ORIGIN: http://api:3001
+    env_file:
+      - path: ${RUNTIME_ENV_FILE:-./runtime.env}
+        required: false
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+      HOST: 0.0.0.0
+      PORT: 3001
+      PROTECTED_STORAGE_ROOT: /var/lib/investmentbanking/protected
+      DATABASE_SSL_CA_FILE: /run/secrets/supabase-chain.pem
+    ports:
+      - "127.0.0.1:${INVESTMENTBANKING_DEV_API_PORT:-3101}:3001"
+    volumes:
+      - type: bind
+        source: ${PROTECTED_VOLUME_PATH:-./volumes/protected}
+        target: /var/lib/investmentbanking/protected
+      - type: bind
+        source: ${DATABASE_SSL_CA_HOST_PATH:-./supabase-chain.pem}
+        target: /run/secrets/supabase-chain.pem
+        read_only: true
+    networks:
+      - private
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3001/api/v1/session').then(r=>process.exit(r.status===401?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.50"
+          memory: 768M
+
+  web:
+    build:
+      context: ../../../
+      dockerfile: deploy/docker/Dockerfile
+      target: web
+      args:
+        API_ORIGIN: http://api:3001
+    environment:
+      HOSTNAME: 0.0.0.0
+      PORT: 3000
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${INVESTMENTBANKING_DEV_WEB_PORT:-3102}:3000"
+    networks:
+      - private
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.status===200?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.00"
+          memory: 512M
+
+networks:
+  private:
+    name: investmentbanking-dev-private
+    internal: true
