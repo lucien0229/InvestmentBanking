@@ -56,7 +56,7 @@ export function DealSetupStepper({ active }: { active: DealSetupStep }) {
 const dealNav = [
   ["Overview", "/app/deals/project-northstar/overview", true],
   ["Action Center", "/app/deals/project-northstar/actions", true],
-  ["Sources", "/app/deals/00000000-0000-0000-0000-000000000000/sources", true],
+  ["Sources", "/app/deals/project-northstar/sources", true],
   ["Evidence & Decisions", "/app/deals/project-northstar/evidence-decisions", true],
   ["Analysis", "/app/deals/project-northstar/analysis", true],
   ["Auction Process", "/app/deals/project-northstar/auction-process", true],

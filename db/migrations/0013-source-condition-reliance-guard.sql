@@ -1,0 +1,26 @@
+-- Re-apply the condition assessment function after the durable reliance
+-- tables exist. This keeps a withdrawal/stale/conflicted assessment from
+-- leaving the previous prospective reliance pointer active.
+CREATE OR REPLACE FUNCTION source.create_source_condition_assessment(
+  p_account_id uuid, p_actor_id uuid, p_deal_id uuid, p_source_record_id uuid, p_purpose_code text,
+  p_freshness_code text, p_conflict_code text, p_disposition_code text, p_basis jsonb, p_effective_at timestamptz
+)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = source, app, analysis, pg_catalog AS $$
+DECLARE assessment_id uuid := gen_random_uuid(); prior_id uuid; packet_row record;
+BEGIN
+  IF p_account_id IS DISTINCT FROM app.policy_account_id() OR p_actor_id IS DISTINCT FROM app.policy_actor_id() OR p_deal_id IS DISTINCT FROM app.policy_deal_id() THEN RAISE EXCEPTION 'source_condition_scope_mismatch' USING ERRCODE='42501'; END IF;
+  IF NOT EXISTS (SELECT 1 FROM source.source_record r WHERE r.id=p_source_record_id AND r.account_id=p_account_id AND r.deal_id=p_deal_id) THEN RAISE EXCEPTION 'source_record_scope_mismatch' USING ERRCODE='42501'; END IF;
+  SELECT cs.assessment_id INTO prior_id FROM source.source_condition_current_selection cs WHERE cs.account_id=p_account_id AND cs.deal_id=p_deal_id AND cs.source_record_id=p_source_record_id AND cs.purpose_code=p_purpose_code FOR UPDATE;
+  INSERT INTO source.source_condition_assessment(id,account_id,deal_id,source_record_id,purpose_code,freshness_code,conflict_code,disposition_code,basis,effective_at,recorded_by,supersedes_id) VALUES (assessment_id,p_account_id,p_deal_id,p_source_record_id,p_purpose_code,p_freshness_code,p_conflict_code,p_disposition_code,coalesce(p_basis,'{}'::jsonb),coalesce(p_effective_at,clock_timestamp()),p_actor_id,prior_id);
+  PERFORM source.record_reliance_assessment(p_account_id,p_actor_id,p_deal_id,p_source_record_id,p_purpose_code,CASE WHEN p_disposition_code='withdrawn' THEN 'blocked' WHEN p_freshness_code='stale' OR p_conflict_code='conflicted' THEN 'reliance_limited' ELSE 'reliance_eligible' END,coalesce(p_basis,'{}'::jsonb),'[]'::jsonb);
+  INSERT INTO source.source_condition_current_selection(account_id,deal_id,source_record_id,purpose_code,assessment_id,row_version) VALUES (p_account_id,p_deal_id,p_source_record_id,p_purpose_code,assessment_id,1) ON CONFLICT (account_id,source_record_id,purpose_code) DO UPDATE SET assessment_id=EXCLUDED.assessment_id,row_version=source.source_condition_current_selection.row_version+1,updated_at=clock_timestamp();
+  FOR packet_row IN SELECT DISTINCT p.id AS packet_id,p.current_version_id FROM source.source_packet p JOIN source.source_packet_version v ON v.id=p.current_version_id JOIN source.source_packet_member m ON m.packet_version_id=v.id WHERE p.account_id=p_account_id AND p.deal_id=p_deal_id AND m.source_record_id=p_source_record_id LOOP
+    PERFORM source.create_packet_ceiling(p_account_id,p_deal_id,packet_row.current_version_id,NULL);
+    INSERT INTO analysis.impact_assessment_candidate(account_id,deal_id,trigger_kind,trigger_object_id,packet_version_id,affected_scope,impact_code,recalculation_required,regeneration_required,rereview_required,circulation_blocked) VALUES (p_account_id,p_deal_id,'source_condition_changed',assessment_id,packet_row.current_version_id,jsonb_build_object('source_record_id',p_source_record_id,'purpose',p_purpose_code,'freshness',p_freshness_code,'conflict',p_conflict_code,'disposition',p_disposition_code),'materially_affected',true,true,true,p_disposition_code='withdrawn' OR p_conflict_code='conflicted' OR p_freshness_code='stale');
+    IF p_disposition_code='withdrawn' OR p_freshness_code='stale' OR p_conflict_code='conflicted' THEN INSERT INTO app.circulation_candidate_block(account_id,deal_id,packet_version_id,source_record_id,reason_code) VALUES (p_account_id,p_deal_id,packet_row.current_version_id,p_source_record_id,CASE WHEN p_disposition_code='withdrawn' THEN 'source_withdrawn' WHEN p_conflict_code='conflicted' THEN 'source_conflicted' ELSE 'source_stale' END); END IF;
+  END LOOP;
+  PERFORM app.record_audit('source_condition_assessed','completed','source_condition_assessment',assessment_id::text,CASE WHEN p_disposition_code='withdrawn' THEN 'prospective_reliance_removed' ELSE 'condition_changed' END,gen_random_uuid()::text);
+  RETURN jsonb_build_object('id',assessment_id,'source_record_id',p_source_record_id,'purpose',p_purpose_code,'freshness',p_freshness_code,'conflict',p_conflict_code,'disposition',p_disposition_code,'supersedes_id',prior_id,'prospective_reliance',CASE WHEN p_disposition_code='withdrawn' THEN 'removed' ELSE 'unchanged_until_reassessed' END,'impact_assessment_candidate',true,'circulation_blocked',p_disposition_code='withdrawn' OR p_freshness_code='stale' OR p_conflict_code='conflicted');
+END $$;
+
+ALTER FUNCTION source.create_source_condition_assessment(uuid,uuid,uuid,uuid,text,text,text,text,jsonb,timestamptz) OWNER TO app_source_owner;
