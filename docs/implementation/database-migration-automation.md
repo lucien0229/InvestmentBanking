@@ -2,8 +2,9 @@
 
 Status: the repository-side migration gate is implemented and the development
 baseline was reconciled on 2026-09-02. The GitHub `development` Environment and
-its `SUPABASE_DB_URL` secret were configured on the same date. No pending Ticket
-08 migration was applied during the baseline operation.
+its `SUPABASE_DB_URL` secret were configured on the same date. The first
+automated development migration run then applied all nine pending Ticket 08
+migrations successfully.
 
 ## Scope
 
@@ -69,9 +70,26 @@ reconciled against the canonical files before enabling remote automation.
    Supabase CLI `migration repair` changed only
    `supabase_migrations.schema_migrations`; it did not execute DDL, delete
    data, or roll back the already-present schema.
-5. `supabase db push --dry-run` now succeeds and reports exactly the nine
-   Ticket 08+ migrations (`20260830070000` through `20260830150000`) as
-   pending. No remote migration push was executed.
+5. `supabase db push --dry-run` succeeded and reported exactly the nine Ticket
+   08+ migrations (`20260830070000` through `20260830150000`) as pending. This
+   dry run did not change the remote schema.
+
+## First automated development run (completed 2026-09-02)
+
+After the baseline flags were enabled, GitHub Actions run `33633814827`
+executed `Migrate development Supabase` successfully. It applied the nine
+pending migrations in order, with the production job skipped. The resulting
+development history contains all sixteen canonical repository versions
+(`20260830000000` through `20260830150000`); the catalog now contains 80
+business tables, including one `analysis` schema table. The final read-only
+checks confirmed the `app_source_owner` functions are owned by the non-login
+owner role and `CREATE` remains revoked on both `source` and `analysis`.
+
+The run exposed and fixed a managed-Supabase privilege edge: PostgreSQL's
+non-superuser `postgres` role requires the target function owner to have
+temporary `CREATE` on the containing schema for `ALTER FUNCTION ... OWNER TO`.
+The affected migrations now grant that privilege only around ownership
+transfers and revoke it immediately afterward.
 
 The final migration list and the reviewed history repair are recorded above;
 future releases can therefore use `db push` without replaying the existing
@@ -90,8 +108,7 @@ The read-only Supabase inventory on 2026-09-02 found:
   pending.
 
 The main/production project is intentionally out of the current scope. The
-baseline operation changed migration history only; it did not execute a remote
-schema migration.
+development migration run did not connect to or change production.
 
 ## Release policy
 
@@ -134,7 +151,7 @@ Repository/environment configuration still needed before remote execution:
   the development baseline is reconciled.
 - `SUPABASE_MIGRATION_BASELINE_CONFIRMED_DEV=true` after the completed
   development schema and `supabase_migrations.schema_migrations` reconciliation
-  recorded above.
+  recorded above (already configured for development).
 - Production `SUPABASE_DB_URL`, enable/baseline variables, and required reviewer
   protection are deferred and must not be added in this phase.
 - The chosen Supabase CLI version policy (`2.116.0` is pinned in the workflow;

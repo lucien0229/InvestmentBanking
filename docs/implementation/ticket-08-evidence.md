@@ -1,6 +1,6 @@
 # Ticket 08 implementation evidence
 
-Status: local implementation complete; development web/API release switched on the authorized host. Database migration is blocked by the host's runtime-only database credential and is not claimed as applied.
+Status: local implementation complete; development web/API release switched on the authorized host, and all nine Ticket 08 migrations were applied to the development Supabase branch by the GitHub Actions migration gate on 2026-09-02. The authorized host still uses a runtime-only database credential; it was not used for migrations.
 
 ## Scope
 
@@ -32,7 +32,7 @@ Ticket 08 only: exact Source Packet roots and immutable versions, purpose-bound 
 
 The authorized host was reachable over SSH after the user supplied its password. Release `/opt/investmentbanking/releases/20260902-ticket08-dev-v1` was extracted, dependencies copied from the prior development release, the Next standalone build completed, static assets were staged, and `current` was atomically switched to that release. `investmentbanking-api.service`, `investmentbanking-web.service`, and `nginx` all reported `active` after restart. Unauthenticated probes to `https://dev-banking.aptoren.com/app/deals/project-northstar/sources` returned `200 text/html` containing the Ticket 08 Source Packet control surface markers (`Source Packet control`, `Output Ceiling`, `SP-004`, `Freshness`); `/api/v1/session` returned the expected `401 application/problem+json`.
 
-Applying the SQL migrations on the host could not complete: the shared `DATABASE_URL` authenticates as `app_runtime`, and `npm run db:migrate` returned PostgreSQL `42501 permission denied for database postgres`. No migration-admin credential is present in the authorized host environment, so the database schema and authenticated Ticket 08 API path are not claimed as deployed. The old development release remains available under `/opt/investmentbanking/releases/20260902-ui-remediation-dev-v1`; no production/provider/restore claim is made.
+Applying the SQL migrations on the host remains intentionally unsupported: the shared `DATABASE_URL` authenticates as `app_runtime`, and `npm run db:migrate` returned PostgreSQL `42501 permission denied for database postgres`. The migration-admin credential is kept only in the GitHub development Environment, where the migration gate applied the nine Ticket 08 migrations successfully. The development schema is therefore deployed, but no authenticated Banker acceptance or production/provider/restore claim is made. The old development release remains available under `/opt/investmentbanking/releases/20260902-ui-remediation-dev-v1`.
 
 The authorized SSH deployment used `root@152.53.90.227`; only the development release path and its services were changed. The database migration blocker above is explicit; no production/provider/recovery evidence is claimed.
 
