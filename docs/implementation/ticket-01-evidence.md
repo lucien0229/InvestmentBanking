@@ -49,7 +49,7 @@ Within each runtime, PostgreSQL is the authoritative source for Account, Actor, 
 
 | Ticket / Spec boundary | Evidence |
 |---|---|
-| Production-shaped Web/API/DB topology | `apps/web`, `apps/api`, `db/migrations/0001_reference_deal.sql`, `db/migrations/0002_supabase_identity.sql`, server systemd units, Nginx reverse proxy, `npm run web:build`, `npm test` |
+| Production-shaped Web/API/DB topology | `apps/web`, `apps/api`, `supabase/migrations/20260830000000_reference_deal.sql`, `supabase/migrations/20260830010000_supabase_identity.sql`, server systemd units, Nginx reverse proxy, `npm run web:build`, `npm test` |
 | Magic Link → mandatory Passkey → seeded Project Northstar Overview | `tests/reference-deal.contract.test.ts`, `tests/http/reference-deal.http.test.ts`, `scripts/browser-blackbox.sh` |
 | No alternate password/TOTP/SMS authority | Only Magic Link bootstrap and Passkey routes exist; API rejects Deal access with `passkey_required` until the DB session posture is Passkey-backed |
 | NOBYPASSRLS + FORCE RLS + manipulated identity denial | `tests/unit/rls.contract.test.ts`; `app_runtime` is non-superuser/non-bypass, every introduced tenant-bearing table is forced-RLS, elevated functions have no PUBLIC EXECUTE, and V1 prevents one Actor from becoming active in a second Account |
