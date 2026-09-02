@@ -87,5 +87,5 @@ jobs:
       - uses: actions/checkout@v4
       - uses: supabase/setup-cli@v2
         with:
-          version: 2.84.2
+          version: 2.116.0
       - run: bash scripts/run-supabase-migrations.sh
