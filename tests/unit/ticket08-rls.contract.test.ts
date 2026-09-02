@@ -4,7 +4,7 @@ import test from "node:test";
 import { createTestDatabase } from "../../apps/api/src/test-database.js";
 
 test("Ticket 08 migration declares immutable packet, objective, ceiling, and condition boundaries", async (t) => {
-  const migration = await fs.readFile("db/migrations/0007-source-packet-output-ceiling.sql", "utf8");
+  const migration = await fs.readFile("supabase/migrations/20260830070000_source_packet_output_ceiling.sql", "utf8");
   for (const token of [
     "source.source_packet",
     "source.source_packet_version",
@@ -15,7 +15,7 @@ test("Ticket 08 migration declares immutable packet, objective, ceiling, and con
     "source.prevent_source_packet_version_mutation",
     "source.get_source_packet_projection",
   ]) assert.match(migration, new RegExp(token.replaceAll(".", "\\.")), token);
-  const idempotencyMigration = await fs.readFile("db/migrations/0012-source-packet-command-idempotency.sql", "utf8");
+  const idempotencyMigration = await fs.readFile("supabase/migrations/20260830120000_source_packet_command_idempotency.sql", "utf8");
   assert.match(idempotencyMigration, /source\.source_packet_command_idempotency/);
   assert.match(idempotencyMigration, /ticket08_command_replay/);
 

@@ -3,6 +3,9 @@ import path from "node:path";
 import pg from "pg";
 
 const { Client } = pg;
+if (process.env.APP_ENV === "production" || process.env.SUPABASE_PROJECT_REF || process.env.SUPABASE_DB_URL) {
+  throw new Error("scripts/seed.ts is local-test-only and must never run against a remote or production database");
+}
 const client = new Client({ connectionString: process.env.MIGRATION_DATABASE_URL ?? "postgres://postgres:postgres@localhost:55432/investment_banking" });
 await client.connect();
 try {
@@ -20,7 +23,7 @@ try {
   await client.query("DELETE FROM app.audit_event WHERE deal_id IN (SELECT id FROM app.deal WHERE name IN ('Project Northstar', 'Other Deal'))");
   await client.query("DELETE FROM app.deal_workspace WHERE deal_id IN (SELECT id FROM app.deal WHERE name IN ('Project Northstar', 'Other Deal'))");
   await client.query("DELETE FROM app.deal WHERE name IN ('Project Northstar', 'Other Deal')");
-  await client.query(await fs.readFile(path.join(process.cwd(), "db/seed.sql"), "utf8"));
+  await client.query(await fs.readFile(path.join(process.cwd(), "supabase/seed.sql"), "utf8"));
   console.log("db seed: reference fixtures ready");
 } finally {
   await client.end();

@@ -82,4 +82,5 @@ the `/opt/investmentbanking/current` symlink were not deleted.
 
 No Supabase dashboard operation, migration command, schema change, or database
 write was performed as part of this deployment. The Compose Cell has no
-migration entrypoint; database migration automation remains a separate task.
+migration entrypoint; database migration automation is a separate release-pipeline
+job and must complete before this Cell is promoted.

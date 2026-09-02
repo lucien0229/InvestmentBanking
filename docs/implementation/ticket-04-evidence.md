@@ -8,7 +8,7 @@ This change is limited to the V1 synthetic Project Northstar durable reference J
 
 ## Implementation surface
 
-- `db/migrations/0003_durable_reference_job.sql` adds the `jobs` and `commerce` schemas, durable Job/Step/Attempt/Lease/Scope/Event/Outbox tables, one usage reservation and ledger, exact runtime-principal procedures, forced RLS, and non-public function grants.
+- `supabase/migrations/20260830030000_durable_reference_job.sql` adds the `jobs` and `commerce` schemas, durable Job/Step/Attempt/Lease/Scope/Event/Outbox tables, one usage reservation and ledger, exact runtime-principal procedures, forced RLS, and non-public function grants.
 - `apps/api/src/jobs.ts` provides the local/test dispatcher and separately credentialed worker coordinator seam. The worker claims only `reference_worker` with `reference-worker-credential-v1`; the worker and dispatcher use different CA-authenticated pools and cannot query tenant tables directly.
 - `apps/api/src/database.ts` adds the authenticated Banker Job context, resolving the Job's exact Account/Deal before any Job read or command.
 - `apps/api/src/app.ts` adds versioned command, Job Detail, SSE, cancellation, and retry routes. Responses include `Location`, row-version ETags, accepted inputs, exact scope metadata, problem codes, and durable event cursors.

@@ -13,8 +13,15 @@ independent from the Cell configuration release, so a ticket updates the
 release contents while the product/environment Cell remains the same.
 
 The Compose file deliberately does not run database migrations. Migrations are
-an explicit, separately credentialed deployment step and must not run with the
-API runtime environment.
+an explicit, separately credentialed release step and must not run with the
+API runtime environment. The release pipeline runs the Supabase CLI migration
+job successfully before it deploys this Cell.
+
+For a release pipeline, invoke `scripts/release-migration-gate.sh` with the
+environment-specific `SUPABASE_DB_URL` secret and the final application release
+command. The migration job must complete before this Cell is recreated. The
+production gate additionally requires the protected release approval; the API
+and Web containers never receive the migration credential.
 
 ## Run a release
 
@@ -22,7 +29,7 @@ Set `CELL_ROOT` and `RELEASE_ID` for this Cell, then use the release helper:
 
 ```bash
 CELL_ROOT=/opt/cells/investmentbanking/dev \
-RELEASE_ID=74436b5 \
+RELEASE_ID=af57d3b \
 APP_RELEASE_PATH=/opt/investmentbanking/releases/20260902-ticket08-dev-v1 \
 WEB_RELEASE_PATH=/opt/cells/investmentbanking/dev/web-releases/20260902-ticket08-dev-v1 \
   bash scripts/deploy-docker-cell.sh

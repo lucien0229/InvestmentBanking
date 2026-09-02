@@ -4,7 +4,7 @@ import test from "node:test";
 import { createTestDatabase } from "../../apps/api/src/test-database.js";
 
 test("Ticket 07 migration declares immutable public observations and Account template quarantine boundaries", async (t) => {
-  const migration = await fs.readFile("db/migrations/0006-web-evidence-account-templates.sql", "utf8");
+  const migration = await fs.readFile("supabase/migrations/20260830060000_web_evidence_account_templates.sql", "utf8");
   for (const token of [
     "source.web_evidence_observation",
     "source.account_template_upload_session",
