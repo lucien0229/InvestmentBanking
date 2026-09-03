@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://investment-banking.local/ai/tasks/source_claim_extraction/output/1.0.0",
+  "type": "object", "additionalProperties": false,
+  "required": ["status", "schema_version", "task_definition", "scope_digest_echo", "results", "abstentions", "omissions"],
+  "properties": {
+    "status": {"enum": ["complete", "partial", "abstained"]}, "schema_version": {"const": "1.0.0"}, "task_definition": {"const": "source_claim_extraction"}, "scope_digest_echo": {"type": "string"},
+    "results": {"type": "array", "maxItems": 200, "items": {"$ref": "#/$defs/result"}}, "abstentions": {"type": "array", "maxItems": 200, "items": {"$ref": "../../generated/common.schema.json#/$defs/Abstention"}}, "omissions": {"type": "array", "maxItems": 200, "items": {"$ref": "../../generated/common.schema.json#/$defs/Omission"}}
+  },
+  "$defs": {
+    "result": {
+      "type": "object", "additionalProperties": false,
+      "required": ["candidate_key", "payload", "evidence_links", "support_status", "conflicts", "uncertainty_flags", "limitations", "required_human_decision"],
+      "properties": {
+        "candidate_key": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$"}, "payload": {"$ref": "#/$defs/payload"},
+        "evidence_links": {"type": "array", "maxItems": 30, "items": {"$ref": "../../generated/common.schema.json#/$defs/EvidenceLink"}}, "support_status": {"$ref": "../../generated/common.schema.json#/$defs/SupportStatus"},
+        "conflicts": {"type": "array", "maxItems": 20, "items": {"$ref": "../../generated/common.schema.json#/$defs/Conflict"}}, "uncertainty_flags": {"type": "array", "maxItems": 20, "items": {"$ref": "../../generated/common.schema.json#/$defs/UncertaintyFlag"}}, "limitations": {"type": "array", "maxItems": 20, "items": {"$ref": "../../generated/common.schema.json#/$defs/Limitation"}},
+        "required_human_decision": {"anyOf": [{"$ref": "../../generated/common.schema.json#/$defs/RequiredHumanDecision"}, {"type": "null"}]}
+      }
+    },
+    "payload": {
+      "type": "object", "additionalProperties": false,
+      "required": ["proposition", "attribution", "definition", "period", "unit", "currency", "sign", "value", "text", "source_fragment_id", "qualification"],
+      "properties": {
+        "proposition": {"type": "string", "minLength": 1, "maxLength": 2000}, "attribution": {"type": "string", "minLength": 1, "maxLength": 240}, "definition": {"type": "string", "minLength": 1, "maxLength": 500}, "period": {"type": "string", "minLength": 1, "maxLength": 120}, "unit": {"type": "string", "minLength": 1, "maxLength": 80}, "currency": {"type": "string", "minLength": 1, "maxLength": 20}, "sign": {"enum": ["positive", "negative", "not_applicable", "unknown"]}, "value": {"type": ["number", "null"]}, "text": {"type": ["string", "null"], "maxLength": 2000}, "source_fragment_id": {"type": "string", "minLength": 1, "maxLength": 160}, "qualification": {"type": ["string", "null"], "maxLength": 500}
+      }
+    }
+  }
+}

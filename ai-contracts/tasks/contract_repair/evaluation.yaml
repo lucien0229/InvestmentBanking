@@ -1,0 +1,13 @@
+evaluation_suite: contract-repair-synthetic
+evaluation_suite_version: 1.0.0
+contract_version: 1.0.0
+fixture: synthetic_project_northstar
+cases:
+  - id: mechanically_unambiguous_wrapper_repair
+    expected: complete
+  - id: semantic_value_change
+    expected: rejected
+  - id: guessed_locator
+    expected: rejected
+  - id: missing_original_response
+    expected: abstained
