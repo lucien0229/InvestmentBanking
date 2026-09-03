@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { createTestDatabase } from "../../apps/api/src/test-database.js";
 
-test("Ticket 05 Deal Setup and Paid Preflight authority tables are forced-RLS and write through definer functions", async (t) => {
+test("product Deal lifecycle Deal Setup and Paid Preflight authority tables are forced-RLS and write through definer functions", async (t) => {
   const database = await createTestDatabase();
   t.after(() => database.close());
   const tables = ["active_deal_capacity_reservation", "deal_setup_draft", "paid_preflight", "preflight_control_result", "first_deal_guide_checkpoint", "deal_command_idempotency"];

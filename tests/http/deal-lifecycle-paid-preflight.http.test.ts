@@ -69,12 +69,12 @@ async function provisionEntitlement(database: Awaited<ReturnType<typeof createTe
   return { termsId, accountId, actorId };
 }
 
-test("Ticket 05 creates an identity-complete Deal atomically with a reserved slot and guide checkpoint", async (t) => {
+test("product Deal lifecycle creates an identity-complete Deal atomically with a reserved slot and guide checkpoint", async (t) => {
   const database = await createTestDatabase();
   t.after(() => database.close());
   const api = await buildApi({ database, authMode: "local" });
   t.after(() => api.close());
-  const email = `ticket05-create-${crypto.randomUUID()}@example.test`;
+  const email = `deal-lifecycle-create-${crypto.randomUUID()}@example.test`;
   const cookie = await database.seedAuthenticatedSession(email);
   const { termsId, accountId, actorId } = await provisionEntitlement(database, email);
   const response = await api.inject({ method: "POST", url: "/api/v1/deals", headers: { cookie, "idempotency-key": `deal-${crypto.randomUUID()}` }, payload: dealInput(termsId) });
@@ -103,12 +103,12 @@ test("Ticket 05 creates an identity-complete Deal atomically with a reserved slo
   assert.equal(waiting.json().data.reason_code, "source_rights_missing");
 });
 
-test("Ticket 05 preflight returns blocked and recovers after source replacement and narrowed use", async (t) => {
+test("product Deal lifecycle preflight returns blocked and recovers after source replacement and narrowed use", async (t) => {
   const database = await createTestDatabase();
   t.after(() => database.close());
   const api = await buildApi({ database, authMode: "local" });
   t.after(() => api.close());
-  const email = `ticket05-preflight-${crypto.randomUUID()}@example.test`;
+  const email = `deal-lifecycle-preflight-${crypto.randomUUID()}@example.test`;
   const cookie = await database.seedAuthenticatedSession(email);
   const { termsId } = await provisionEntitlement(database, email);
   const created = await api.inject({ method: "POST", url: "/api/v1/deals", headers: { cookie, "idempotency-key": `deal-${crypto.randomUUID()}` }, payload: dealInput(termsId, { source_reference: "restricted-unconfirmed-source", source_rights: "blocked" }) });
@@ -133,31 +133,31 @@ test("Ticket 05 preflight returns blocked and recovers after source replacement 
   assert.equal(confidentialParse.json().code, "confidential_content_not_permitted");
 });
 
-test("Ticket 05 enforces two-slot capacity under concurrent creates and keeps cross-Deal reads non-enumerating", async (t) => {
+test("product Deal lifecycle enforces two-slot capacity under concurrent creates and keeps cross-Deal reads non-enumerating", async (t) => {
   const database = await createTestDatabase();
   t.after(() => database.close());
   const api = await buildApi({ database, authMode: "local" });
   t.after(() => api.close());
-  const email = `ticket05-capacity-${crypto.randomUUID()}@example.test`;
+  const email = `deal-lifecycle-capacity-${crypto.randomUUID()}@example.test`;
   const cookie = await database.seedAuthenticatedSession(email);
   const { termsId } = await provisionEntitlement(database, email);
   const requests = [1, 2, 3].map((index) => api.inject({ method: "POST", url: "/api/v1/deals", headers: { cookie, "idempotency-key": `concurrent-deal-${index}-${crypto.randomUUID()}` }, payload: dealInput(termsId, { display_name: `Concurrent ${index}`, transaction_subject: `Northstar Software ${index}` }) }));
   const results = await Promise.all(requests);
   assert.deepEqual(results.map((result) => result.statusCode).sort(), [201, 201, 409]);
   assert.equal(results.find((result) => result.statusCode === 409)?.json().code, "active_deal_capacity_exhausted");
-  const otherCookie = await database.seedAuthenticatedSession(`ticket05-other-${crypto.randomUUID()}@example.test`);
+  const otherCookie = await database.seedAuthenticatedSession(`deal-lifecycle-other-${crypto.randomUUID()}@example.test`);
   const firstId = results.find((result) => result.statusCode === 201)?.json().deal.id as string;
   const hidden = await api.inject({ method: "GET", url: `/api/v1/deals/${firstId}/setup`, headers: { cookie: otherCookie } });
   assert.equal(hidden.statusCode, 404);
 });
 
-test("Ticket 05 exposes limited-proceed acceptance and blocks restricted AI before egress", async (t) => {
+test("product Deal lifecycle exposes limited-proceed acceptance and blocks restricted AI before egress", async (t) => {
   const database = await createTestDatabase();
   t.after(() => database.close());
   const api = await buildApi({ database, authMode: "local" });
   t.after(() => api.close());
 
-  const limitedEmail = `ticket05-limited-${crypto.randomUUID()}@example.test`;
+  const limitedEmail = `deal-lifecycle-limited-${crypto.randomUUID()}@example.test`;
   const limitedCookie = await database.seedAuthenticatedSession(limitedEmail);
   const limitedEntitlement = await provisionEntitlement(database, limitedEmail);
   const limitedCreated = await api.inject({ method: "POST", url: "/api/v1/deals", headers: { cookie: limitedCookie, "idempotency-key": `deal-${crypto.randomUUID()}` }, payload: dealInput(limitedEntitlement.termsId, { source_reference: "source:limited-packet", source_rights: "limited", minimum_packet: "complete" }) });
@@ -171,7 +171,7 @@ test("Ticket 05 exposes limited-proceed acceptance and blocks restricted AI befo
   assert.equal(accepted.statusCode, 201);
   assert.equal(accepted.json().data.accepted, true);
 
-  const restrictedEmail = `ticket05-restricted-${crypto.randomUUID()}@example.test`;
+  const restrictedEmail = `deal-lifecycle-restricted-${crypto.randomUUID()}@example.test`;
   const restrictedCookie = await database.seedAuthenticatedSession(restrictedEmail);
   const restrictedEntitlement = await provisionEntitlement(database, restrictedEmail);
   const restrictedCreated = await api.inject({ method: "POST", url: "/api/v1/deals", headers: { cookie: restrictedCookie, "idempotency-key": `deal-${crypto.randomUUID()}` }, payload: dealInput(restrictedEntitlement.termsId, { source_reference: "source:restricted-packet", source_rights: "confirmed", confidentiality_class: "restricted", intended_processing_path: "local_deterministic_and_approved_ai" }) });
@@ -182,12 +182,12 @@ test("Ticket 05 exposes limited-proceed acceptance and blocks restricted AI befo
   assert.equal(restrictedPreflight.json().data.reason_code, "restricted_processing_path_incompatible");
 });
 
-test("Ticket 05 creates a linked Deal for identity change and preserves the original", async (t) => {
+test("product Deal lifecycle creates a linked Deal for identity change and preserves the original", async (t) => {
   const database = await createTestDatabase();
   t.after(() => database.close());
   const api = await buildApi({ database, authMode: "local" });
   t.after(() => api.close());
-  const email = `ticket05-identity-${crypto.randomUUID()}@example.test`;
+  const email = `deal-lifecycle-identity-${crypto.randomUUID()}@example.test`;
   const cookie = await database.seedAuthenticatedSession(email);
   const { termsId } = await provisionEntitlement(database, email);
   const created = await api.inject({ method: "POST", url: "/api/v1/deals", headers: { cookie, "idempotency-key": `deal-${crypto.randomUUID()}` }, payload: dealInput(termsId, { display_name: "Original identity" }) });

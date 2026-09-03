@@ -1,4 +1,4 @@
--- Ticket 08 hardening: qualify the current-selection lookup so the immutable
+-- Source Packet projection hardening: qualify the current-selection lookup so the immutable
 -- assessment id cannot be confused with the selection table column.
 CREATE OR REPLACE FUNCTION source.create_source_condition_assessment(
   p_account_id uuid, p_actor_id uuid, p_deal_id uuid, p_source_record_id uuid, p_purpose_code text,

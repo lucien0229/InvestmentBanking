@@ -89,7 +89,7 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
       <aside className="dc-workspace-sidebar" aria-label="Deal work areas">
         <nav className="dc-workspace-nav">
           <p className="dc-nav-label">Work areas</p>
-          {dealNav.map(([label, href, implemented]) => implemented ? <a key={label} className="dc-nav-link" href={href} aria-current={pathname === href || pathname.startsWith(`${href}/`) ? "page" : undefined}>{label}</a> : <span key={label} className="dc-nav-link" aria-disabled="true" title="This work area is outside the current implemented ticket scope">{label}</span>)}
+          {dealNav.map(([label, href, implemented]) => implemented ? <a key={label} className="dc-nav-link" href={href} aria-current={pathname === href || pathname.startsWith(`${href}/`) ? "page" : undefined}>{label}</a> : <span key={label} className="dc-nav-link" aria-disabled="true" title="This work area is outside the current implemented product scope">{label}</span>)}
           <p className="dc-nav-label">Context</p>
           <a className="dc-nav-link" href="/app/deals/project-northstar/setup">Deal Controls</a>
           <a className="dc-nav-link" href="/app/deals/project-northstar/guide">First Deal Guide</a>
@@ -125,7 +125,7 @@ export function PublicShell({ children }: { children: ReactNode }) {
     <a className="dc-skip-link" href="#public-content">Skip to main content</a>
     <header className="dc-public-header">
       <a className="dc-brand" href="/"><span className="dc-brand-mark" aria-hidden="true">DC</span><span>Deal Control</span></a>
-      <nav className="dc-public-nav" aria-label="Public site navigation">{items.map(([label, href, implemented]) => implemented ? <a key={href} href={href} aria-current={pathname === href || pathname.startsWith(`${href}/`) ? "page" : undefined}>{label}</a> : <span key={href} aria-disabled="true" title="This public surface is outside the current implemented ticket scope">{label}</span>)}</nav>
+      <nav className="dc-public-nav" aria-label="Public site navigation">{items.map(([label, href, implemented]) => implemented ? <a key={href} href={href} aria-current={pathname === href || pathname.startsWith(`${href}/`) ? "page" : undefined}>{label}</a> : <span key={href} aria-disabled="true" title="This public surface is outside the current implemented product scope">{label}</span>)}</nav>
       <a className="dc-public-access" href="/account-access">Account access</a>
     </header>
     <div id="public-content" className="dc-public-main">{children}</div>

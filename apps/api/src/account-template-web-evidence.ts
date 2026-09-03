@@ -23,7 +23,7 @@ export type PublicWebFetcher = (url: string) => Promise<{
   body: string | Buffer;
 }>;
 
-type Ticket07RouteDeps = {
+type AccountTemplateWebEvidenceDeps = {
   requireBanker: (request: FastifyRequest, reply: FastifyReply) => Promise<string | null>;
   commandKey: (request: FastifyRequest, reply: FastifyReply) => string | null;
   publicWebFetcher?: PublicWebFetcher;
@@ -48,7 +48,7 @@ function errorCode(error: unknown) {
   return message;
 }
 
-function ticket07Error(error: unknown, request: FastifyRequest, reply: FastifyReply) {
+function accountTemplateWebEvidenceError(error: unknown, request: FastifyRequest, reply: FastifyReply) {
   const code = errorCode(error);
   const mapped: Record<string, [number, string, string]> = {
     account_template_scope_mismatch: [404, "resource_not_found", "return_to_safe_parent"],
@@ -109,7 +109,7 @@ function accountKeyMaterial() {
     if (value.length === 32) return value;
   }
   if (process.env.APP_ENV === "production") throw new Error("PROTECTED_OBJECT_KEK is required in production");
-  return crypto.createHash("sha256").update("ticket07-development-account-template-key-v1").digest();
+  return crypto.createHash("sha256").update("account-template-development-key-v1").digest();
 }
 
 async function protectEncrypted(bytes: Buffer, mediaType: string, objectId: string, scope: "account" | "deal") {
@@ -170,7 +170,7 @@ const accountUploadFileSchema = z.object({
 }).strict();
 const accountUploadSessionSchema = z.object({ purpose: z.literal("account_reusable_template"), operation_preview_id: uuid, consent_digest: z.string().min(1).max(200), files: z.array(accountUploadFileSchema).length(1) }).strict();
 
-export function registerTicket07Routes(api: FastifyInstance, database: Database, deps: Ticket07RouteDeps) {
+export function registerAccountTemplateWebEvidenceRoutes(api: FastifyInstance, database: Database, deps: AccountTemplateWebEvidenceDeps) {
   api.post("/api/v1/account/operation-previews", async (request, reply) => {
     const session = await deps.requireBanker(request, reply); if (!session) return;
     const body = operationPreviewSchema.parse(request.body);
@@ -180,7 +180,7 @@ export function registerTicket07Routes(api: FastifyInstance, database: Database,
       if (result.kind === "passkey_required") return problem(reply, 403, "passkey_required", "A Passkey-backed session is required.", "register_passkey", request.url);
       if (result.kind !== "ok" || result.value === null) return problem(reply, 404, "resource_not_found", "The Account is not available.", "return_to_safe_parent", request.url);
       return reply.code(200).send({ data: result.value });
-    } catch (error) { return ticket07Error(error, request, reply); }
+    } catch (error) { return accountTemplateWebEvidenceError(error, request, reply); }
   });
 
   api.post("/api/v1/account/upload-sessions", async (request, reply) => {
@@ -196,7 +196,7 @@ export function registerTicket07Routes(api: FastifyInstance, database: Database,
       projection.files = projection.files.map((file) => ({ ...file, tus_url: `/api/v1/account/upload-sessions/${projection.id}/files/${file.server_file_id}`, tus_headers: { "Tus-Resumable": "1.0.0", "Upload-Length": String(file.byte_length) } }));
       reply.header("Location", `/api/v1/account/upload-sessions/${projection.id}`);
       return reply.code(201).send({ data: projection });
-    } catch (error) { return ticket07Error(error, request, reply); }
+    } catch (error) { return accountTemplateWebEvidenceError(error, request, reply); }
   });
 
   api.get<{ Params: { upload_session_id: string } }>("/api/v1/account/upload-sessions/:upload_session_id", async (request, reply) => {
@@ -228,7 +228,7 @@ export function registerTicket07Routes(api: FastifyInstance, database: Database,
       const handle = await fs.open(filePath, expected === 0 ? "w" : "r+", 0o600); try { await handle.write(bytes, 0, bytes.length, expected); await handle.truncate(expected + bytes.length); } finally { await handle.close(); }
       reply.header("Upload-Offset", String(result.value.next.offset_bytes));
       return reply.code(204).send();
-    } catch (error) { return ticket07Error(error, request, reply); }
+    } catch (error) { return accountTemplateWebEvidenceError(error, request, reply); }
   });
 
   api.post<{ Params: { upload_session_id: string } }>("/api/v1/account/upload-sessions/:upload_session_id/finalizations", async (request, reply) => {
@@ -248,9 +248,9 @@ export function registerTicket07Routes(api: FastifyInstance, database: Database,
       if (result.kind === "invalid") return problem(reply, 401, "session_expired", "The session is no longer valid.", "reauthenticate", request.url);
       if (result.kind === "passkey_required") return problem(reply, 403, "passkey_required", "A Passkey-backed session is required.", "register_passkey", request.url);
       if (result.kind !== "ok") return problem(reply, 404, "resource_not_found", "The upload session is not available.", "return_to_safe_parent", request.url);
-      if (result.value.finalized.outcome !== "succeeded") return ticket07Error(new Error(result.value.finalized.problem_code ?? "account_template_scan_incomplete"), request, reply);
+      if (result.value.finalized.outcome !== "succeeded") return accountTemplateWebEvidenceError(new Error(result.value.finalized.problem_code ?? "account_template_scan_incomplete"), request, reply);
       return reply.code(200).send({ data: { upload_session_id: sessionId, file_ids: body.file_ids, status: "quarantined", scan: result.value.scan, content_sha256: result.value.digest } });
-    } catch (error) { return ticket07Error(error, request, reply); }
+    } catch (error) { return accountTemplateWebEvidenceError(error, request, reply); }
   });
 
   api.post("/api/v1/account/artifact-templates", async (request, reply) => {
@@ -278,7 +278,7 @@ export function registerTicket07Routes(api: FastifyInstance, database: Database,
       if (result.kind === "passkey_required") return problem(reply, 403, "passkey_required", "A Passkey-backed session is required.", "register_passkey", request.url);
       if (result.kind !== "ok" || !result.value) return problem(reply, 404, "resource_not_found", "The Account is not available.", "return_to_safe_parent", request.url);
       return reply.code(202).send({ data: result.value });
-    } catch (error) { return ticket07Error(error, request, reply); }
+    } catch (error) { return accountTemplateWebEvidenceError(error, request, reply); }
   });
 
   api.get("/api/v1/account/artifact-templates", async (request, reply) => {
@@ -330,7 +330,7 @@ export function registerTicket07Routes(api: FastifyInstance, database: Database,
       if (result.kind === "passkey_required") return problem(reply, 403, "passkey_required", "A Passkey-backed session is required.", "register_passkey", request.url);
       if (result.kind !== "ok" || result.value === null) return problem(reply, 404, "resource_not_found", "The template is not available.", "return_to_safe_parent", request.url);
       return reply.code(201).send({ data: result.value });
-    } catch (error) { return ticket07Error(error, request, reply); }
+    } catch (error) { return accountTemplateWebEvidenceError(error, request, reply); }
   });
 
   api.post<{ Params: { deal_id: string } }>("/api/v1/deals/:deal_id/template-selections", async (request, reply) => {
@@ -343,7 +343,7 @@ export function registerTicket07Routes(api: FastifyInstance, database: Database,
       if (result.kind === "passkey_required") return problem(reply, 403, "passkey_required", "A Passkey-backed session is required.", "register_passkey", request.url);
       if (result.kind !== "ok" || result.value === null) return problem(reply, 404, "resource_not_found", "The Deal is not available.", "return_to_safe_parent", request.url);
       return reply.code(201).send({ data: result.value });
-    } catch (error) { return ticket07Error(error, request, reply); }
+    } catch (error) { return accountTemplateWebEvidenceError(error, request, reply); }
   });
 
   api.post<{ Params: { deal_id: string } }>("/api/v1/deals/:deal_id/web-evidence-observations", async (request, reply) => {
@@ -362,7 +362,7 @@ export function registerTicket07Routes(api: FastifyInstance, database: Database,
           return { status: response.status, headers: Object.fromEntries(response.headers.entries()), body: Buffer.from(await response.arrayBuffer()) };
         })());
       } catch (error) {
-        if (errorCode(error).includes("public_response_too_large")) return ticket07Error(error, request, reply);
+        if (errorCode(error).includes("public_response_too_large")) return accountTemplateWebEvidenceError(error, request, reply);
         return problem(reply, 502, "public_retrieval_failed", "The public resource could not be retrieved within the bounded fetch window.", "retry_retrieval", request.url);
       }
       if (fetched.status < 200 || fetched.status >= 300) return problem(reply, 502, "public_retrieval_failed", "The public resource could not be retrieved.", "retry_retrieval", request.url);
@@ -420,7 +420,7 @@ export function registerTicket07Routes(api: FastifyInstance, database: Database,
       if (result.kind === "passkey_required") return problem(reply, 403, "passkey_required", "A Passkey-backed session is required.", "register_passkey", request.url);
       if (result.kind !== "ok" || result.value === null) return problem(reply, 404, "resource_not_found", "The Deal is not available.", "return_to_safe_parent", request.url);
       return reply.code(202).send({ data: result.value });
-    } catch (error) { return ticket07Error(error, request, reply); }
+    } catch (error) { return accountTemplateWebEvidenceError(error, request, reply); }
   });
 
   api.get<{ Params: { deal_id: string; source_record_id: string } }>("/api/v1/deals/:deal_id/web-evidence-observations/:source_record_id", async (request, reply) => {

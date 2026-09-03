@@ -9,8 +9,8 @@ port.
 The Cell runs a pinned Node runtime image and bind-mounts an immutable
 application release read-only. This keeps the product process isolated without
 requiring a full `npm ci` on the 4 GB development host. The release path is
-independent from the Cell configuration release, so a ticket updates the
-release contents while the product/environment Cell remains the same.
+independent from the Cell configuration release, so a domain release updates
+the release contents while the product/environment Cell remains the same.
 
 The Compose file deliberately does not run database migrations. Migrations are
 an explicit, separately credentialed release step and must not run with the
@@ -30,8 +30,8 @@ Set `CELL_ROOT` and `RELEASE_ID` for this Cell, then use the release helper:
 ```bash
 CELL_ROOT=/opt/cells/investmentbanking/dev \
 RELEASE_ID=af57d3b \
-APP_RELEASE_PATH=/opt/investmentbanking/releases/20260902-ticket08-dev-v1 \
-WEB_RELEASE_PATH=/opt/cells/investmentbanking/dev/web-releases/20260902-ticket08-dev-v1 \
+APP_RELEASE_PATH=/opt/investmentbanking/releases/20260902-domain-baseline-dev-v1 \
+WEB_RELEASE_PATH=/opt/cells/investmentbanking/dev/web-releases/20260902-domain-baseline-dev-v1 \
   bash scripts/deploy-docker-cell.sh
 ```
 
@@ -49,3 +49,13 @@ After health checks pass, change only this product's Nginx upstreams from
 `127.0.0.1:3001`/`3000` to `127.0.0.1:3101`/`3102`, test and reload Nginx, then
 stop the legacy systemd API/Web units. Rollback is the reverse: restore the
 Nginx file, start those units, and run `docker compose ... down` for this Cell.
+
+## WebMCP browser capability
+
+The web app feature-detects `document.modelContext` and, when the browser
+provides it, registers two page-scoped tools: `inspect_current_surface` and
+`navigate_internal_surface`. Inspection only returns bounded visible metadata;
+navigation is limited to the product's explicit internal route allowlist. No
+tool submits forms, changes authorization state, sends payment data, or exposes
+credentials. WebMCP is an optional browser-agent seam and is not a security
+boundary; normal UI/API authorization remains authoritative.

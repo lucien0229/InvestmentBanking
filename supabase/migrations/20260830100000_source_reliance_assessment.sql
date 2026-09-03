@@ -1,4 +1,4 @@
--- Ticket 08: durable, purpose-bound Source Reliance Assessment. Rights and
+-- Source Packets and Governance: durable, purpose-bound Source Reliance Assessment. Rights and
 -- condition changes write a new assessment and advance only the current
 -- display pointer; historical assessments remain immutable.
 CREATE TABLE IF NOT EXISTS source.source_reliance_assessment (

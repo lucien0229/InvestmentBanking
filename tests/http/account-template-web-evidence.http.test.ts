@@ -5,7 +5,7 @@ import { buildApi } from "../../apps/api/src/app.js";
 import { createTestDatabase } from "../../apps/api/src/test-database.js";
 import { hashToken } from "../../apps/api/src/database.js";
 
-const validDealInput = (termsId: string, name = `Ticket 07 ${crypto.randomUUID()}`) => ({
+const validDealInput = (termsId: string, name = `product account-template ${crypto.randomUUID()}`) => ({
   display_name: name,
   represented_party: "Northstar Holdings",
   transaction_subject: "Northstar Software",
@@ -65,7 +65,7 @@ test("public Web retrieval creates immutable observations and lowers posture whe
   t.after(() => database.close());
   const api = await buildApi({ database, authMode: "local", publicWebFetcher: async (url) => ({ status: 200, headers: { "content-type": "text/html", etag: `etag-${url}` }, body: "<html><title>Northstar filing</title><body>Public statement</body></html>" }) });
   t.after(() => api.close());
-  const owner = await createDeal(api, database, `ticket07-web-${crypto.randomUUID()}@example.test`);
+  const owner = await createDeal(api, database, `account-template-web-${crypto.randomUUID()}@example.test`);
   const body = { url: "https://public.example.test/filing", purpose: "internal_analysis", rights_basis: { publisher_rights: "citation_only", source_terms: "no_archival_copy", robots_posture: "allowed", retention_limit_days: 0 }, capture_posture: "snapshot" };
   const first = await api.inject({ method: "POST", url: `/api/v1/deals/${owner.dealId}/web-evidence-observations`, headers: { cookie: owner.cookie, "idempotency-key": `web-${crypto.randomUUID()}` }, payload: body });
   assert.equal(first.statusCode, 202);
@@ -94,8 +94,8 @@ test("Account template remains quarantined until compatibility preflight and can
   t.after(() => database.close());
   const api = await buildApi({ database, authMode: "local" });
   t.after(() => api.close());
-  const emailA = `ticket07-template-a-${crypto.randomUUID()}@example.test`;
-  const emailB = `ticket07-template-b-${crypto.randomUUID()}@example.test`;
+  const emailA = `account-template-template-a-${crypto.randomUUID()}@example.test`;
+  const emailB = `account-template-template-b-${crypto.randomUUID()}@example.test`;
   const cookieA = await database.seedAuthenticatedSession(emailA);
   const provisionedA = await provision(database, emailA);
   const dealCreated = await api.inject({ method: "POST", url: "/api/v1/deals", headers: { cookie: cookieA, "idempotency-key": `deal-${crypto.randomUUID()}` }, payload: validDealInput(provisionedA.terms) });

@@ -5,7 +5,7 @@ import { buildApi } from "../../apps/api/src/app.js";
 import { createTestDatabase } from "../../apps/api/src/test-database.js";
 import { hashToken } from "../../apps/api/src/database.js";
 
-const dealInput = (termsId: string, name = `Ticket 08 ${crypto.randomUUID()}`) => ({
+const dealInput = (termsId: string, name = `source packet ${crypto.randomUUID()}`) => ({
   display_name: name,
   represented_party: "Northstar Holdings",
   transaction_subject: "Northstar Software",
@@ -74,7 +74,7 @@ async function createAcceptedSource(api: Awaited<ReturnType<typeof buildApi>>, c
 
 test("Source Packet binds exact Source Record version and rejects stale concurrent changes", async (t) => {
   const database = await createTestDatabase(); t.after(() => database.close()); const api = await buildApi({ database, authMode: "local" }); t.after(() => api.close());
-  const owner = await createDeal(api, database, `ticket08-packet-${crypto.randomUUID()}@example.test`); const sourceRecordId = await createAcceptedSource(api, owner.cookie, owner.dealId);
+  const owner = await createDeal(api, database, `source-packet-packet-${crypto.randomUUID()}@example.test`); const sourceRecordId = await createAcceptedSource(api, owner.cookie, owner.dealId);
   const packetKey = `packet-${crypto.randomUUID()}`;
   const created = await api.inject({ method: "POST", url: `/api/v1/deals/${owner.dealId}/source-packets`, headers: { cookie: owner.cookie, "idempotency-key": packetKey }, payload: { packet_name: "Preparation anchor packet", purpose: "internal_deal_execution" } });
   assert.equal(created.statusCode, 201, created.body); const packetId = created.json().data.id as string;
@@ -107,7 +107,7 @@ test("Source Packet binds exact Source Record version and rejects stale concurre
 
 test("rights blocking creates an impact candidate, removes prospective circulation, and caps worker operations", async (t) => {
   const database = await createTestDatabase(); t.after(() => database.close()); const api = await buildApi({ database, authMode: "local" }); t.after(() => api.close());
-  const owner = await createDeal(api, database, `ticket08-rights-${crypto.randomUUID()}@example.test`); const sourceRecordId = await createAcceptedSource(api, owner.cookie, owner.dealId);
+  const owner = await createDeal(api, database, `source-packet-rights-${crypto.randomUUID()}@example.test`); const sourceRecordId = await createAcceptedSource(api, owner.cookie, owner.dealId);
   const created = await api.inject({ method: "POST", url: `/api/v1/deals/${owner.dealId}/source-packets`, headers: { cookie: owner.cookie, "idempotency-key": `packet-${crypto.randomUUID()}` }, payload: { name: "Rights review packet", purpose_code: "internal_deal_execution" } }); assert.equal(created.statusCode, 201);
   const packetId = created.json().data.id as string; const version = await api.inject({ method: "POST", url: `/api/v1/deals/${owner.dealId}/source-packets/${packetId}/versions`, headers: { cookie: owner.cookie, "if-match": created.headers.etag!, "idempotency-key": `packet-version-${crypto.randomUUID()}` }, payload: { purpose_code: "internal_deal_execution", scope_statement: "Rights-bound analysis", change_reason: "Anchor source selected", selected_source_records: [{ source_record_id: sourceRecordId, reason: "Only authorized anchor" }], declared_exclusions: [] } }); assert.equal(version.statusCode, 201, version.body);
   const versionId = version.json().data.id as string;

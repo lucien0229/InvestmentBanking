@@ -202,7 +202,7 @@ Anonymous proof sessions cannot upload files, address production object IDs, inv
 
 ## 5. Module design
 
-The modules below are code boundaries within one control plane, not separately deployed product services.
+The modules below are code boundaries within one control plane, not separately deployed product services. Delivery Tickets are traceability references only: they do not define module, database, migration, test, or runtime boundaries, and one Ticket may change more than one domain module.
 
 | Module | Authoritative responsibilities |
 |---|---|

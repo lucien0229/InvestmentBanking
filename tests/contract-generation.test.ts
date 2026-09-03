@@ -37,7 +37,7 @@ test("generated API contract declares the isolated Project Northstar synthetic p
   assert.ok(contract.components.schemas.SyntheticProofObservation);
 });
 
-test("generated API contract declares Ticket 06 protected Source intake and Object Gateway seams", () => {
+test("generated API contract declares source intake protected Source intake and Object Gateway seams", () => {
   const contract = JSON.parse(fs.readFileSync("contracts/openapi.json", "utf8")) as {
     paths: Record<string, { get?: any; post?: any; patch?: any }>;
     components: { schemas: Record<string, any> };

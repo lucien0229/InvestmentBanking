@@ -7,7 +7,7 @@ import { canonicalDigest } from "./commerce.js";
 const uuid = z.string().uuid();
 const problemType = "https://investment-banking.local/problems";
 
-type Ticket08Deps = {
+type SourcePacketRouteDeps = {
   requireBanker: (request: FastifyRequest, reply: FastifyReply) => Promise<string | null>;
   commandKey: (request: FastifyRequest, reply: FastifyReply) => string | null;
 };
@@ -30,7 +30,7 @@ function errorCode(error: unknown) {
   return error && typeof error === "object" && "message" in error ? String(error.message) : String(error);
 }
 
-function ticket08Error(error: unknown, request: FastifyRequest, reply: FastifyReply) {
+function sourcePacketError(error: unknown, request: FastifyRequest, reply: FastifyReply) {
   const code = errorCode(error);
   const mappings: Record<string, [number, string, string, string]> = {
     source_packet_scope_mismatch: [404, "resource_not_found", "The Source Packet is not available in this Deal.", "return_to_safe_parent"],
@@ -147,13 +147,13 @@ type CommandResult<T> = { response: T; statusCode: number; replayed: boolean };
 
 async function commandStart<T>(client: pg.PoolClient, context: { accountId: string; actorId: string }, dealId: string, commandType: string, key: string, requestDigest: string): Promise<CommandResult<T> | null> {
   const keyHash = Database.hashToken(key);
-  await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [`ticket08:${context.accountId}:${context.actorId}:${commandType}:${keyHash}`]);
-  const row = (await client.query<{ response: T | null; status_code: number | null; idempotent_replayed: boolean }>("SELECT * FROM source.ticket08_command_replay($1,$2,$3,$4,$5,$6)", [context.accountId, context.actorId, dealId, commandType, keyHash, requestDigest])).rows[0];
+  await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [`source-packet:${context.accountId}:${context.actorId}:${commandType}:${keyHash}`]);
+  const row = (await client.query<{ response: T | null; status_code: number | null; idempotent_replayed: boolean }>("SELECT * FROM source.packet_command_replay($1,$2,$3,$4,$5,$6)", [context.accountId, context.actorId, dealId, commandType, keyHash, requestDigest])).rows[0];
   return row?.idempotent_replayed ? { response: row.response as T, statusCode: Number(row.status_code), replayed: true } : null;
 }
 
 async function commandRecord(client: pg.PoolClient, context: { accountId: string; actorId: string }, dealId: string, commandType: string, key: string, requestDigest: string, response: unknown, statusCode: number) {
-  await client.query("SELECT source.ticket08_command_record($1,$2,$3,$4,$5,$6,$7,$8)", [context.accountId, context.actorId, dealId, commandType, Database.hashToken(key), requestDigest, JSON.stringify(response), statusCode]);
+  await client.query("SELECT source.packet_command_record($1,$2,$3,$4,$5,$6,$7,$8)", [context.accountId, context.actorId, dealId, commandType, Database.hashToken(key), requestDigest, JSON.stringify(response), statusCode]);
 }
 
 async function scopedCommand<T>(database: Database, session: string, dealId: string, commandType: string, key: string, requestDigest: string, fn: (client: pg.PoolClient, context: { accountId: string; actorId: string }) => Promise<T>) {
@@ -166,7 +166,7 @@ async function scopedCommand<T>(database: Database, session: string, dealId: str
   });
 }
 
-export function registerTicket08Routes(api: FastifyInstance, database: Database, deps: Ticket08Deps) {
+export function registerSourcePacketRoutes(api: FastifyInstance, database: Database, deps: SourcePacketRouteDeps) {
   api.post<{ Params: { deal_id: string } }>("/api/v1/deals/:deal_id/source-packets", async (request, reply) => {
     const dealId = uuid.parse(request.params.deal_id);
     const session = await deps.requireBanker(request, reply); if (!session) return;
@@ -180,7 +180,7 @@ export function registerTicket08Routes(api: FastifyInstance, database: Database,
       if (result.kind !== "ok" || result.value.response === null) return problem(reply, 404, "resource_not_found", "The Deal is not available.", "return_to_safe_parent", request.url);
       reply.header("ETag", packetEtag(1)); if (result.value.replayed) reply.header("Idempotent-Replayed", "true");
       return reply.code(result.value.statusCode).send({ data: result.value.response });
-    } catch (error) { return ticket08Error(error, request, reply); }
+    } catch (error) { return sourcePacketError(error, request, reply); }
   });
 
   api.get<{ Params: { deal_id: string } }>("/api/v1/deals/:deal_id/source-packets", async (request, reply) => {
@@ -221,7 +221,7 @@ export function registerTicket08Routes(api: FastifyInstance, database: Database,
       if (result.kind !== "ok" || result.value.response === null) return problem(reply, 404, "resource_not_found", "The Source Packet is not available.", "return_to_safe_parent", request.url);
       reply.header("ETag", packetEtag(Number((result.value.response as { packet_row_version: number }).packet_row_version))); if (result.value.replayed) reply.header("Idempotent-Replayed", "true");
       return reply.code(result.value.statusCode).send({ data: result.value.response });
-    } catch (error) { return ticket08Error(error, request, reply); }
+    } catch (error) { return sourcePacketError(error, request, reply); }
   });
 
   api.get<{ Params: { deal_id: string; source_packet_id: string } }>("/api/v1/deals/:deal_id/source-packets/:source_packet_id/versions", async (request, reply) => {
@@ -254,7 +254,7 @@ export function registerTicket08Routes(api: FastifyInstance, database: Database,
       if (result.kind !== "ok" || result.value.response === null) return problem(reply, 404, "resource_not_found", "The Deal is not available.", "return_to_safe_parent", request.url);
       if (result.value.replayed) reply.header("Idempotent-Replayed", "true");
       return reply.code(result.value.statusCode).send({ data: result.value.response });
-    } catch (error) { return ticket08Error(error, request, reply); }
+    } catch (error) { return sourcePacketError(error, request, reply); }
   });
 
   api.get<{ Params: { deal_id: string } }>("/api/v1/deals/:deal_id/work-objectives", async (request, reply) => {
@@ -321,7 +321,7 @@ export function registerTicket08Routes(api: FastifyInstance, database: Database,
       if (result.kind !== "ok" || result.value.response === null) return problem(reply, 404, "resource_not_found", "The Source Record is not available.", "return_to_sources", request.url);
       if (result.value.replayed) reply.header("Idempotent-Replayed", "true");
       return reply.code(result.value.statusCode).send({ data: result.value.response });
-    } catch (error) { return ticket08Error(error, request, reply); }
+    } catch (error) { return sourcePacketError(error, request, reply); }
   });
 
   api.post<{ Params: { deal_id: string; source_record_id: string } }>("/api/v1/deals/:deal_id/source-records/:source_record_id/condition-assessments", async (request, reply) => {
@@ -334,7 +334,7 @@ export function registerTicket08Routes(api: FastifyInstance, database: Database,
       if (result.kind !== "ok" || result.value.response === null) return problem(reply, 404, "resource_not_found", "The Source Record is not available.", "return_to_sources", request.url);
       if (result.value.replayed) reply.header("Idempotent-Replayed", "true");
       return reply.code(result.value.statusCode).send({ data: result.value.response });
-    } catch (error) { return ticket08Error(error, request, reply); }
+    } catch (error) { return sourcePacketError(error, request, reply); }
   });
 
   api.post<{ Params: { deal_id: string } }>("/api/v1/deals/:deal_id/rights-assessments", async (request, reply) => {
@@ -347,6 +347,6 @@ export function registerTicket08Routes(api: FastifyInstance, database: Database,
       if (result.kind !== "ok" || result.value.response === null) return problem(reply, 404, "resource_not_found", "The Source Record is not available.", "return_to_sources", request.url);
       if (result.value.replayed) reply.header("Idempotent-Replayed", "true");
       return reply.code(result.value.statusCode).send({ data: result.value.response });
-    } catch (error) { return ticket08Error(error, request, reply); }
+    } catch (error) { return sourcePacketError(error, request, reply); }
   });
 }

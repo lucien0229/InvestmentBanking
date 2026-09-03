@@ -5,7 +5,7 @@ import { buildApi } from "../apps/api/src/app.js";
 import { StripeCheckoutAdapter, canonicalizeStripeEvent } from "../apps/api/src/commerce.js";
 import { createTestDatabase } from "../apps/api/src/test-database.js";
 
-const webhookSecret = "ticket-03-test-secret";
+const webhookSecret = "development-webhook-test-secret";
 
 test("Stripe checkout session evidence accepts nullable subscription fields", () => {
   const event = canonicalizeStripeEvent({
@@ -126,7 +126,7 @@ async function createOrder(api: Awaited<ReturnType<typeof buildApi>>, cookie: st
   return { order: orderBody, terms: terms.json(), session: session.json(), termsKey, sessionKey };
 }
 
-test("Ticket 03 exposes one public offer and non-confidential qualification result", async (t) => {
+test("Commerce exposes one public offer and non-confidential qualification result", async (t) => {
   const database = await createTestDatabase();
   t.after(() => database.close());
   const api = await buildApi({ database });
@@ -180,12 +180,12 @@ test("Ticket 03 exposes one public offer and non-confidential qualification resu
   assert.equal(restoredQualification.json().source_material_authorized, false);
 });
 
-test("Ticket 03 reconciles a monthly purchase exactly once and keeps provider status non-authoritative", async (t) => {
+test("Commerce reconciles a monthly purchase exactly once and keeps provider status non-authoritative", async (t) => {
   const database = await createTestDatabase();
   t.after(() => database.close());
   const api = await buildApi({ database });
   t.after(() => api.close());
-  const cookie = await database.seedAuthenticatedSession(`ticket03-monthly-${crypto.randomUUID()}@example.test`);
+  const cookie = await database.seedAuthenticatedSession(`commerce-monthly-${crypto.randomUUID()}@example.test`);
   const { order, session, termsKey, sessionKey } = await createOrder(api, cookie, "monthly");
   const refreshedOrder = await api.inject({ method: "GET", url: `/api/v1/checkout-orders/${order.id}`, headers: { cookie } });
   const sameTerms = await api.inject({ method: "POST", url: `/api/v1/checkout-orders/${order.id}/terms-acceptances`, headers: { cookie, "if-match": refreshedOrder.headers.etag, "idempotency-key": termsKey }, payload: { displayed_contract_digest: order.contract_digest, acknowledgements: { purchase_authority: true, source_authority_separate: true, guarantee: true, cancellation_refund: true, post_term: true, export_retention_deletion: true, add_on_preview: true, provider_boundary: true } } });
@@ -254,15 +254,15 @@ test("Ticket 03 reconciles a monthly purchase exactly once and keeps provider st
   assert.equal(JSON.stringify(evidence.rows[0].canonical_payload).includes(providerOnly.raw), false);
 });
 
-test("Ticket 03 keeps annual pricing, invalid signatures, ambiguous events, and persistence failures fail closed", async (t) => {
+test("Commerce keeps annual pricing, invalid signatures, ambiguous events, and persistence failures fail closed", async (t) => {
   const database = await createTestDatabase();
   t.after(() => database.close());
   const api = await buildApi({ database });
   t.after(() => api.close());
-  const cookie = await database.seedAuthenticatedSession(`ticket03-annual-${crypto.randomUUID()}@example.test`);
+  const cookie = await database.seedAuthenticatedSession(`commerce-annual-${crypto.randomUUID()}@example.test`);
   const { order, session } = await createOrder(api, cookie, "annual");
   assert.equal(order.amount_minor, 1095000);
-  const annualPaidCookie = await database.seedAuthenticatedSession(`ticket03-annual-paid-${crypto.randomUUID()}@example.test`);
+  const annualPaidCookie = await database.seedAuthenticatedSession(`commerce-annual-paid-${crypto.randomUUID()}@example.test`);
   const annualPaidOrder = await createOrder(api, annualPaidCookie, "annual");
   const annualCompleted = signedWebhook({ type: "checkout.session.completed", api_version: "2026-01-01", data: { object: { id: annualPaidOrder.session.provider_session_id, payment_status: "paid", amount_total: 1095000, currency: "usd", metadata: { checkout_order_id: annualPaidOrder.order.id } } } }, `evt_annual_paid_${crypto.randomUUID()}`);
   const annualCompletedResponse = await api.inject({ method: "POST", url: "/webhooks/stripe", headers: annualCompleted.headers, payload: annualCompleted.raw });
@@ -310,12 +310,12 @@ test("Ticket 03 keeps annual pricing, invalid signatures, ambiguous events, and 
   assert.equal(retriedConfirmation.json().payment_state, "succeeded");
 });
 
-test("Ticket 03 applies an explicit add-on only to its product-owned capacity ledger", async (t) => {
+test("Commerce applies an explicit add-on only to its product-owned capacity ledger", async (t) => {
   const database = await createTestDatabase();
   t.after(() => database.close());
   const api = await buildApi({ database });
   t.after(() => api.close());
-  const cookie = await database.seedAuthenticatedSession(`ticket03-addon-${crypto.randomUUID()}@example.test`);
+  const cookie = await database.seedAuthenticatedSession(`commerce-addon-${crypto.randomUUID()}@example.test`);
   const { order, session } = await createOrder(api, cookie, "monthly", "additional_active_deal");
   assert.equal(order.amount_minor, 149500);
   assert.equal(order.renewal.amount_minor, 149500);

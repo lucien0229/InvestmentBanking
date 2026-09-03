@@ -1,4 +1,4 @@
--- Ticket 07: immutable public-Web observations and Account-scoped reusable
+-- Web Evidence and Account Templates: immutable public-Web observations and Account-scoped reusable
 -- template intake.  Both surfaces use the existing source owner/Runtime
 -- context boundary; no browser role receives direct write access.
 
@@ -219,18 +219,18 @@ $$;
 
 DO $$
 BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_policy WHERE polname='ticket07_source_account_scope' AND polrelid='source.account_operation_preview'::regclass) THEN
-    CREATE POLICY ticket07_web_scope ON source.web_evidence_observation FOR SELECT TO app_runtime USING (account_id=app.policy_account_id() AND deal_id=app.policy_deal_id());
-    CREATE POLICY ticket07_web_impact_scope ON source.web_observation_impact FOR SELECT TO app_runtime USING (account_id=app.policy_account_id() AND deal_id=app.policy_deal_id());
-    CREATE POLICY ticket07_source_account_scope ON source.account_operation_preview FOR SELECT TO app_runtime USING (account_id=app.policy_account_id() AND actor_id=app.policy_actor_id());
-    CREATE POLICY ticket07_account_upload_scope ON source.account_template_upload_session FOR SELECT TO app_runtime USING (account_id=app.policy_account_id() AND actor_id=app.policy_actor_id());
-    CREATE POLICY ticket07_account_quarantine_scope ON source.account_template_quarantined_upload FOR SELECT TO app_runtime USING (account_id=app.policy_account_id() AND actor_id=app.policy_actor_id());
-    CREATE POLICY ticket07_template_scope ON source.account_reusable_template FOR SELECT TO app_runtime USING (account_id=app.policy_account_id());
-    CREATE POLICY ticket07_template_version_scope ON source.account_reusable_template_version FOR SELECT TO app_runtime USING (account_id=app.policy_account_id());
-    CREATE POLICY ticket07_template_compatibility_scope ON source.account_template_compatibility FOR SELECT TO app_runtime USING (account_id=app.policy_account_id());
-    CREATE POLICY ticket07_template_command_scope ON source.account_template_command_idempotency FOR SELECT TO app_runtime USING (account_id=app.policy_account_id() AND actor_id=app.policy_actor_id());
-    CREATE POLICY ticket07_selection_scope ON source.deal_template_selection FOR SELECT TO app_runtime USING (account_id=app.policy_account_id() AND deal_id=app.policy_deal_id());
-    CREATE POLICY ticket07_account_object_scope ON object_store.protected_account_object FOR SELECT TO app_runtime USING (account_id=app.policy_account_id() AND app.policy_deal_id() IS NULL);
+  IF NOT EXISTS (SELECT 1 FROM pg_policy WHERE polname='account_operation_preview_scope' AND polrelid='source.account_operation_preview'::regclass) THEN
+    CREATE POLICY web_evidence_observation_scope ON source.web_evidence_observation FOR SELECT TO app_runtime USING (account_id=app.policy_account_id() AND deal_id=app.policy_deal_id());
+    CREATE POLICY web_observation_impact_scope ON source.web_observation_impact FOR SELECT TO app_runtime USING (account_id=app.policy_account_id() AND deal_id=app.policy_deal_id());
+    CREATE POLICY account_operation_preview_scope ON source.account_operation_preview FOR SELECT TO app_runtime USING (account_id=app.policy_account_id() AND actor_id=app.policy_actor_id());
+    CREATE POLICY account_template_upload_scope ON source.account_template_upload_session FOR SELECT TO app_runtime USING (account_id=app.policy_account_id() AND actor_id=app.policy_actor_id());
+    CREATE POLICY account_template_quarantine_scope ON source.account_template_quarantined_upload FOR SELECT TO app_runtime USING (account_id=app.policy_account_id() AND actor_id=app.policy_actor_id());
+    CREATE POLICY account_reusable_template_scope ON source.account_reusable_template FOR SELECT TO app_runtime USING (account_id=app.policy_account_id());
+    CREATE POLICY account_template_version_scope ON source.account_reusable_template_version FOR SELECT TO app_runtime USING (account_id=app.policy_account_id());
+    CREATE POLICY account_template_compatibility_scope ON source.account_template_compatibility FOR SELECT TO app_runtime USING (account_id=app.policy_account_id());
+    CREATE POLICY account_template_command_scope ON source.account_template_command_idempotency FOR SELECT TO app_runtime USING (account_id=app.policy_account_id() AND actor_id=app.policy_actor_id());
+    CREATE POLICY deal_template_selection_scope ON source.deal_template_selection FOR SELECT TO app_runtime USING (account_id=app.policy_account_id() AND deal_id=app.policy_deal_id());
+    CREATE POLICY protected_account_object_scope ON object_store.protected_account_object FOR SELECT TO app_runtime USING (account_id=app.policy_account_id() AND app.policy_deal_id() IS NULL);
   END IF;
 END
 $$;
@@ -429,8 +429,8 @@ BEGIN
   INSERT INTO source.source_record(id,account_id,deal_id,source_material_id,version_ordinal,version_label,origin_code,acquisition_method,authority_basis,provenance_class,confidentiality_class,de_identification_posture,rights_posture,rights_basis,content_sha256,byte_length,media_type,record_date,received_at,accepted_at,native_locator_profile_code,native_locator_profile_version,provenance_receipt,limitations,supersedes_id,accepted_upload_id) VALUES (observation_id,p_account_id,p_deal_id,material_id,ordinal,coalesce(p_payload->>'version_label','observation-'||ordinal::text),'public_observation','public_https_capture',coalesce(rights->>'basis','publisher_terms'), 'real','public','not_applicable',coalesce(rights->>'reliance_posture','reliance_limited'),rights,digest,bytes,coalesce(p_payload->>'media_type','text/html'),rec_date,coalesce((p_payload->>'retrieved_at')::timestamptz,clock_timestamp()),clock_timestamp(),'web-observation-v1','v1',jsonb_build_object('requested_url',p_payload->>'requested_url','canonical_url',p_payload->>'canonical_url','retrieved_at',p_payload->>'retrieved_at','as_of_time',p_payload->>'as_of_time'),limitations,previous_id,fake_upload);
   IF protected ? 'storage_key' THEN
     INSERT INTO object_store.protected_object(id,account_id,deal_id,storage_key,plaintext_sha256,ciphertext_sha256,byte_length,media_type,envelope_version,kms_key_version,wrapped_dek) VALUES (protected_id,p_account_id,p_deal_id,protected->>'storage_key',protected->>'plaintext_sha256',protected->>'ciphertext_sha256',(protected->>'byte_length')::bigint,coalesce(p_payload->>'media_type','text/html'),protected->>'envelope_version',protected->>'kms_key_version',protected->'wrapped_dek');
-    INSERT INTO source.processing_coverage(id,account_id,deal_id,source_record_id,coverage_code,parser_identity,coverage_payload) VALUES (coverage_id,p_account_id,p_deal_id,observation_id,'original_bytes_only','ticket07-public-web-v1',jsonb_build_object('original_bytes',true,'substantive_parsing',false,'ai',false,'rendering',false,'limitations',limitations));
-    INSERT INTO source.source_representation(id,account_id,deal_id,source_record_id,protected_object_id,content_sha256,parser_identity,processing_coverage_id) VALUES (representation_id,p_account_id,p_deal_id,observation_id,protected_id,digest,'ticket07-public-web-v1',coverage_id);
+    INSERT INTO source.processing_coverage(id,account_id,deal_id,source_record_id,coverage_code,parser_identity,coverage_payload) VALUES (coverage_id,p_account_id,p_deal_id,observation_id,'original_bytes_only','public-web-evidence-v1',jsonb_build_object('original_bytes',true,'substantive_parsing',false,'ai',false,'rendering',false,'limitations',limitations));
+    INSERT INTO source.source_representation(id,account_id,deal_id,source_record_id,protected_object_id,content_sha256,parser_identity,processing_coverage_id) VALUES (representation_id,p_account_id,p_deal_id,observation_id,protected_id,digest,'public-web-evidence-v1',coverage_id);
     INSERT INTO source.accepted_source_object(account_id,deal_id,source_record_id,protected_object_id) VALUES (p_account_id,p_deal_id,observation_id,protected_id);
   END IF;
   INSERT INTO source.web_evidence_observation(source_record_id,account_id,deal_id,source_material_id,observation_ordinal,requested_url,canonical_url,document_identity,retrieved_at,as_of_time,version_label,capture_mode,response_metadata,permitted_representation,content_sha256,byte_length,exact_locator,rights_posture,retrieval_limitations,reliance_state,stale_after,supersedes_id) VALUES (observation_id,p_account_id,p_deal_id,material_id,ordinal,p_payload->>'requested_url',p_payload->>'canonical_url',p_payload->'document_identity',(p_payload->>'retrieved_at')::timestamptz,(p_payload->>'as_of_time')::timestamptz,p_payload->>'version_label',final_capture,p_payload->'response_metadata',p_payload->'permitted_representation',digest,bytes,p_payload->'exact_locator',rights,limitations,coalesce(rights->>'reliance_state','reliance_limited'),stale,previous_id);

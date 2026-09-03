@@ -65,7 +65,7 @@ function keyMaterial() {
     if (asHex.length === 32) return asHex;
   }
   if (process.env.APP_ENV === "production") throw new Error("PROTECTED_OBJECT_KEK is required in production");
-  return crypto.createHash("sha256").update("ticket06-development-envelope-key-v1").digest();
+  return crypto.createHash("sha256").update("source-development-envelope-key-v1").digest();
 }
 
 type EnvelopeHeader = {

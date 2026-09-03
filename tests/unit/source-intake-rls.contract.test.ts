@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { createTestDatabase } from "../../apps/api/src/test-database.js";
 
-test("Ticket 06 source and protected-object tables are forced-RLS and write through a non-login definer", async (t) => {
+test("source intake source and protected-object tables are forced-RLS and write through a non-login definer", async (t) => {
   const database = await createTestDatabase();
   t.after(() => database.close());
   const tables = [

@@ -13,8 +13,8 @@ import {
 } from "./synthetic-proof.js";
 import { ReferenceJobRuntime, type ReferenceJobRuntimeOptions } from "./jobs.js";
 import { registerSourceRoutes } from "./sources.js";
-import { registerTicket07Routes, type PublicWebFetcher } from "./ticket07.js";
-import { registerTicket08Routes } from "./ticket08.js";
+import { registerAccountTemplateWebEvidenceRoutes, type PublicWebFetcher } from "./account-template-web-evidence.js";
+import { registerSourcePacketRoutes } from "./source-packet-routes.js";
 
 const dealIdSchema = z.string().uuid();
 const emailSchema = z.string().email().max(320);
@@ -116,7 +116,7 @@ function dealSetupEtag(version: number) {
   return `"deal-setup-${version}"`;
 }
 
-function ticket05Error(error: unknown): { status: number; code: string; detail: string; recovery: string } | null {
+function dealLifecycleError(error: unknown): { status: number; code: string; detail: string; recovery: string } | null {
   const message = error && typeof error === "object" && "message" in error ? String(error.message) : String(error);
   const mappings: Record<string, { status: number; code: string; detail: string; recovery: string }> = {
     active_deal_capacity_exhausted: { status: 409, code: "active_deal_capacity_exhausted", detail: "The paid Active Deal capacity is already reserved.", recovery: "release_or_purchase_capacity" },
@@ -140,7 +140,7 @@ export async function buildApi(options: BuildApiOptions = {}): Promise<FastifyIn
   const syntheticProof = options.syntheticProofStore ?? new SyntheticProofStore();
   const checkoutAdapter = options.checkoutAdapter ?? StripeCheckoutAdapter.fromEnv() ?? new StripeTestCheckoutAdapter();
   if (process.env.APP_ENV === "production" && checkoutAdapter.name === "stripe_test_adapter") throw new Error("live Stripe Checkout adapter is required in production");
-  // Account template TUS chunks are bounded by the Ticket 07 100 MiB file
+  // Account template TUS chunks are bounded by the product account-template 100 MiB file
   // ceiling; keep Fastify's parser from rejecting a valid final chunk first.
   const api = Fastify({ logger: false, bodyLimit: 100 * 1024 * 1024 }) as unknown as FastifyInstance & { database: Database; referenceJobRuntime: ReferenceJobRuntime };
   const publicMutationBuckets = new Map<string, { tokens: number; updatedAt: number }>();
@@ -317,16 +317,16 @@ export async function buildApi(options: BuildApiOptions = {}): Promise<FastifyIn
   }
 
   registerSourceRoutes(api, database, { requireBanker, commandKey });
-  registerTicket07Routes(api, database, { requireBanker, commandKey, publicWebFetcher: options.publicWebFetcher });
-  registerTicket08Routes(api, database, { requireBanker, commandKey });
+  registerAccountTemplateWebEvidenceRoutes(api, database, { requireBanker, commandKey, publicWebFetcher: options.publicWebFetcher });
+  registerSourcePacketRoutes(api, database, { requireBanker, commandKey });
 
   async function dealProjection(client: import("pg").PoolClient, accountId: string, actorId: string, dealId: string) {
     const result = await client.query<{ projection: Record<string, unknown> | null }>("SELECT app.get_deal_setup_projection($1,$2,$3) AS projection", [accountId, actorId, dealId]);
     return result.rows[0]?.projection ?? null;
   }
 
-  function sendTicket05Error(error: unknown, request: FastifyRequest, reply: FastifyReply) {
-    const mapped = ticket05Error(error);
+  function sendDealLifecycleError(error: unknown, request: FastifyRequest, reply: FastifyReply) {
+    const mapped = dealLifecycleError(error);
     if (!mapped) throw error;
     return problem(reply, mapped.status, mapped.code, mapped.detail, mapped.recovery, request.url);
   }
@@ -353,7 +353,7 @@ export async function buildApi(options: BuildApiOptions = {}): Promise<FastifyIn
       if (result.value.idempotent_replayed) reply.header("Idempotent-Replayed", "true");
       return reply.code(result.value.idempotent_replayed ? 200 : 201).send({ deal: projection.data });
     } catch (error) {
-      return sendTicket05Error(error, request, reply);
+      return sendDealLifecycleError(error, request, reply);
     }
   });
 
@@ -399,7 +399,7 @@ export async function buildApi(options: BuildApiOptions = {}): Promise<FastifyIn
       reply.header("ETag", dealSetupEtag(Number(result.value.version)));
       return reply.code(200).send(result.value.projection);
     } catch (error) {
-      return sendTicket05Error(error, request, reply);
+      return sendDealLifecycleError(error, request, reply);
     }
   });
 
@@ -426,7 +426,7 @@ export async function buildApi(options: BuildApiOptions = {}): Promise<FastifyIn
       if (result.kind === "not_found" || result.value === null || result.value.detail === null) return problem(reply, 404, "resource_not_found", "The requested resource is not available.", "return_to_safe_parent", request.url);
       return reply.code(201).send({ data: result.value.detail });
     } catch (error) {
-      return sendTicket05Error(error, request, reply);
+      return sendDealLifecycleError(error, request, reply);
     }
   });
 
@@ -469,7 +469,7 @@ export async function buildApi(options: BuildApiOptions = {}): Promise<FastifyIn
       if (result.kind === "not_found" || !result.value.accepted) return problem(reply, 409, "limited_scope_not_accepted", "The exact limited scope no longer matches the current preflight.", "reload_and_compare", request.url);
       return reply.code(201).send({ data: { accepted: true, reservation_state: result.value.reservation_state, accepted_scope: body.accepted_scope, excluded_scope: body.excluded_scope, output_ceiling: body.output_ceiling } });
     } catch (error) {
-      return sendTicket05Error(error, request, reply);
+      return sendDealLifecycleError(error, request, reply);
     }
   });
 
@@ -493,7 +493,7 @@ export async function buildApi(options: BuildApiOptions = {}): Promise<FastifyIn
       const projection = result.value as { data: Record<string, unknown> };
       return reply.code(201).send({ deal: projection.data });
     } catch (error) {
-      return sendTicket05Error(error, request, reply);
+      return sendDealLifecycleError(error, request, reply);
     }
   });
 
@@ -764,7 +764,7 @@ export async function buildApi(options: BuildApiOptions = {}): Promise<FastifyIn
 
   api.post("/webhooks/stripe", async (request, reply) => {
     const rawBody = typeof request.body === "string" ? request.body : stableJson(request.body);
-    const secret = process.env.STRIPE_WEBHOOK_SECRET ?? (process.env.APP_ENV === "production" ? "" : "ticket-03-test-secret");
+    const secret = process.env.STRIPE_WEBHOOK_SECRET ?? (process.env.APP_ENV === "production" ? "" : "development-webhook-test-secret");
     if (!secret) return problem(reply, 503, "provider_unavailable", "Stripe Webhook verification is not configured.", "retry_after_delay", request.url);
     const signatureHeader = request.headers["stripe-signature"];
     if (!verifyStripeSignature(rawBody, typeof signatureHeader === "string" ? signatureHeader : undefined, secret)) return problem(reply, 400, "invalid_signature", "The provider signature is invalid or expired.", "provider_retry", request.url);

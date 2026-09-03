@@ -1,4 +1,4 @@
--- Ticket 03: qualified checkout, canonical provider evidence, and product-owned entitlement.
+-- Account and Commerce: qualified checkout, canonical provider evidence, and product-owned entitlement.
 -- Provider payload bytes are intentionally not stored. Only the versioned canonical
 -- allowlist below is durable and is sufficient for product reconciliation/recovery.
 
@@ -461,10 +461,14 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'app_commerce_owner') THEN
     CREATE ROLE app_commerce_owner NOLOGIN;
   END IF;
-  ALTER ROLE app_commerce_owner NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT BYPASSRLS;
+  ALTER ROLE app_commerce_owner NOLOGIN NOCREATEDB NOCREATEROLE NOINHERIT BYPASSRLS;
 END
 $$;
 
+-- PostgreSQL requires the target owner to have CREATE on the containing
+-- schema while ownership is transferred. Revoke it immediately afterwards so
+-- the non-login owner cannot create arbitrary application objects.
+GRANT CREATE ON SCHEMA app TO app_commerce_owner;
 ALTER FUNCTION app.create_qualification_assessment(text,text,text,text[],text[]) OWNER TO app_commerce_owner;
 ALTER FUNCTION app.get_qualification_assessment(uuid) OWNER TO app_commerce_owner;
 ALTER FUNCTION app.create_checkout_order(uuid,uuid,text,text,text,text,jsonb,text[]) OWNER TO app_commerce_owner;
@@ -481,3 +485,4 @@ GRANT EXECUTE ON FUNCTION app.policy_account_id(), app.policy_actor_id(), app.re
 
 REVOKE ALL ON FUNCTION app.create_qualification_assessment(text,text,text,text[],text[]), app.get_qualification_assessment(uuid), app.create_checkout_order(uuid,uuid,text,text,text,text,jsonb,text[]), app.accept_checkout_terms(uuid,text,jsonb,text), app.create_checkout_session(uuid,text,text,text), app.persist_provider_event(text,text,text,jsonb,text,text), app.reconcile_provider_event(text), app.dispatch_provider_event_outbox(text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION app.create_qualification_assessment(text,text,text,text[],text[]), app.get_qualification_assessment(uuid), app.create_checkout_order(uuid,uuid,text,text,text,text,jsonb,text[]), app.accept_checkout_terms(uuid,text,jsonb,text), app.create_checkout_session(uuid,text,text,text), app.persist_provider_event(text,text,text,jsonb,text,text), app.reconcile_provider_event(text), app.dispatch_provider_event_outbox(text) TO app_runtime;
+REVOKE CREATE ON SCHEMA app FROM app_commerce_owner;

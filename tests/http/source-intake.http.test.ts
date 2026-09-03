@@ -29,7 +29,7 @@ const dealInput = (termsId: string, overrides: Record<string, unknown> = {}) => 
   provider_restrictions: ["local_only"],
   special_structures: [],
   identity_confirmed: true,
-  source_reference: "source:ticket06",
+  source_reference: "source:uploaded-material",
   source_rights: "confirmed",
   intended_use: "internal_deal_execution",
   minimum_packet: "complete",
@@ -127,12 +127,12 @@ async function createUpload(api: Awaited<ReturnType<typeof buildApi>>, cookie: s
   return response.json();
 }
 
-test("Ticket 06 binds resumable upload to exact Deal scope and keeps TUS headers non-secret", async (t) => {
+test("source intake binds resumable upload to exact Deal scope and keeps TUS headers non-secret", async (t) => {
   const database = await createTestDatabase();
   t.after(() => database.close());
   const api = await buildApi({ database, authMode: "local" });
   t.after(() => api.close());
-  const { cookie, dealId } = await createDeal(api, database, `ticket06-upload-${crypto.randomUUID()}@example.test`);
+  const { cookie, dealId } = await createDeal(api, database, `source-intake-upload-${crypto.randomUUID()}@example.test`);
   const bytes = validXlsxBytes();
   const upload = await createUpload(api, cookie, dealId, bytes);
   assert.equal(upload.data.deal_id, dealId);
@@ -157,12 +157,12 @@ test("Ticket 06 binds resumable upload to exact Deal scope and keeps TUS headers
   assert.equal(finalized.json().items[0].outcome, "succeeded");
 });
 
-test("Ticket 06 binds uploads to the current operation preview and uses versioned cancellation", async (t) => {
+test("source intake binds uploads to the current operation preview and uses versioned cancellation", async (t) => {
   const database = await createTestDatabase();
   t.after(() => database.close());
   const api = await buildApi({ database, authMode: "local" });
   t.after(() => api.close());
-  const { cookie, dealId } = await createDeal(api, database, `ticket06-cancel-${crypto.randomUUID()}@example.test`);
+  const { cookie, dealId } = await createDeal(api, database, `source-intake-cancel-${crypto.randomUUID()}@example.test`);
   const bytes = validXlsxBytes();
   const missingPreview = await api.inject({ method: "POST", url: `/api/v1/deals/${dealId}/upload-sessions`, headers: { cookie }, payload: { purpose: "source_intake", consent_digest: "sha256:missing-preview", files: [{ client_file_id: "missing-preview", display_name: "Management Accounts.xlsx", byte_length: String(bytes.length), media_type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", source_declaration: { source_material_id: null, new_source_material_name: "Missing preview", origin: "client_supplied", authority_basis: "provided_under_mandate", intended_purpose: "financial_analysis" }, rights_posture_inputs: { receipt_permitted: true, processing_operations: ["quarantine"], conditions: [] }, confidentiality_posture: { confidentiality_class: "confidential", de_identification_posture: "not_de_identified" }, processing_posture: { expected_file_family: "xlsx", special_structures: [] } }] } });
   assert.equal(missingPreview.statusCode, 400);
@@ -182,12 +182,12 @@ test("Ticket 06 binds uploads to the current operation preview and uses versione
   assert.equal(refreshed.headers.etag, '"upload-session-2"');
 });
 
-test("Ticket 06 quarantines unsafe packages before acceptance and keeps accepted bytes encrypted", async (t) => {
+test("source intake quarantines unsafe packages before acceptance and keeps accepted bytes encrypted", async (t) => {
   const database = await createTestDatabase();
   t.after(() => database.close());
   const api = await buildApi({ database, authMode: "local" });
   t.after(() => api.close());
-  const { cookie, dealId } = await createDeal(api, database, `ticket06-safety-${crypto.randomUUID()}@example.test`);
+  const { cookie, dealId } = await createDeal(api, database, `source-intake-safety-${crypto.randomUUID()}@example.test`);
   for (const entry of ["../escape", "xl/vbaProject.bin"]) {
     const bytes = unsafeXlsxBytes(entry);
     const upload = await createUpload(api, cookie, dealId, bytes);
@@ -260,12 +260,12 @@ test("Ticket 06 quarantines unsafe packages before acceptance and keeps accepted
   assert.equal(publicRead.statusCode, 401);
 });
 
-test("Ticket 06 preserves immutable source history and denies cross-account object or record access", async (t) => {
+test("source intake preserves immutable source history and denies cross-account object or record access", async (t) => {
   const database = await createTestDatabase();
   t.after(() => database.close());
   const api = await buildApi({ database, authMode: "local" });
   t.after(() => api.close());
-  const first = await createDeal(api, database, `ticket06-history-a-${crypto.randomUUID()}@example.test`);
+  const first = await createDeal(api, database, `source-intake-history-a-${crypto.randomUUID()}@example.test`);
   const bytes = validXlsxBytes();
   const upload = await createUpload(api, first.cookie, first.dealId, bytes, { files: [{
     client_file_id: "fixture-1", display_name: "Management Accounts.xlsx", byte_length: String(bytes.length), media_type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", sha256: crypto.createHash("sha256").update(bytes).digest("hex"), source_declaration: { source_material_id: null, new_source_material_name: "Management accounts", origin: "client_supplied", authority_basis: "provided_under_mandate", intended_purpose: "financial_analysis" }, rights_posture_inputs: { receipt_permitted: true, processing_operations: ["quarantine", "parse"], conditions: [] }, confidentiality_posture: { confidentiality_class: "confidential", de_identification_posture: "not_de_identified" }, processing_posture: { expected_file_family: "xlsx", special_structures: [] },
@@ -291,7 +291,7 @@ test("Ticket 06 preserves immutable source history and denies cross-account obje
   const accepted2 = await api.inject({ method: "POST", url: `/api/v1/deals/${first.dealId}/source-materials/${materialId}/record-acceptances`, headers: { cookie: first.cookie, "idempotency-key": `accept-${crypto.randomUUID()}` }, payload: { server_file_id: file2.server_file_id, authority_basis: "limited_pending_confirmation", record_date: "2026-09-01", version_label: "v2", rights_posture: "internal_use_only", confidentiality_class: "confidential" } });
   assert.equal(accepted2.statusCode, 202);
   assert.notEqual(accepted1.json().data.source_record_id, accepted2.json().data.source_record_id);
-  const second = await createDeal(api, database, `ticket06-history-b-${crypto.randomUUID()}@example.test`);
+  const second = await createDeal(api, database, `source-intake-history-b-${crypto.randomUUID()}@example.test`);
   const hidden = await api.inject({ method: "GET", url: `/api/v1/deals/${first.dealId}/source-materials/${materialId}/records/${accepted1.json().data.source_record_id}`, headers: { cookie: second.cookie } });
   assert.equal(hidden.statusCode, 404);
 });

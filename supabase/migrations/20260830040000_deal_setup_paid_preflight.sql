@@ -1,4 +1,4 @@
--- Ticket 05: identity-complete paid Deal Setup, Active Deal capacity, and
+-- Deal Lifecycle and Paid Preflight: identity-complete paid Deal Setup, Active Deal capacity, and
 -- privacy-safe Paid Preflight. All writes below are closed SECURITY DEFINER
 -- procedures; the online app_runtime role receives no direct write privilege.
 
@@ -7,7 +7,7 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'app_commerce_owner') THEN
     CREATE ROLE app_commerce_owner NOLOGIN NOINHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE BYPASSRLS;
   ELSE
-    ALTER ROLE app_commerce_owner NOLOGIN NOINHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE BYPASSRLS;
+    ALTER ROLE app_commerce_owner NOLOGIN NOINHERIT NOCREATEDB NOCREATEROLE BYPASSRLS;
   END IF;
 END
 $$;
@@ -223,16 +223,16 @@ ALTER TABLE app.first_deal_guide_checkpoint FORCE ROW LEVEL SECURITY;
 ALTER TABLE app.deal_command_idempotency ENABLE ROW LEVEL SECURITY;
 ALTER TABLE app.deal_command_idempotency FORCE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS ticket05_setup_scope ON app.deal_setup_draft;
-CREATE POLICY ticket05_setup_scope ON app.deal_setup_draft FOR SELECT TO app_runtime USING (account_id = app.policy_account_id() AND deal_id = app.policy_deal_id());
-DROP POLICY IF EXISTS ticket05_preflight_scope ON app.paid_preflight;
-CREATE POLICY ticket05_preflight_scope ON app.paid_preflight FOR SELECT TO app_runtime USING (account_id = app.policy_account_id() AND deal_id = app.policy_deal_id());
-DROP POLICY IF EXISTS ticket05_control_scope ON app.preflight_control_result;
-CREATE POLICY ticket05_control_scope ON app.preflight_control_result FOR SELECT TO app_runtime USING (account_id = app.policy_account_id() AND deal_id = app.policy_deal_id());
-DROP POLICY IF EXISTS ticket05_guide_scope ON app.first_deal_guide_checkpoint;
-CREATE POLICY ticket05_guide_scope ON app.first_deal_guide_checkpoint FOR SELECT TO app_runtime USING (account_id = app.policy_account_id() AND deal_id = app.policy_deal_id());
-DROP POLICY IF EXISTS ticket05_capacity_scope ON app.active_deal_capacity_reservation;
-CREATE POLICY ticket05_capacity_scope ON app.active_deal_capacity_reservation FOR SELECT TO app_runtime USING (account_id = app.policy_account_id() AND deal_id = app.policy_deal_id());
+DROP POLICY IF EXISTS deal_setup_scope ON app.deal_setup_draft;
+CREATE POLICY deal_setup_scope ON app.deal_setup_draft FOR SELECT TO app_runtime USING (account_id = app.policy_account_id() AND deal_id = app.policy_deal_id());
+DROP POLICY IF EXISTS paid_preflight_scope ON app.paid_preflight;
+CREATE POLICY paid_preflight_scope ON app.paid_preflight FOR SELECT TO app_runtime USING (account_id = app.policy_account_id() AND deal_id = app.policy_deal_id());
+DROP POLICY IF EXISTS preflight_control_scope ON app.preflight_control_result;
+CREATE POLICY preflight_control_scope ON app.preflight_control_result FOR SELECT TO app_runtime USING (account_id = app.policy_account_id() AND deal_id = app.policy_deal_id());
+DROP POLICY IF EXISTS first_deal_guide_scope ON app.first_deal_guide_checkpoint;
+CREATE POLICY first_deal_guide_scope ON app.first_deal_guide_checkpoint FOR SELECT TO app_runtime USING (account_id = app.policy_account_id() AND deal_id = app.policy_deal_id());
+DROP POLICY IF EXISTS deal_capacity_scope ON app.active_deal_capacity_reservation;
+CREATE POLICY deal_capacity_scope ON app.active_deal_capacity_reservation FOR SELECT TO app_runtime USING (account_id = app.policy_account_id() AND deal_id = app.policy_deal_id());
 
 GRANT SELECT ON app.active_deal_capacity_reservation, app.deal_setup_draft, app.paid_preflight, app.preflight_control_result, app.first_deal_guide_checkpoint TO app_runtime;
 GRANT SELECT, INSERT, UPDATE ON app.deal, app.deal_workspace, app.active_deal_capacity_reservation, app.deal_setup_draft, app.paid_preflight, app.preflight_control_result, app.first_deal_guide_checkpoint, app.deal_command_idempotency TO app_commerce_owner;
@@ -243,7 +243,7 @@ CREATE OR REPLACE FUNCTION app.append_deal_audit(p_account_id uuid, p_actor_id u
 RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path = app, pg_catalog AS $$
 DECLARE previous_hash text; new_id uuid := gen_random_uuid(); new_hash text;
 BEGIN
-  PERFORM pg_advisory_xact_lock(hashtext(p_account_id::text || ':ticket05-audit'));
+  PERFORM pg_advisory_xact_lock(hashtext(p_account_id::text || ':deal-audit'));
   SELECT event_hash INTO previous_hash FROM app.audit_event WHERE account_id = p_account_id ORDER BY created_at DESC, id DESC LIMIT 1;
   new_hash := md5(concat_ws('|', coalesce(previous_hash, ''), new_id::text, p_code, coalesce(p_object_id, ''), p_reason_code));
   INSERT INTO app.audit_event(id, account_id, deal_id, actor_id, code, outcome, object_kind, object_id, reason_code, trace_id, previous_hash, event_hash)
@@ -304,7 +304,7 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM app.checkout_terms_acceptance ta JOIN app.checkout_order co ON co.id = ta.checkout_order_id WHERE ta.id = terms_id AND ta.account_id = p_account_id AND ta.actor_id = p_actor_id AND co.status = 'completed' AND co.payment_state IN ('succeeded','duplicate_charge')) THEN
     RAISE EXCEPTION 'deal_create_precondition_failed' USING ERRCODE = '42501';
   END IF;
-  PERFORM pg_advisory_xact_lock(hashtext(p_account_id::text || ':ticket05-active-deals'));
+  PERFORM pg_advisory_xact_lock(hashtext(p_account_id::text || ':deal-active-capacity'));
   SELECT count(*)::integer INTO used_slots FROM app.active_deal_capacity_reservation WHERE account_id = p_account_id AND state_code <> 'released';
   capacity := greatest(entitlement.active_deal_capacity, 0);
   IF used_slots >= capacity THEN RAISE EXCEPTION 'active_deal_capacity_exhausted' USING ERRCODE = '23514'; END IF;
@@ -333,7 +333,7 @@ BEGIN
   VALUES (p_account_id,btrim(p_input->>'display_name'),btrim(p_input->>'represented_party'),btrim(p_input->>'transaction_subject'),btrim(p_input->>'mandate_objective'),stage_value,'paid_customer',btrim(p_input->>'represented_party'),perimeter_inclusions,perimeter_exclusions,p_input->>'banker_role_or_side',p_input->>'transaction_type',btrim(p_input->>'intended_purpose'),btrim(p_input->>'intended_audience'),p_input->>'base_currency',p_input->>'reporting_units',terms_id,p_input->>'deal_authority_basis',p_input->>'expected_source_use_authority',p_input->>'confidentiality_class',p_input->'employer_or_client_restrictions'->>'posture',nullif(p_input->'employer_or_client_restrictions'->>'details',''),p_input->>'intended_processing_path',ARRAY(SELECT jsonb_array_elements_text(p_input->'expected_file_families')),p_input->>'expected_template_posture',provider_restrictions_value,special_structures_value,p_input->>'stage_basis_reference',p_actor_id,clock_timestamp(),v_identity_digest,predecessor_id) RETURNING * INTO new_deal;
   INSERT INTO app.active_deal_capacity_reservation(account_id,deal_id,entitlement_id,slot_ordinal,state_code,reserved_by) VALUES (p_account_id,new_deal.id,entitlement.id,slot,'reserved_preflight',p_actor_id);
   INSERT INTO app.deal_setup_draft(account_id,deal_id,version,source_reference,source_reference_posture,source_rights,intended_use,intended_audience,confidentiality_class,processing_path,provider_restrictions,minimum_packet,compatibility,saved_by) VALUES (p_account_id,new_deal.id,1,source_ref,CASE WHEN source_ref IS NULL THEN 'missing' ELSE 'provided' END,source_rights_value,intended_use_value,btrim(p_input->>'intended_audience'),p_input->>'confidentiality_class',p_input->>'intended_processing_path',provider_restrictions_value,min_packet,coalesce(nullif(p_input->>'compatibility',''),'pass'),p_actor_id) RETURNING id INTO draft_id;
-  INSERT INTO app.deal_workspace(account_id,deal_id,overview_revision_id,displayed_state) VALUES (p_account_id,new_deal.id,'ticket05-deal-setup-v1','{}'::jsonb) ON CONFLICT ON CONSTRAINT deal_workspace_deal_id_key DO NOTHING;
+  INSERT INTO app.deal_workspace(account_id,deal_id,overview_revision_id,displayed_state) VALUES (p_account_id,new_deal.id,'deal-setup-v1','{}'::jsonb) ON CONFLICT ON CONSTRAINT deal_workspace_deal_id_key DO NOTHING;
   UPDATE app.deal_workspace AS dw SET processing_posture='preflight_restricted',paid_preflight_status='pending',guide_mode='first_deal_guide',commercial_posture='entitled',current_setup_draft_id=draft_id,row_version=dw.row_version+1,displayed_state=jsonb_build_object('stage',stage_value,'materiality','paid_customer','source_posture','preflight_restricted','next_controlled_action','Complete Paid Preflight') WHERE dw.account_id=p_account_id AND dw.deal_id=new_deal.id;
   INSERT INTO app.first_deal_guide_checkpoint(account_id,deal_id,status_code,current_action) VALUES (p_account_id,new_deal.id,'waiting','Complete Paid Preflight');
   INSERT INTO app.deal_command_idempotency(account_id,actor_id,command_type,key_hash,request_digest,deal_id) VALUES (p_account_id,p_actor_id,'create_paid_deal',p_key_hash,p_request_digest,new_deal.id);
@@ -435,7 +435,7 @@ BEGIN
   END IF;
   SELECT * INTO p FROM app.paid_preflight WHERE id=p_preflight_id AND deal_id=p_deal_id AND account_id=p_account_id AND result='limited-proceed' AND NOT EXISTS (SELECT 1 FROM app.paid_preflight newer WHERE newer.deal_id=p.deal_id AND newer.version>p.version) FOR UPDATE;
   IF NOT FOUND OR p.permitted_scope <> p_scope OR p.excluded_scope <> p_excluded OR p.output_ceiling IS DISTINCT FROM p_ceiling OR p.expires_at <= clock_timestamp() THEN RETURN QUERY SELECT false, NULL::text; RETURN; END IF;
-  PERFORM pg_advisory_xact_lock(hashtext(p_account_id::text || ':ticket05-active-deals'));
+  PERFORM pg_advisory_xact_lock(hashtext(p_account_id::text || ':deal-active-capacity'));
   UPDATE app.active_deal_capacity_reservation SET state_code='active',activated_at=coalesce(activated_at,clock_timestamp()) WHERE deal_id=p_deal_id AND account_id=p_account_id AND state_code='reserved_preflight' RETURNING * INTO reservation;
   IF reservation.id IS NULL THEN SELECT * INTO reservation FROM app.active_deal_capacity_reservation WHERE deal_id=p_deal_id AND account_id=p_account_id; END IF;
   UPDATE app.deal_workspace SET processing_posture='limited',paid_preflight_status='limited-proceed',row_version=row_version+1 WHERE deal_id=p_deal_id AND account_id=p_account_id;

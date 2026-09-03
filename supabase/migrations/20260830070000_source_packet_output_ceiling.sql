@@ -1,4 +1,4 @@
--- Ticket 08: exact Source Packets, Work Objectives, Output Ceilings, and
+-- Source Packets and Governance: exact Source Packets, Work Objectives, Output Ceilings, and
 -- append-only source condition changes. Runtime writes go through typed
 -- SECURITY DEFINER functions owned by the non-login source owner.
 

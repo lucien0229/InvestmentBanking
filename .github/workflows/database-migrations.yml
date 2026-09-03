@@ -37,6 +37,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm run domain:naming
       - run: npm run db:validate
       - run: docker compose up -d --wait postgres
       - run: npm run db:migrate

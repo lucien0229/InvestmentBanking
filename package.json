@@ -11,6 +11,7 @@
     "db:migrate": "tsx scripts/migrate.ts",
     "db:migrate:remote": "bash scripts/run-supabase-migrations.sh",
     "db:seed": "tsx scripts/seed.ts",
+    "domain:naming": "node scripts/check-domain-identifiers.mjs",
     "db:up": "docker compose up -d postgres",
     "db:down": "docker compose down",
     "dev:api": "APP_ENV=development tsx apps/api/src/server.ts",
