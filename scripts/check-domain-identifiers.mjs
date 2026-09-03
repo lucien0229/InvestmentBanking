@@ -6,7 +6,7 @@ const ignoredNames = new Set(["node_modules", ".git", ".next", "output", ".local
 const deliveryWord = ["t", "icket"].join("");
 const identifierPattern = new RegExp(`${deliveryWord}\\s*[-_ ]?\\d+`, "i");
 const ignoredFiles = new Set([path.resolve("scripts/check-domain-identifiers.mjs")]);
-const textExemptRoots = [path.resolve("supabase/migrations"), path.resolve("tests")];
+const textExemptRoots = [path.resolve("supabase/migrations")];
 
 function isUnder(file, root) {
   return file === root || file.startsWith(`${root}${path.sep}`);

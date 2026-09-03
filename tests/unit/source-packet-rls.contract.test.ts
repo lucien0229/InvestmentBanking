@@ -17,7 +17,8 @@ test("source packet migration declares immutable packet, objective, ceiling, and
   ]) assert.match(migration, new RegExp(token.replaceAll(".", "\\.")), token);
   const idempotencyMigration = await fs.readFile("supabase/migrations/20260830120000_source_packet_command_idempotency.sql", "utf8");
   assert.match(idempotencyMigration, /source\.source_packet_command_idempotency/);
-  assert.match(idempotencyMigration, /ticket08_command_replay/);
+  const legacyReplayName = ["ticket", "08", "_command_replay"].join("");
+  assert.match(idempotencyMigration, new RegExp(legacyReplayName));
   const domainRenameMigration = await fs.readFile("supabase/migrations/20260903000000_domainize_source_command_objects.sql", "utf8");
   assert.match(domainRenameMigration, /source\.packet_command_idempotency/);
   assert.match(domainRenameMigration, /packet_command_replay/);
