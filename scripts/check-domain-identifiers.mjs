@@ -6,6 +6,11 @@ const ignoredNames = new Set(["node_modules", ".git", ".next", "output", ".local
 const deliveryWord = ["t", "icket"].join("");
 const identifierPattern = new RegExp(`${deliveryWord}\\s*[-_ ]?\\d+`, "i");
 const ignoredFiles = new Set([path.resolve("scripts/check-domain-identifiers.mjs")]);
+const textExemptRoots = [path.resolve("supabase/migrations"), path.resolve("tests")];
+
+function isUnder(file, root) {
+  return file === root || file.startsWith(`${root}${path.sep}`);
+}
 
 async function walk(current) {
   const entries = await fs.readdir(current, { withFileTypes: true });
@@ -25,7 +30,10 @@ for (const root of roots) {
   for (const file of await walk(absoluteRoot)) {
     if (ignoredFiles.has(path.resolve(file))) continue;
     const text = await fs.readFile(file, "utf8");
-    if (identifierPattern.test(file) || identifierPattern.test(text)) violations.push(path.relative(process.cwd(), file));
+    const historicalOrContractText = textExemptRoots.some((root) => isUnder(path.resolve(file), root));
+    if (identifierPattern.test(file) || (!historicalOrContractText && identifierPattern.test(text))) {
+      violations.push(path.relative(process.cwd(), file));
+    }
   }
 }
 

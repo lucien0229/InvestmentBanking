@@ -1,6 +1,6 @@
 # Domain-oriented refactor inventory
 
-**Status:** implementation refactor and development reset complete
+**Status:** implementation refactor integrated on `main`; development compatibility rollout pending
 **Scope:** all implemented delivery Tickets in the InvestmentBanking repository; no production database or deployment changes.
 
 ## Baseline
@@ -40,10 +40,10 @@
 ### Database and migrations (repository baseline and remote reset resolved)
 
 - The pre-reset database contained the legacy packet command functions and 16 Ticket-labelled policies; the rebuilt database contains none of them.
-- Migration SQL now uses domain comments, policy names, advisory-lock namespaces, parser identities, and display/version strings.
+- The first 16 migration files remain immutable ledger history; the forward-only `20260903000000_domainize_source_command_objects.sql` migration carries the command-object rename without rewriting applied SQL.
 - Deal, Source Intake, Web Evidence, Account Template, and Source Packet runtime values are domain-named.
 - The command idempotency table/functions are now `source.packet_command_idempotency`, `source.packet_command_replay`, and `source.packet_command_record`.
-- The development branch has the canonical 16 migration versions `20260830000000` through `20260830150000`, and the rebuilt database ledger matches them exactly.
+- The development branch evidence covers the canonical 16 migration versions `20260830000000` through `20260830150000`; `main` now adds the forward-only compatibility migration and still needs the development migration gate to claim that rollout.
 - The current repository has one active migration directory, `supabase/migrations/`; the older `db/migrations/` path exists only in Git history and must not be recreated.
 
 ### Evidence and history
