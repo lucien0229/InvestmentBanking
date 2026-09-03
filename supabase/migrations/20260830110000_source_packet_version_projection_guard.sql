@@ -1,4 +1,4 @@
--- Source Packets and Governance: an exact-version read must not expose the packet's newer
+-- Ticket 08: an exact-version read must not expose the packet's newer
 -- current Output Ceiling, Work Objective, impact candidates, or circulation
 -- block as if they belonged to the requested historical version.
 CREATE OR REPLACE FUNCTION source.get_source_packet_version_projection(

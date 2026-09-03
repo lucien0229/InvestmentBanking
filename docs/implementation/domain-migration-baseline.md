@@ -1,6 +1,6 @@
 # Domain migration baseline
 
-**Status: applied to development**
+**Status: integrated on `main`; development compatibility rollout pending**
 
 This file defines the development-database baseline for the product after the
 implementation is reorganized by business domain. Delivery Tickets remain
@@ -28,14 +28,16 @@ without changing table semantics while the implementation is de-ticketized:
 14. `20260830130000_source_condition_reliance_guard.sql` — Condition/reliance integrity guards
 15. `20260830140000_source_packet_preflight_cap.sql` — Packet preflight and output caps
 16. `20260830150000_source_packet_idempotency_retention.sql` — Command retention
+17. `20260903000000_domainize_source_command_objects.sql` — Forward-only command-object domain rename
 
-The files keep their timestamp ordering because later migrations depend on
-objects created earlier. The names and SQL contents are domain-oriented; no
-new Ticket-shaped migration is added.
+The first sixteen files are immutable history and must not be edited after
+they have been recorded in a migration ledger. The seventeenth migration
+renames the already-created Ticket 08 command table/functions/policy to their
+domain names on both existing and fresh databases.
 
 ## Object naming changes
 
-- `source.ticket08_command_idempotency` becomes
+- `source.source_packet_command_idempotency` becomes
   `source.packet_command_idempotency`.
 - `source.ticket08_command_replay(...)` becomes
   `source.packet_command_replay(...)`.
@@ -53,18 +55,22 @@ new Ticket-shaped migration is added.
 After the development database is cleared and rebuilt, validation must show:
 
 - every product table remains forced-RLS and has an owner-safe access path;
-- no current database function, policy, table, or migration contains a
-  Ticket-shaped identifier;
+- no current database function, policy, or table contains a Ticket-shaped
+  identifier (immutable historical migration SQL may retain legacy names);
 - packet command replay/record calls and idempotency rows use the renamed
   `packet_*` objects;
-- the migration ledger contains exactly the 16 files above in order; and
+- the migration ledger contains the 16 immutable historical files followed by
+  `20260903000000_domainize_source_command_objects.sql`; and
 - application, HTTP, and contract tests address product capabilities and
   domains rather than delivery-ticket names.
 
 ## Development application evidence
 
 On 2026-09-02 the development Supabase branch was cleared and rebuilt from
-these files. The migration ledger now contains exactly the 16 versions above;
+the first 16 files. The migration ledger contains those versions; the new
+forward-only compatibility migration is integrated on `main` and still needs
+to run through the development migration gate before this domain rename is
+claimed as deployed evidence.
 80 product tables were recreated, all with forced RLS, and the rebuilt product
 schemas contain no table, function, or policy whose name contains `ticket`.
 The only expected row after the rebuild is the durable-worker principal

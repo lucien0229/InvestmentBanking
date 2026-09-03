@@ -1,4 +1,4 @@
--- Source Packet projection hardening: a packet projection must be null for an unknown packet,
+-- Ticket 08 hardening: a packet projection must be null for an unknown packet,
 -- never a fabricated empty projection derived from the requested UUID.
 CREATE OR REPLACE FUNCTION source.get_source_packet_projection(
   p_account_id uuid, p_actor_id uuid, p_deal_id uuid, p_packet_id uuid

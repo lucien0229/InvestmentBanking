@@ -11,16 +11,16 @@ Ticket 08 only: exact Source Packet roots and immutable versions, purpose-bound 
 - `supabase/migrations/20260830070000_source_packet_output_ceiling.sql` adds the forced-RLS packet/version/member/exclusion, Work Objective, Output Ceiling, condition, rights, impact, and circulation-control tables plus definer procedures and immutable triggers.
 - `supabase/migrations/20260830080000_source_packet_projection_guard.sql` and `20260830110000_source_packet_version_projection_guard.sql` keep unknown packets non-enumerating and make an exact-version read use that version's own ceiling/objective/impact/circulation state.
 - `supabase/migrations/20260830100000_source_reliance_assessment.sql` and `20260830130000_source_condition_reliance_guard.sql` persist purpose-bound reliance assessments and remove prospective reliance on withdrawal, stale, conflict, or blocked rights changes.
-- `supabase/migrations/20260830120000_source_packet_command_idempotency.sql` and `20260830150000_source_packet_idempotency_retention.sql` provide durable digest-checked command replay for Ticket 08 mutations with a 30-day replay window.
+- `supabase/migrations/20260830120000_source_packet_command_idempotency.sql` and `20260830150000_source_packet_idempotency_retention.sql` provide durable digest-checked command replay for Ticket 08 mutations with a 30-day replay window. The forward-only `20260903000000_domainize_source_command_objects.sql` migration exposes those objects under domain names without rewriting the immutable history.
 - `supabase/migrations/20260830140000_source_packet_preflight_cap.sql` caps packet ceilings to the current limited-proceed Paid Preflight posture.
-- `apps/api/src/ticket08.ts` registers the scoped packet/version/objective/condition/rights APIs, required `If-Match`/`Idempotency-Key` headers, RFC 9457 problems, private no-store responses, and replay headers.
+- `apps/api/src/source-packet-routes.ts` registers the scoped packet/version/objective/condition/rights APIs, required `If-Match`/`Idempotency-Key` headers, RFC 9457 problems, private no-store responses, and replay headers.
 - `apps/web/app/app/deals/[deal_id]/sources/page.tsx` renders the exact packet boundary, source version/member posture, freshness/conflict/coverage, Output Ceiling, Work Objective, blockers, exclusions, recovery actions, and an inspect-only synthetic fallback. UUID routes do not silently fall back to synthetic data.
 - `contracts/openapi.json` and `packages/contracts/generated/openapi.ts` declare the routes, schemas, If-Match and Idempotency-Key requirements.
 
 ## Verification
 
-- `npm run db:migrate` — all migrations through `0015-source-packet-idempotency-retention.sql` applied successfully on the local PostgreSQL instance.
-- `npm exec tsx -- --test tests/http/source-packet-output-ceiling.http.test.ts tests/unit/ticket08-rls.contract.test.ts` — 3 tests passed, 0 failed. This covers exact membership/version history, immutable mutation rejection, stale/withdrawn conditions, prospective reliance removal, circulation blocking, stale `If-Match`, rights blocking, worker ceiling denial, idempotent replay, forced RLS, and contract declarations.
+- `npm run db:migrate` — all migrations through `20260903000000_domainize_source_command_objects.sql` applied successfully on the local PostgreSQL instance; the pre-existing migration ledger remained drift-free.
+- `npm exec tsx -- --test tests/http/source-packet.http.test.ts tests/unit/source-packet-rls.contract.test.ts` — 3 tests passed, 0 failed. This covers exact membership/version history, immutable mutation rejection, stale/withdrawn conditions, prospective reliance removal, circulation blocking, stale `If-Match`, rights blocking, worker ceiling denial, idempotent replay, forced RLS, and contract declarations.
 - `npm test` — 51 tests passed, 0 failed across Tickets 01–08.
 - `npm exec tsc -- --noEmit` — passed.
 - `npm run contracts:generate && npm run contracts:check` — passed.

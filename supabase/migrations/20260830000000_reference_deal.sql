@@ -6,11 +6,7 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'app_runtime') THEN
     CREATE ROLE app_runtime LOGIN PASSWORD 'app_runtime_dev';
   END IF;
-  -- Managed Supabase exposes a non-superuser migration owner. A role created
-  -- here defaults to NOSUPERUSER; changing that attribute for an existing
-  -- managed role is prohibited, so enforce only the attributes this owner can
-  -- safely alter.
-  ALTER ROLE app_runtime NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS;
+  ALTER ROLE app_runtime NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS;
 END
 $$;
 

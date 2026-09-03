@@ -1,4 +1,4 @@
--- Source Intake: Deal-bound quarantine uploads, immutable Source Records, and the
+-- Ticket 06: Deal-bound quarantine uploads, immutable Source Records, and the
 -- protected-object data plane. Runtime writes go through the typed definer
 -- procedures below; app_runtime receives no direct write authority.
 
@@ -11,7 +11,7 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'app_source_owner') THEN
     CREATE ROLE app_source_owner NOLOGIN NOINHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE BYPASSRLS;
   ELSE
-    ALTER ROLE app_source_owner NOLOGIN NOINHERIT NOCREATEDB NOCREATEROLE BYPASSRLS;
+    ALTER ROLE app_source_owner NOLOGIN NOINHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE BYPASSRLS;
   END IF;
 END
 $$;
@@ -395,10 +395,10 @@ BEGIN
   SELECT coalesce(max(version_ordinal),0)+1 INTO ordinal FROM source.source_record WHERE source_material_id=p_source_material_id;
   SELECT * INTO previous FROM source.source_record WHERE source_material_id=p_source_material_id ORDER BY version_ordinal DESC LIMIT 1;
   INSERT INTO object_store.protected_object(id,account_id,deal_id,storage_key,plaintext_sha256,ciphertext_sha256,byte_length,media_type,envelope_version,kms_key_version,wrapped_dek) VALUES (object_id,p_account_id,p_deal_id,p_storage_key,p_plaintext_sha256,p_ciphertext_sha256,p_byte_length,p_media_type,p_envelope_version,p_kms_key_version,p_wrapped_dek);
-  INSERT INTO source.processing_coverage(id,account_id,deal_id,source_record_id,coverage_code,parser_identity,coverage_payload) VALUES (coverage_id,p_account_id,p_deal_id,record_id,'original_bytes_only','source-safety-scanner-v1',jsonb_build_object('original_bytes',true,'substantive_parsing',false,'ai',false,'rendering',false,'limitations',p_limitations));
+  INSERT INTO source.processing_coverage(id,account_id,deal_id,source_record_id,coverage_code,parser_identity,coverage_payload) VALUES (coverage_id,p_account_id,p_deal_id,record_id,'original_bytes_only','ticket06-safety-scanner-v1',jsonb_build_object('original_bytes',true,'substantive_parsing',false,'ai',false,'rendering',false,'limitations',p_limitations));
   INSERT INTO source.source_record(id,account_id,deal_id,source_material_id,version_ordinal,version_label,origin_code,acquisition_method,authority_basis,provenance_class,confidentiality_class,de_identification_posture,rights_posture,rights_basis,content_sha256,byte_length,media_type,record_date,received_at,accepted_at,native_locator_profile_code,native_locator_profile_version,provenance_receipt,limitations,supersedes_id,accepted_upload_id)
     VALUES (record_id,p_account_id,p_deal_id,p_source_material_id,ordinal,coalesce(NULLIF(btrim(p_version_label),''),'v'||ordinal::text),'client_supplied','resumable_tus_quarantine',p_authority_basis,p_provenance_class,p_confidentiality_class,p_de_identification_posture,p_rights_posture,jsonb_build_object('basis',p_authority_basis,'receipt_permitted',receipt_permitted,'processing_operations',q.rights_posture_inputs->'processing_operations','conditions',q.rights_posture_inputs->'conditions'),p_plaintext_sha256,p_byte_length,p_media_type,p_record_date,q.received_at,clock_timestamp(),p_locator_profile_code,p_locator_profile_version,jsonb_build_object('upload_id',q.id,'session_id',q.upload_session_id,'authority_basis',p_authority_basis,'received_at',q.received_at,'accepted_at',clock_timestamp()),coalesce(p_limitations,'[]'::jsonb),NULLIF(previous.id,'00000000-0000-0000-0000-000000000000'),q.id);
-  INSERT INTO source.source_representation(id,account_id,deal_id,source_record_id,protected_object_id,content_sha256,parser_identity,processing_coverage_id) VALUES (representation_id,p_account_id,p_deal_id,record_id,object_id,p_plaintext_sha256,'source-native-profile-v1',coverage_id);
+  INSERT INTO source.source_representation(id,account_id,deal_id,source_record_id,protected_object_id,content_sha256,parser_identity,processing_coverage_id) VALUES (representation_id,p_account_id,p_deal_id,record_id,object_id,p_plaintext_sha256,'ticket06-native-profile-v1',coverage_id);
   INSERT INTO source.accepted_source_object(account_id,deal_id,source_record_id,protected_object_id) VALUES (p_account_id,p_deal_id,record_id,object_id);
   INSERT INTO source.intake_job(id,account_id,deal_id,actor_id,upload_id,source_record_id,job_type,state_code,completed_at) VALUES (new_job,p_account_id,p_deal_id,p_actor_id,q.id,record_id,'source_acceptance','completed',clock_timestamp());
   UPDATE source.quarantined_upload SET status_code='accepted',row_version=row_version+1 WHERE id=q.id;

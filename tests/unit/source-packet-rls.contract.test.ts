@@ -16,8 +16,11 @@ test("source packet migration declares immutable packet, objective, ceiling, and
     "source.get_source_packet_projection",
   ]) assert.match(migration, new RegExp(token.replaceAll(".", "\\.")), token);
   const idempotencyMigration = await fs.readFile("supabase/migrations/20260830120000_source_packet_command_idempotency.sql", "utf8");
-  assert.match(idempotencyMigration, /source\.packet_command_idempotency/);
-  assert.match(idempotencyMigration, /packet_command_replay/);
+  assert.match(idempotencyMigration, /source\.source_packet_command_idempotency/);
+  assert.match(idempotencyMigration, /ticket08_command_replay/);
+  const domainRenameMigration = await fs.readFile("supabase/migrations/20260903000000_domainize_source_command_objects.sql", "utf8");
+  assert.match(domainRenameMigration, /source\.packet_command_idempotency/);
+  assert.match(domainRenameMigration, /packet_command_replay/);
 
   const contract = await fs.readFile("contracts/openapi.json", "utf8");
   for (const token of ["/api/v1/deals/{deal_id}/source-packets", "create_source_packet_version", "get_source_packet_version", "create_work_objective", "create_source_condition_assessment", "create_source_rights_assessment", "SourcePacketVersionCreate", "WorkObjectiveCreate"]) assert.match(contract, new RegExp(token.replace(/[{}]/g, "\\$&")), token);
