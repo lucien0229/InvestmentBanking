@@ -34,4 +34,6 @@ BEGIN
   RETURN QUERY SELECT new_id, false;
 END $$;
 
+GRANT CREATE ON SCHEMA ai TO app_ai_owner;
 ALTER FUNCTION ai.start_run(uuid,uuid,uuid,uuid,uuid,uuid,uuid,text,text,uuid,text,text,text,text,text,text,text,text,text,boolean,boolean,boolean) OWNER TO app_ai_owner;
+REVOKE CREATE ON SCHEMA ai FROM app_ai_owner;

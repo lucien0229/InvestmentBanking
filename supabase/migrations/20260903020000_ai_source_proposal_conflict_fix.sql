@@ -32,4 +32,6 @@ BEGIN
   PERFORM app.record_audit('ai_run_completed','completed','ai_run',p_run_id::text,p_outcome_class,gen_random_uuid()::text);
   RETURN jsonb_build_object('run_id',p_run_id,'replayed',false,'status',p_status_code,'outcome',p_outcome_class);
 END $$;
+GRANT CREATE ON SCHEMA ai TO app_ai_owner;
 ALTER FUNCTION ai.complete_run(uuid,uuid,uuid,uuid,text,text,jsonb,jsonb,jsonb,bytea,bytea,text,text,jsonb,integer,integer) OWNER TO app_ai_owner;
+REVOKE CREATE ON SCHEMA ai FROM app_ai_owner;

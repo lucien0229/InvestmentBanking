@@ -28,4 +28,6 @@ BEGIN
   IF EXISTS (SELECT 1 FROM source.source_rights_current_selection cs JOIN source.source_rights_posture_assessment ra ON ra.id=cs.assessment_id JOIN source.source_packet_member m ON m.source_record_id=cs.source_record_id WHERE cs.account_id=p_account_id AND cs.deal_id=p_deal_id AND cs.purpose_code=purpose_value AND m.packet_version_id=p_packet_version_id AND ra.rights_code='limited' AND NOT (ra.permitted_operations ? p_operation_code)) THEN RAISE EXCEPTION 'output_ceiling_exceeded' USING ERRCODE='42501'; END IF;
   RETURN jsonb_build_object('account_id',p_account_id,'deal_id',p_deal_id,'packet_version_id',p_packet_version_id,'work_objective_id',p_work_objective_id,'operation_code',p_operation_code,'output_ceiling_id',ceiling_row.id,'ceiling_code',ceiling_row.ceiling_code,'members',coalesce((SELECT jsonb_agg(jsonb_build_object('source_record_id',m.source_record_id,'version',r.version_ordinal) ORDER BY m.sort_key,m.created_at) FROM source.source_packet_member m JOIN source.source_record r ON r.id=m.source_record_id WHERE m.packet_version_id=p_packet_version_id),'[]'::jsonb));
 END $$;
+GRANT CREATE ON SCHEMA source TO app_source_owner;
 ALTER FUNCTION source.get_packet_worker_input(uuid,uuid,uuid,uuid,text) OWNER TO app_source_owner;
+REVOKE CREATE ON SCHEMA source FROM app_source_owner;

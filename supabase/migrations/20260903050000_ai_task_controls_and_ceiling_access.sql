@@ -73,6 +73,8 @@ END $$;
 
 REVOKE ALL ON FUNCTION ai.suspend_task(uuid,text), ai.enable_task(uuid,text), ai.rollback_task(uuid,uuid,text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION ai.suspend_task(uuid,text), ai.enable_task(uuid,text), ai.rollback_task(uuid,uuid,text) TO app_ai_owner;
+GRANT CREATE ON SCHEMA ai TO app_ai_owner;
 ALTER FUNCTION ai.suspend_task(uuid,text) OWNER TO app_ai_owner;
 ALTER FUNCTION ai.enable_task(uuid,text) OWNER TO app_ai_owner;
 ALTER FUNCTION ai.rollback_task(uuid,uuid,text) OWNER TO app_ai_owner;
+REVOKE CREATE ON SCHEMA ai FROM app_ai_owner;

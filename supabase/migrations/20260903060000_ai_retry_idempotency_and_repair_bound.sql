@@ -49,4 +49,6 @@ END $$;
 
 REVOKE ALL ON FUNCTION ai.record_retry(uuid,uuid,uuid,uuid,text,text, text,text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION ai.record_retry(uuid,uuid,uuid,uuid,text,text,text,text) TO app_runtime;
+GRANT CREATE ON SCHEMA ai TO app_ai_owner;
 ALTER FUNCTION ai.record_retry(uuid,uuid,uuid,uuid,text,text,text,text) OWNER TO app_ai_owner;
+REVOKE CREATE ON SCHEMA ai FROM app_ai_owner;

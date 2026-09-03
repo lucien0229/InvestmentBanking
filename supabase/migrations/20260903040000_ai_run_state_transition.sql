@@ -9,4 +9,6 @@ BEGIN
 END $$;
 DROP TRIGGER IF EXISTS ai_run_immutable ON ai.run;
 CREATE TRIGGER ai_run_immutable BEFORE UPDATE OR DELETE ON ai.run FOR EACH ROW EXECUTE FUNCTION ai.prevent_run_mutation();
+GRANT CREATE ON SCHEMA ai TO app_ai_owner;
 ALTER FUNCTION ai.prevent_run_mutation() OWNER TO app_ai_owner;
+REVOKE CREATE ON SCHEMA ai FROM app_ai_owner;

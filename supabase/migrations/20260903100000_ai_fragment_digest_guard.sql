@@ -15,4 +15,6 @@ DROP TRIGGER IF EXISTS ai_fragment_digest_guard ON source.source_fragment;
 CREATE TRIGGER ai_fragment_digest_guard
   BEFORE INSERT OR UPDATE ON source.source_fragment
   FOR EACH ROW EXECUTE FUNCTION source.validate_fragment_digest();
+GRANT CREATE ON SCHEMA source TO app_ai_owner;
 ALTER FUNCTION source.validate_fragment_digest() OWNER TO app_ai_owner;
+REVOKE CREATE ON SCHEMA source FROM app_ai_owner;

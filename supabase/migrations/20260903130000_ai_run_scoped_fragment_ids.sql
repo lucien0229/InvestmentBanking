@@ -19,6 +19,7 @@ BEGIN
   UPDATE ai.run SET status_code='running', outcome_class='running' WHERE id=p_run_id;
   RETURN true;
 END $$;
+GRANT CREATE ON SCHEMA ai TO app_ai_owner;
 ALTER FUNCTION ai.attach_run_fragments(uuid,uuid,uuid,uuid,jsonb) OWNER TO app_ai_owner;
 
 CREATE OR REPLACE FUNCTION ai.get_run_projection(p_account_id uuid,p_actor_id uuid,p_deal_id uuid,p_run_id uuid)
@@ -37,3 +38,4 @@ SELECT CASE WHEN r.id IS NULL THEN NULL ELSE jsonb_build_object(
 ) END FROM ai.run r WHERE r.id=p_run_id AND r.account_id=p_account_id AND r.deal_id=p_deal_id AND p_account_id=app.policy_account_id() AND p_actor_id=app.policy_actor_id();
 $$;
 ALTER FUNCTION ai.get_run_projection(uuid,uuid,uuid,uuid) OWNER TO app_ai_owner;
+REVOKE CREATE ON SCHEMA ai FROM app_ai_owner;

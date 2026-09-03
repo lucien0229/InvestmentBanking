@@ -29,4 +29,6 @@ DROP TRIGGER IF EXISTS ai_task_definition_immutable ON ai.task_definition;
 CREATE TRIGGER ai_task_definition_immutable BEFORE UPDATE OR DELETE ON ai.task_definition FOR EACH ROW EXECUTE FUNCTION ai.prevent_contract_definition_mutation();
 DROP TRIGGER IF EXISTS ai_prompt_package_immutable ON ai.prompt_package;
 CREATE TRIGGER ai_prompt_package_immutable BEFORE UPDATE OR DELETE ON ai.prompt_package FOR EACH ROW EXECUTE FUNCTION ai.prevent_contract_definition_mutation();
+GRANT CREATE ON SCHEMA ai TO app_ai_owner;
 ALTER FUNCTION ai.prevent_contract_definition_mutation() OWNER TO app_ai_owner;
+REVOKE CREATE ON SCHEMA ai FROM app_ai_owner;

@@ -13,6 +13,9 @@ END $$;
 
 GRANT app_ai_owner TO postgres;
 GRANT USAGE ON SCHEMA app, source, jobs, ai TO app_ai_owner;
+-- Managed Supabase's non-superuser `postgres` role requires the target owner
+-- to hold CREATE on the containing schema during ownership transfer.
+GRANT CREATE ON SCHEMA ai TO app_ai_owner;
 GRANT EXECUTE ON FUNCTION app.policy_account_id(), app.policy_actor_id(), app.policy_deal_id(), app.record_audit(text,text,text,text,text,text) TO app_ai_owner;
 
 CREATE UNIQUE INDEX IF NOT EXISTS source_representation_account_id_uq ON source.source_representation(account_id, id);
@@ -441,3 +444,4 @@ ALTER FUNCTION ai.complete_run(uuid,uuid,uuid,uuid,text,text,jsonb,jsonb,jsonb,b
 ALTER FUNCTION ai.get_run_projection(uuid,uuid,uuid,uuid) OWNER TO app_ai_owner;
 ALTER FUNCTION ai.record_retry(uuid,uuid,uuid,uuid,text,text) OWNER TO app_ai_owner;
 ALTER FUNCTION ai.prevent_immutable_mutation() OWNER TO app_ai_owner;
+REVOKE CREATE ON SCHEMA ai FROM app_ai_owner;
