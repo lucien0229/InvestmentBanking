@@ -1,6 +1,6 @@
 # Ticket 08 implementation evidence
 
-Status: local implementation complete; development web/API release switched on the authorized host, and all nine Ticket 08 migrations were applied to the development Supabase branch by the GitHub Actions migration gate on 2026-09-02. The authorized host still uses a runtime-only database credential; it was not used for migrations.
+Status: `resolved for the authorized development boundary`; local implementation complete, development web/API release switched on the authorized host, and all nine Ticket 08 migrations were applied to the development Supabase branch by the GitHub Actions migration gate on 2026-09-02. The authorized host still uses a runtime-only database credential; it was not used for migrations.
 
 ## Scope
 
