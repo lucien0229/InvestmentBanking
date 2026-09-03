@@ -1,6 +1,6 @@
 # Domain-oriented refactor inventory
 
-**Status:** implementation refactor and development reset complete  
+**Status:** implementation refactor and development reset complete
 **Scope:** all implemented delivery Tickets in the InvestmentBanking repository; no production database or deployment changes.
 
 ## Baseline
