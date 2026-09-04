@@ -10,9 +10,9 @@
   "$defs": {
     "result": {
       "type": "object", "additionalProperties": false,
-      "required": ["candidate_key", "payload", "evidence_links", "support_status", "conflicts", "uncertainty_flags", "limitations", "required_human_decision"],
+      "required": ["candidate_key", "origin", "payload", "evidence_links", "support_status", "conflicts", "uncertainty_flags", "limitations", "required_human_decision"],
       "properties": {
-        "candidate_key": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$"}, "payload": {"$ref": "#/$defs/payload"},
+        "candidate_key": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$"}, "origin": {"const": "ai_generated"}, "payload": {"$ref": "#/$defs/payload"},
         "evidence_links": {"type": "array", "maxItems": 30, "items": {"$ref": "../../generated/common.schema.json#/$defs/EvidenceLink"}}, "support_status": {"$ref": "../../generated/common.schema.json#/$defs/SupportStatus"},
         "conflicts": {"type": "array", "maxItems": 20, "items": {"$ref": "../../generated/common.schema.json#/$defs/Conflict"}}, "uncertainty_flags": {"type": "array", "maxItems": 20, "items": {"$ref": "../../generated/common.schema.json#/$defs/UncertaintyFlag"}}, "limitations": {"type": "array", "maxItems": 20, "items": {"$ref": "../../generated/common.schema.json#/$defs/Limitation"}},
         "required_human_decision": {"anyOf": [{"$ref": "../../generated/common.schema.json#/$defs/RequiredHumanDecision"}, {"type": "null"}]}

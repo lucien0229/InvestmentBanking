@@ -5,6 +5,7 @@ import { canonicalDigest } from "./commerce.js";
 import { Database } from "./database.js";
 import {
   AI_OUTPUT_SCHEMA_VERSION,
+  AI_ORIGIN,
   buildAiInputEnvelope,
   canRouteMaterial,
   detectRepairSemanticChange,
@@ -41,6 +42,45 @@ export interface AiProvider {
   invoke(input: { taskDefinition: TaskDefinition; envelope: AiInputEnvelope; fragments: AiSourceFragment[] }): Promise<{ response: unknown; providerRequestId: string; model: string; usage: Record<string, unknown>; costMinorUnits: number }>;
 }
 
+/** OpenAI-compatible HelloX provider used only when an API key is configured. */
+export class HelloXAiProvider implements AiProvider {
+  readonly providerCode = "hellox" as const;
+  private readonly baseUrl: string;
+  private readonly apiKey: string;
+  private readonly model: string;
+
+  constructor(options: { baseUrl?: string; apiKey?: string; model?: string } = {}) {
+    this.baseUrl = (options.baseUrl ?? process.env.HELLOX_BASE_URL ?? "https://www.hellox.cloud").replace(/\/$/, "");
+    this.apiKey = options.apiKey ?? process.env.HELLOX_API_KEY ?? "";
+    this.model = options.model ?? process.env.HELLOX_MODEL ?? "gpt-5.4-mini";
+  }
+
+  async invoke(input: { taskDefinition: TaskDefinition; envelope: AiInputEnvelope; fragments: AiSourceFragment[] }) {
+    if (!this.apiKey) throw new Error("ai_provider_unconfigured");
+    const system = [
+      "You are a proposal-only source-analysis worker.",
+      "Return one JSON object and no markdown.",
+      "Never invent facts, authority, approvals, decisions, or locators.",
+      "Every result must include origin=ai_generated and only cite the supplied run_fragment_id values.",
+      `The task is ${input.taskDefinition}. Follow the task contract exactly.`,
+    ].join(" ");
+    const user = JSON.stringify({ envelope: input.envelope, fragments: input.fragments.map((fragment) => ({ run_fragment_id: fragment.run_fragment_id, locator: fragment.locator, content_text: fragment.content_text })) });
+    const response = await fetch(`${this.baseUrl}/v1/chat/completions`, {
+      method: "POST",
+      headers: { authorization: `Bearer ${this.apiKey}`, "content-type": "application/json" },
+      body: JSON.stringify({ model: this.model, temperature: 0, response_format: { type: "json_object" }, messages: [{ role: "system", content: system }, { role: "user", content: user }] }),
+      signal: AbortSignal.timeout(600_000),
+    });
+    if (!response.ok) throw new Error("ai_provider_request_failed");
+    const body = await response.json() as { id?: string; model?: string; usage?: Record<string, unknown>; choices?: Array<{ message?: { content?: string | null } }> };
+    const content = body.choices?.[0]?.message?.content;
+    if (!content) throw new Error("ai_provider_empty_response");
+    let parsed: unknown;
+    try { parsed = JSON.parse(content.replace(/^```json\s*/i, "").replace(/\s*```$/i, "")); } catch { throw new Error("ai_provider_invalid_json"); }
+    return { response: parsed, providerRequestId: body.id ?? `hellox-${crypto.randomUUID()}`, model: body.model ?? this.model, usage: body.usage ?? {}, costMinorUnits: 0 };
+  }
+}
+
 export interface AiSourceProposalRuntimeOptions {
   provider?: AiProvider;
 }
@@ -68,7 +108,7 @@ export class SyntheticAiProvider implements AiProvider {
     const results: AiOutput["results"] = [];
     if (taskDefinition === "source_claim_extraction") {
       eligible.forEach((fragment, index) => results.push({
-        candidate_key: `claim-${index + 1}`,
+        candidate_key: `claim-${index + 1}`, origin: AI_ORIGIN,
         payload: { proposition: fragment.content_text.slice(0, 2000), attribution: "source_fragment", definition: "source statement (unclassified)", period: "unknown", unit: "not_applicable", currency: "not_applicable", sign: "unknown", value: null, text: fragment.content_text.slice(0, 2000), source_fragment_id: fragmentRef(fragment), qualification: "Requires Banker review; this is not a Fact." },
         evidence_links: [{ fragment_id: fragmentRef(fragment), relationship: "supports", proposition_scope: "The exact source statement supplied in this fragment.", qualification: null, limitation: "AI does not establish truth, completeness, or professional usability." }],
         support_status: "supported",
@@ -76,7 +116,7 @@ export class SyntheticAiProvider implements AiProvider {
       }));
     } else if (taskDefinition === "claim_evidence_linking") {
       eligible.forEach((fragment, index) => results.push({
-        candidate_key: `evidence-link-${index + 1}`,
+        candidate_key: `evidence-link-${index + 1}`, origin: AI_ORIGIN,
         payload: { proposition_key: fragmentRef(fragment), fragment_id: fragmentRef(fragment), relationship: "supports", supported_scope: fragment.content_text.slice(0, 500), qualification: null, relationship_limitation: "Relationship remains an Evidence Candidate pending deterministic checks." },
         evidence_links: [{ fragment_id: fragmentRef(fragment), relationship: "supports", proposition_scope: fragment.content_text.slice(0, 500), qualification: null, limitation: null }],
         support_status: "supported",
@@ -85,7 +125,7 @@ export class SyntheticAiProvider implements AiProvider {
     } else if (taskDefinition === "material_source_conflict_analysis" && eligible.length >= 2) {
       const refs = eligible.slice(0, 20).map(fragmentRef);
       results.push({
-        candidate_key: "conflict-1",
+        candidate_key: "conflict-1", origin: AI_ORIGIN,
         payload: { conflict_key: "conflict-1", dimension: "meaning", competing_refs: refs, affected_scope: "The competing source statements in this Source Packet.", unresolved_alternatives: ["Statement A may be applicable.", "Statement B may be applicable."], affected_uses: ["internal_analysis", "controlled_export"] },
         evidence_links: refs.map((fragmentId) => ({ fragment_id: fragmentId, relationship: "challenges" as const, proposition_scope: "Competing source statement.", qualification: null, limitation: "No winner selected." })),
         support_status: "conflicted",
@@ -121,7 +161,9 @@ function problem(reply: FastifyReply, status: number, code: string, detail: stri
 function errorMessage(error: unknown) { return error && typeof error === "object" && "message" in error ? String(error.message) : String(error); }
 
 function encrypted(value: unknown): Buffer {
-  const key = crypto.createHash("sha256").update(process.env.AI_RUN_PROTECTED_KEY ?? "local-ai-run-protected-key-v1").digest();
+  const configuredKey = process.env.AI_RUN_PROTECTED_KEY;
+  if (!configuredKey && process.env.APP_ENV !== "test" && process.env.NODE_ENV !== "test") throw new Error("ai_protected_key_unconfigured");
+  const key = crypto.createHash("sha256").update(configuredKey ?? "test-only-ai-run-protected-key").digest();
   const iv = crypto.randomBytes(12); const cipher = crypto.createCipheriv("aes-256-gcm", key, iv); const body = Buffer.concat([cipher.update(JSON.stringify(value), "utf8"), cipher.final()]);
   return Buffer.concat([Buffer.from("IBAI1"), iv, cipher.getAuthTag(), body]);
 }
@@ -138,56 +180,66 @@ function asFragment(row: Record<string, unknown>): AiSourceFragment {
 }
 
 export function registerAiSourceProposalRoutes(api: FastifyInstance, database: Database, deps: RouteDeps, options: AiSourceProposalRuntimeOptions = {}) {
-  const provider = options.provider ?? new SyntheticAiProvider();
+  const provider = options.provider ?? (process.env.HELLOX_API_KEY ? new HelloXAiProvider() : new SyntheticAiProvider());
   const startAiRunHandler = async (request: FastifyRequest<{ Params: { deal_id: string; work_objective_id?: string } }>, reply: FastifyReply) => {
     const dealId = uuid.parse(request.params.deal_id); const session = await deps.requireBanker(request, reply); if (!session) return; const key = deps.commandKey(request, reply); if (!key) return; const body = startSchema.parse(request.body);
     if (request.params.work_objective_id && request.params.work_objective_id !== body.work_objective_id) return problem(reply, 409, "ai_objective_scope_mismatch", "The path Work Objective does not match the requested AI scope.", "use_one_work_objective", request.url);
     const requestDigest = canonicalDigest({ method: "POST", route: request.params.work_objective_id ? "/api/v1/deals/{deal_id}/work-objectives/{work_objective_id}/ai-runs" : "/api/v1/deals/{deal_id}/ai-runs", api_version: "v1", deal_id: dealId, work_objective_id: body.work_objective_id, body });
     try {
       const result = await database.withContext(session, dealId, async (client, context) => {
+        const environmentCode = process.env.APP_ENV === "production" ? "production" : process.env.APP_ENV === "development" ? "development" : "local";
+        const providerProfileId = environmentCode === "local" ? "hellox-source-proposals-v1" : `hellox-source-proposals-${environmentCode}-v1`;
+        const releaseId = process.env.RELEASE_ID ?? process.env.APP_RELEASE_ID ?? "dev-working-tree";
+        const contextPlanVersion = "1.0.0";
         await client.query("SELECT source.get_packet_worker_input($1,$2,$3,$4,$5)", [context.accountId, dealId, body.packet_version_id, body.work_objective_id, "ai_processing"]);
         const rows = await client.query<Record<string, unknown>>(`SELECT f.id AS fragment_id,f.source_record_id,r.version_ordinal AS source_record_version,r.content_sha256 AS source_record_digest,f.representation_id,rep.content_sha256 AS representation_digest,f.locator,f.content_sha256 AS content_digest,f.content_text,f.coverage_code,r.provenance_class,r.confidentiality_class,r.de_identification_posture,coalesce((SELECT cs.assessment_id::text FROM source.source_rights_current_selection cs WHERE cs.source_record_id=r.id AND cs.purpose_code=(SELECT purpose_code FROM source.source_packet_version WHERE id=$2) ORDER BY cs.updated_at DESC LIMIT 1),'not-recorded') AS rights_assessment_id FROM source.source_packet_member m JOIN source.source_fragment f ON f.source_record_id=m.source_record_id JOIN source.source_record r ON r.id=f.source_record_id JOIN source.source_representation rep ON rep.id=f.representation_id WHERE m.packet_version_id=$2 AND m.account_id=$1 AND m.deal_id=$3 ORDER BY m.sort_key,f.created_at`, [context.accountId, body.packet_version_id, dealId]);
         const fragments = rows.rows.map((row) => ({ ...asFragment(row), run_fragment_id: crypto.randomUUID() })); const material = materialFromFragments(fragments);
         const materialClasses = new Set(fragments.map((fragment) => `${fragment.provenance_class}:${fragment.confidentiality_class}:${fragment.de_identification_posture}`));
         if (materialClasses.size > 1) throw new Error("ai_material_classification_mismatch");
-        const profile = await client.query<{ capability_verified: boolean; processing_evidence_verified: boolean; restricted_approved: boolean }>("SELECT capability_verified,processing_evidence_verified,restricted_approved FROM ai.provider_capability_profile WHERE id='hellox-source-proposals-v1' AND environment_code='local'");
+        const profile = await client.query<{ capability_verified: boolean; processing_evidence_verified: boolean; restricted_approved: boolean }>("SELECT capability_verified,processing_evidence_verified,restricted_approved FROM ai.provider_capability_profile WHERE id=$1 AND environment_code=$2 AND lifecycle_status='enabled'", [providerProfileId, environmentCode]);
         const capability = profile.rows[0] ?? { capability_verified: false, processing_evidence_verified: false, restricted_approved: false };
         if (!canRouteMaterial(material, { provider: provider.providerCode, capabilityVerified: capability.capability_verified, processingEvidenceVerified: capability.processing_evidence_verified, restrictedApproved: capability.restricted_approved })) throw new Error("ai_provider_capability_blocked");
-        const task = await client.query<{ task_definition_version: string; prompt_package_id: string }>("SELECT t.task_definition_version,p.id AS prompt_package_id FROM ai.task_definition t JOIN ai.prompt_package p ON p.task_definition=t.task_definition AND p.package_version='1.0.0' JOIN ai.task_enablement e ON e.task_definition=t.task_definition AND e.task_definition_version=t.task_definition_version AND e.prompt_package_id=p.id AND e.provider_profile_id='hellox-source-proposals-v1' AND e.environment_code='local' AND e.provenance_class=$2 AND e.confidentiality_class=$3 AND e.status_code='enabled' WHERE t.task_definition=$1 AND t.lifecycle_status='enabled' AND p.lifecycle_status='enabled'", [body.task_definition, material.provenanceClass, material.confidentialityClass]);
+        const task = await client.query<{ task_definition_version: string; prompt_package_id: string; package_version: string; input_contract_version: string; output_contract_version: string; ai_evidence_policy_version: string }>("SELECT t.task_definition_version,p.id AS prompt_package_id,p.package_version,t.input_contract_version,t.output_contract_version,p.ai_evidence_policy_version FROM ai.task_definition t JOIN ai.prompt_package p ON p.task_definition=t.task_definition AND p.task_definition_version=t.task_definition_version AND p.package_version='1.0.0' JOIN ai.task_enablement e ON e.task_definition=t.task_definition AND e.task_definition_version=t.task_definition_version AND e.prompt_package_id=p.id AND e.provider_profile_id=$5 AND e.environment_code=$4 AND e.provenance_class=$2 AND e.confidentiality_class=$3 AND e.status_code='enabled' WHERE t.task_definition=$1 AND t.lifecycle_status='enabled' AND p.lifecycle_status='enabled'", [body.task_definition, material.provenanceClass, material.confidentialityClass, environmentCode, providerProfileId]);
         if (!task.rows[0]) throw new Error("ai_task_disabled");
-        const envelope = buildAiInputEnvelope({ taskDefinition: body.task_definition, taskDefinitionVersion: task.rows[0].task_definition_version, promptPackageVersion: "1.0.0", inputContractVersion: "1.0.0", outputContractVersion: "1.0.0", aiEvidencePolicyVersion: "1.0.0", contextPlanVersion: "1.0.0", accountId: context.accountId, dealId, jobId: body.job_id, jobScopeId: body.job_scope_id, packetVersionId: body.packet_version_id, workObjective: body.work_objective_id, intendedUse: "internal_analysis", audience: "individual_banker", materialClassification: { provenanceClass: material.provenanceClass, confidentialityClass: material.confidentialityClass, deIdentificationPosture: material.deIdentificationPosture, assessmentIds: material.rightsAssessmentIds }, rightsAssessmentId: material.rightsAssessmentId, fragments: fragments.map((fragment) => ({ id: fragment.run_fragment_id!, sourceRecordId: fragment.source_record_id, sourceRecordVersion: fragment.source_record_version, sourceRecordDigest: fragment.source_record_digest, representationId: fragment.representation_id, representationDigest: fragment.representation_digest, locator: fragment.locator as Record<string, string | number>, contentDigest: fragment.content_digest, coverageCode: fragment.coverage_code })), requiredInputKeys: fragments.map((fragment) => fragment.run_fragment_id!), excludedInputKeys: [], failedInputKeys: [], limits: { maxContextBytes: 120000, maxOutputTokens: 8000, timeoutSeconds: 600, maxCostMinorUnits: 500 } });
-        const started = await client.query<{ run_id: string; idempotent_replayed: boolean }>("SELECT * FROM ai.start_run($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)", [context.accountId, context.actorId, dealId, body.job_id, body.job_scope_id, body.packet_version_id, body.work_objective_id ?? null, body.task_definition, task.rows[0].task_definition_version, task.rows[0].prompt_package_id, "hellox-source-proposals-v1", material.provenanceClass, material.confidentialityClass, material.deIdentificationPosture, envelope.scope.scope_digest, envelope.canonical_input_digest, requestDigest, envelope.request_nonce, Database.hashToken(key), capability.capability_verified, capability.processing_evidence_verified, capability.restricted_approved]);
+        const envelope = buildAiInputEnvelope({ taskDefinition: body.task_definition, taskDefinitionVersion: task.rows[0].task_definition_version, promptPackageVersion: task.rows[0].package_version, inputContractVersion: task.rows[0].input_contract_version, outputContractVersion: task.rows[0].output_contract_version, aiEvidencePolicyVersion: task.rows[0].ai_evidence_policy_version, contextPlanVersion, accountId: context.accountId, dealId, jobId: body.job_id, jobScopeId: body.job_scope_id, packetVersionId: body.packet_version_id, workObjective: body.work_objective_id, intendedUse: "internal_analysis", audience: "individual_banker", materialClassification: { provenanceClass: material.provenanceClass, confidentialityClass: material.confidentialityClass, deIdentificationPosture: material.deIdentificationPosture, assessmentIds: material.rightsAssessmentIds }, rightsAssessmentId: material.rightsAssessmentId, fragments: fragments.map((fragment) => ({ id: fragment.run_fragment_id!, sourceRecordId: fragment.source_record_id, sourceRecordVersion: fragment.source_record_version, sourceRecordDigest: fragment.source_record_digest, representationId: fragment.representation_id, representationDigest: fragment.representation_digest, locator: fragment.locator as Record<string, string | number>, contentDigest: fragment.content_digest, coverageCode: fragment.coverage_code })), requiredInputKeys: fragments.map((fragment) => fragment.run_fragment_id!), excludedInputKeys: [], failedInputKeys: [], limits: { maxContextBytes: 120000, maxOutputTokens: 8000, timeoutSeconds: 600, maxCostMinorUnits: 500 } });
+        const contextBytes = Buffer.byteLength(fragments.map((fragment) => fragment.content_text).join("\n"), "utf8");
+        if (contextBytes > envelope.limits.max_context_bytes) throw new Error("output_ceiling_exceeded");
+        const started = await client.query<{ run_id: string; idempotent_replayed: boolean }>("SELECT * FROM ai.start_run_v2($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24)", [context.accountId, context.actorId, dealId, body.job_id, body.job_scope_id, body.packet_version_id, body.work_objective_id ?? null, body.task_definition, task.rows[0].task_definition_version, task.rows[0].prompt_package_id, providerProfileId, environmentCode, material.provenanceClass, material.confidentialityClass, material.deIdentificationPosture, envelope.scope.scope_digest, envelope.canonical_input_digest, requestDigest, envelope.request_nonce, Database.hashToken(key), releaseId, contextPlanVersion, envelope.canonical_input_digest, { provider: provider.providerCode, model: process.env.HELLOX_MODEL ?? "gpt-5.4-mini" }]);
         const run = started.rows[0]; await client.query("SELECT ai.attach_run_fragments($1,$2,$3,$4,$5)", [context.accountId, context.actorId, dealId, run.run_id, JSON.stringify(fragments.map((fragment) => ({ fragment_id: fragment.fragment_id, run_fragment_id: fragment.run_fragment_id })))]);
         if (run.idempotent_replayed) return { runId: run.run_id, replayed: true };
         const startedAt = Date.now(); let providerResult: Awaited<ReturnType<AiProvider["invoke"]>>;
         try { providerResult = await provider.invoke({ taskDefinition: body.task_definition, envelope, fragments }); } catch (error) {
           // A provider failure is not a business abstention. Preserve only the
           // protected failure evidence and deterministic validation outcome.
-          await client.query("SELECT ai.complete_run($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)", [context.accountId, context.actorId, dealId, run.run_id, "failed", "provider_failure", "[]", "[]", JSON.stringify([{ stage: "provider", code: errorMessage(error), outcome: "failed" }]), encrypted({ request: envelope.canonical_input_digest }), encrypted({ error: errorMessage(error) }), null, null, {}, null, Date.now() - startedAt]);
-          throw new Error("ai_provider_failure");
+          await client.query("SELECT ai.complete_run_v2($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)", [context.accountId, context.actorId, dealId, run.run_id, "failed", "provider_failure", "[]", "[]", "[]", JSON.stringify([{ stage: "provider", code: "provider_request_failed", outcome: "failed" }]), encrypted({ request_digest: requestDigest, input_digest: envelope.canonical_input_digest }), encrypted({ error_code: "provider_request_failed" }), null, null, {}, null, Date.now() - startedAt, null]);
+          return { runId: run.run_id, replayed: false, failureCode: "ai_provider_failure" };
         }
         const output = providerResult.response as AiOutput; const validation = validateAiOutput(output, envelope);
         if (!validation.ok) {
-          await client.query("SELECT ai.complete_run($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)", [context.accountId, context.actorId, dealId, run.run_id, "failed", "contract_failure", "[]", "[]", JSON.stringify([{ stage: "schema", code: validation.code, json_pointer: validation.pointer, outcome: "failed" }]), encrypted({ request: envelope.canonical_input_digest }), encrypted(output), providerResult.providerRequestId, providerResult.model, providerResult.usage, providerResult.costMinorUnits, Date.now() - startedAt]);
-          throw new Error(`ai_contract_failure:${validation.code}`);
+          await client.query("SELECT ai.complete_run_v2($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)", [context.accountId, context.actorId, dealId, run.run_id, "failed", "contract_failure", "[]", "[]", "[]", JSON.stringify([{ stage: "schema", code: validation.code, json_pointer: validation.pointer, outcome: "failed" }]), encrypted({ request_digest: requestDigest, input_digest: envelope.canonical_input_digest }), encrypted({ response: output }), providerResult.providerRequestId, providerResult.model, providerResult.usage, providerResult.costMinorUnits, Date.now() - startedAt, stableDigest(output)]);
+          return { runId: run.run_id, replayed: false, failureCode: `ai_contract_failure:${validation.code}` };
         }
         const proposals = output.results.map((item) => {
           const payload = item.payload; const kind = body.task_definition === "source_claim_extraction" ? "claim" : body.task_definition === "claim_evidence_linking" ? "evidence_link" : "conflict";
-          return { candidate_key: item.candidate_key, proposal_kind: kind, schema_version: AI_OUTPUT_SCHEMA_VERSION, payload, payload_digest: stableDigest(payload), support_status: item.support_status, evidence_candidates: item.evidence_links, limitations: item.limitations, unsupported_states: item.uncertainty_flags, required_human_decision: item.required_human_decision };
+          return { candidate_key: item.candidate_key, origin: item.origin, proposal_kind: kind, schema_version: AI_OUTPUT_SCHEMA_VERSION, payload, payload_digest: stableDigest(payload), support_status: item.support_status, evidence_candidates: item.evidence_links, limitations: item.limitations, unsupported_states: item.uncertainty_flags, required_human_decision: item.required_human_decision, conflict: kind === "conflict" ? payload : undefined };
         });
-        await client.query("SELECT ai.complete_run($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)", [context.accountId, context.actorId, dealId, run.run_id, output.status === "abstained" ? "abstained" : "completed", output.status === "abstained" ? "business_abstention" : "succeeded", JSON.stringify(proposals), JSON.stringify(output.abstentions), JSON.stringify([{ stage: "schema", code: "passed", outcome: "passed", normalized_digest: stableDigest(output) }, { stage: "locator", code: "preissued_fragment_ids", outcome: "passed" }, { stage: "permission", code: "proposal_only", outcome: "passed" }]), encrypted({ envelope: envelope.canonical_input_digest }), encrypted(output), providerResult.providerRequestId, providerResult.model, providerResult.usage, providerResult.costMinorUnits, Date.now() - startedAt]);
+        await client.query("SELECT ai.complete_run_v2($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)", [context.accountId, context.actorId, dealId, run.run_id, output.status === "abstained" ? "abstained" : "completed", output.status === "abstained" ? "business_abstention" : "succeeded", JSON.stringify(proposals), JSON.stringify(output.abstentions), JSON.stringify(output.omissions), JSON.stringify([{ stage: "schema", code: "passed", outcome: "passed", normalized_digest: stableDigest(output) }, { stage: "locator", code: "preissued_fragment_ids", outcome: "passed" }, { stage: "permission", code: "proposal_only", outcome: "passed" }]), encrypted({ envelope: envelope.canonical_input_digest }), encrypted(output), providerResult.providerRequestId, providerResult.model, providerResult.usage, providerResult.costMinorUnits, Date.now() - startedAt, stableDigest(output)]);
         return { runId: run.run_id, replayed: false };
       });
       if (result.kind === "invalid") return problem(reply, 401, "session_expired", "The session is no longer valid.", "reauthenticate", request.url);
       if (result.kind === "passkey_required") return problem(reply, 403, "passkey_required", "A Passkey-backed session is required for AI source proposals.", "register_passkey", request.url);
       if (result.kind !== "ok") return problem(reply, 404, "resource_not_found", "The Deal is not available.", "return_to_safe_parent", request.url);
+      if (result.value.failureCode) {
+        if (result.value.failureCode === "ai_provider_failure") return problem(reply, 503, "ai_provider_failure", "The HelloX provider did not return a usable response.", "retry_provider_request", request.url);
+        return problem(reply, 502, "ai_contract_failure", "The provider response did not satisfy the pinned AI contract.", "retry_contract_repair", request.url);
+      }
       const projection = await database.withContext(session, dealId, async (client, context) => (await client.query<{ projection: Record<string, unknown> | null }>("SELECT ai.get_run_projection($1,$2,$3,$4) AS projection", [context.accountId, context.actorId, dealId, result.value.runId])).rows[0]?.projection ?? null);
       if (projection.kind !== "ok" || projection.value === null) return problem(reply, 404, "resource_not_found", "The AI Run is not available.", "return_to_safe_parent", request.url);
       reply.header("Location", `/api/v1/deals/${dealId}/ai-runs/${result.value.runId}`); if (result.value.replayed) reply.header("Idempotent-Replayed", "true");
       return reply.code(result.value.replayed ? 200 : 201).send({ data: projection.value });
     } catch (error) {
       const message = errorMessage(error); const mappings: Record<string, [number, string, string, string]> = { ai_provider_failure: [503, "ai_provider_failure", "The HelloX provider did not return a usable response.", "retry_provider_request"], ai_provider_capability_blocked: [409, "ai_provider_capability_blocked", "The HelloX capability and processing evidence do not permit this material class.", "complete_provider_capability_evidence"], ai_task_disabled: [409, "ai_task_disabled", "This task version is not enabled for the requested run.", "enable_or_restore_task_version"], ai_material_classification_mismatch: [409, "ai_material_classification_mismatch", "The Source Packet contains incompatible material classifications for one AI Run.", "split_the_source_packet_by_material_class"], output_ceiling_exceeded: [409, "output_ceiling_exceeded", "The requested AI processing exceeds the current Source Packet Output Ceiling.", "resolve_source_packet_blocker"], output_ceiling_missing: [409, "output_ceiling_missing", "No Output Ceiling is available for this exact Work Objective.", "rebuild_source_packet_ceiling"], source_condition_blocked: [409, "source_condition_blocked", "The Source Packet has a rights or condition blocker for AI processing.", "resolve_source_packet_blocker"], packet_worker_scope_mismatch: [404, "resource_not_found", "The Source Packet or Work Objective is not available in this Deal.", "return_to_safe_parent"], ai_scope_mismatch: [404, "resource_not_found", "The AI Run is not available in this Deal.", "return_to_safe_parent"], idempotency_key_reused: [409, "idempotency_key_reused", "This Idempotency-Key was already used for a different request.", "use_new_idempotency_key"], ai_packet_scope_mismatch: [404, "resource_not_found", "The Source Packet version is not available in this Deal.", "return_to_source_packet"], ai_objective_scope_mismatch: [404, "resource_not_found", "The Work Objective is not available in this Deal.", "return_to_safe_parent"] };
-      const found = Object.entries(mappings).find(([code]) => message.includes(code)); if (!found) throw error; const [status, code, detail, recovery] = found[1]; return problem(reply, status, code, detail, recovery, request.url);
+      const found = Object.entries({ ...mappings, ai_provider_unconfigured: [503, "ai_provider_failure", "The HelloX provider is not configured for this development Cell.", "configure_provider_credentials"], ai_protected_key_unconfigured: [503, "ai_provider_failure", "The protected payload key is not configured for this development Cell.", "configure_protected_payload_key"], ai_provider_request_failed: [503, "ai_provider_failure", "The HelloX provider did not return a usable response.", "retry_provider_request"], ai_provider_empty_response: [503, "ai_provider_failure", "The HelloX provider returned no response content.", "retry_provider_request"], ai_provider_invalid_json: [503, "ai_provider_failure", "The HelloX provider returned invalid JSON.", "retry_provider_request"] }).find(([code]) => message.includes(code)); if (!found) throw error; const [status, code, detail, recovery] = found[1] as [number, string, string, string]; return problem(reply, status, code, detail, recovery, request.url);
     }
   };
   api.post<{ Params: { deal_id: string } }>("/api/v1/deals/:deal_id/ai-runs", startAiRunHandler);

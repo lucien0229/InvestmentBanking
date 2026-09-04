@@ -75,6 +75,7 @@ test("strict result validation rejects invented locators and authority fields", 
     scope_digest_echo: input().scope.scope_digest,
     results: [{
       candidate_key: "claim-1",
+      origin: "ai_generated",
       payload: { proposition: "Revenue was $10m in FY2025.", attribution: "management", definition: "reported revenue", period: "FY2025", unit: "millions", currency: "USD", sign: "positive", value: 10, text: null, source_fragment_id: ids.fragmentId, qualification: null },
       evidence_links: [{ fragment_id: ids.fragmentId, relationship: "supports", proposition_scope: "FY2025 revenue", qualification: null, limitation: null }],
       support_status: "supported",

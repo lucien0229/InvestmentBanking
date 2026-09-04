@@ -5,6 +5,7 @@ export const AI_INPUT_SCHEMA_VERSION = "1.0.0" as const;
 export const AI_OUTPUT_SCHEMA_VERSION = "1.0.0" as const;
 export const AI_EVIDENCE_POLICY_VERSION = "1.0.0" as const;
 export const HELLOX_PROVIDER = "hellox" as const;
+export const AI_ORIGIN = "ai_generated" as const;
 
 export const taskDefinitions = [
   "source_claim_extraction",
@@ -110,6 +111,7 @@ export type AiOutput = {
   scope_digest_echo: string;
   results: Array<{
     candidate_key: string;
+    origin: typeof AI_ORIGIN;
     payload: Record<string, unknown>;
     evidence_links: Array<{ fragment_id: string; relationship: "supports" | "challenges"; proposition_scope: string; qualification: string | null; limitation: string | null }>;
     support_status: "supported" | "challenged" | "conflicted" | "insufficient_support" | "unresolved_locator" | "coverage_incomplete" | "rights_blocked" | "out_of_scope" | "not_applicable";
@@ -156,7 +158,7 @@ export type MaterialSourceConflictCandidate = {
 
 export type ContractRepairCandidate = {
   original_candidate_key: string;
-  repaired_payload: Record<string, unknown>;
+  repaired_payload: SourceClaimCandidate | ClaimEvidenceLinkCandidate | MaterialSourceConflictCandidate;
 };
 
 type InputOptions = {
@@ -249,13 +251,17 @@ const conflict = z.object({ conflict_key: z.string().min(1).max(160), dimension:
 const abstention = z.object({ abstention_key: z.string().min(1).max(160), affected_scope: z.string().min(1).max(500), reason_codes: z.array(z.enum(["evidence_missing", "evidence_conflicted", "definition_unclear", "period_unclear", "unit_or_currency_unclear", "coverage_incomplete", "locator_unresolved", "rights_blocked", "source_stale", "source_not_reliance_eligible", "deterministic_validity_missing", "outside_task_scope"])).min(1).max(20), unsupported_propositions: z.array(z.string().max(500)).max(50), missing_inputs: z.array(z.string().max(160)).max(50), output_ceiling: z.object({ code: z.string().min(1).max(160) }).strict(), permitted_partial_scope: z.array(z.string().max(240)).max(50), smallest_recovery_action: z.string().min(1).max(500), resume_condition: z.string().min(1).max(500) }).strict();
 const omission = z.object({ omission_key: z.string().min(1).max(160), affected_scope: z.string().min(1).max(500), reason_code: z.enum(["outside_task_scope", "not_applicable", "duplicate_of_candidate", "independently_invalid", "coverage_incomplete", "rights_blocked"]), explanation: z.string().min(1).max(500), recovery_action: z.string().max(500).nullable(), material: z.literal(false) }).strict();
 const requiredHumanDecision = z.object({ decision_type: z.string().min(1).max(160), question: z.string().min(1).max(500), exact_object_and_version_refs: z.array(z.string().min(1).max(200)).min(1).max(20), scope: z.string().min(1).max(500), purpose: z.string().min(1).max(240), audience: z.string().min(1).max(240), alternatives: z.array(z.object({ key: z.string().min(1).max(120), effect: z.string().min(1).max(500) }).strict()).min(2).max(20), evidence_refs: z.array(z.string().min(1).max(160)).max(30), deterministic_check_refs: z.array(z.string().min(1).max(160)).max(30), recommended_option: z.string().min(1).max(120), conditions: z.array(z.string().min(1).max(500)).max(20), invalidation_triggers: z.array(z.string().min(1).max(500)).max(20) }).strict();
-const commonResult = z.object({ candidate_key: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$/), evidence_links: z.array(evidenceLink).max(30), support_status: supportStatus, conflicts: z.array(conflict).max(20), uncertainty_flags: z.array(z.enum(["evidence_missing", "evidence_conflicted", "definition_unclear", "period_unclear", "unit_or_currency_unclear", "coverage_incomplete", "locator_unresolved", "rights_blocked", "source_stale", "source_not_reliance_eligible", "deterministic_validity_missing", "outside_task_scope"])).max(20), limitations: z.array(z.string().min(1).max(500)).max(20), required_human_decision: requiredHumanDecision.nullable(),
+const commonResult = z.object({ candidate_key: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$/), origin: z.literal(AI_ORIGIN), evidence_links: z.array(evidenceLink).max(30), support_status: supportStatus, conflicts: z.array(conflict).max(20), uncertainty_flags: z.array(z.enum(["evidence_missing", "evidence_conflicted", "definition_unclear", "period_unclear", "unit_or_currency_unclear", "coverage_incomplete", "locator_unresolved", "rights_blocked", "source_stale", "source_not_reliance_eligible", "deterministic_validity_missing", "outside_task_scope"])).max(20), limitations: z.array(z.string().min(1).max(500)).max(20), required_human_decision: requiredHumanDecision.nullable(),
 }).strict();
+const sourceClaimPayload = z.object({ proposition: z.string().min(1).max(2000), attribution: z.string().min(1).max(240), definition: z.string().min(1).max(500), period: z.string().min(1).max(120), unit: z.string().min(1).max(80), currency: z.string().min(1).max(20), sign: z.enum(["positive", "negative", "not_applicable", "unknown"]), value: z.number().finite().nullable(), text: z.string().max(2000).nullable(), source_fragment_id: z.string().min(1).max(160), qualification: z.string().max(500).nullable() }).strict();
+const evidenceLinkPayload = z.object({ proposition_key: z.string().min(1).max(160), fragment_id: z.string().min(1).max(160), relationship: z.enum(["supports", "challenges"]), supported_scope: z.string().min(1).max(500), qualification: z.string().max(500).nullable(), relationship_limitation: z.string().max(500).nullable() }).strict();
+const conflictPayload = z.object({ conflict_key: z.string().min(1).max(160), dimension: z.enum(["definition", "period", "unit", "currency", "sign", "value", "source_version", "scope", "meaning"]), competing_refs: z.array(z.string().min(1).max(160)).min(2).max(20), affected_scope: z.string().min(1).max(500), unresolved_alternatives: z.array(z.string().min(1).max(500)).min(2).max(20), affected_uses: z.array(z.string().min(1).max(240)).min(1).max(20) }).strict();
+const repairPayload = z.union([sourceClaimPayload, evidenceLinkPayload, conflictPayload]);
 const taskPayloads: Record<TaskDefinition, z.ZodType<Record<string, unknown>>> = {
-  source_claim_extraction: z.object({ proposition: z.string().min(1).max(2000), attribution: z.string().min(1).max(240), definition: z.string().min(1).max(500), period: z.string().min(1).max(120), unit: z.string().min(1).max(80), currency: z.string().min(1).max(20), sign: z.enum(["positive", "negative", "not_applicable", "unknown"]), value: z.number().finite().nullable(), text: z.string().max(2000).nullable(), source_fragment_id: z.string().min(1).max(160), qualification: z.string().max(500).nullable() }).strict() as z.ZodType<Record<string, unknown>>,
-  claim_evidence_linking: z.object({ proposition_key: z.string().min(1).max(160), fragment_id: z.string().min(1).max(160), relationship: z.enum(["supports", "challenges"]), supported_scope: z.string().min(1).max(500), qualification: z.string().max(500).nullable(), relationship_limitation: z.string().max(500).nullable() }).strict() as z.ZodType<Record<string, unknown>>,
-  material_source_conflict_analysis: z.object({ conflict_key: z.string().min(1).max(160), dimension: z.enum(["definition", "period", "unit", "currency", "sign", "value", "source_version", "scope", "meaning"]), competing_refs: z.array(z.string().min(1).max(160)).min(2).max(20), affected_scope: z.string().min(1).max(500), unresolved_alternatives: z.array(z.string().min(1).max(500)).min(2).max(20), affected_uses: z.array(z.string().min(1).max(240)).min(1).max(20) }).strict() as z.ZodType<Record<string, unknown>>,
-  contract_repair: z.object({ original_candidate_key: z.string().min(1).max(160), repaired_payload: z.record(z.string(), z.unknown()) }).strict() as z.ZodType<Record<string, unknown>>,
+  source_claim_extraction: sourceClaimPayload as z.ZodType<Record<string, unknown>>,
+  claim_evidence_linking: evidenceLinkPayload as z.ZodType<Record<string, unknown>>,
+  material_source_conflict_analysis: conflictPayload as z.ZodType<Record<string, unknown>>,
+  contract_repair: z.object({ original_candidate_key: z.string().min(1).max(160), repaired_payload: repairPayload }).strict() as z.ZodType<Record<string, unknown>>,
 };
 
 export function validateAiOutput(value: unknown, envelope: AiInputEnvelope): { ok: true } | { ok: false; code: string; pointer?: string } {
@@ -291,6 +297,13 @@ export function validateAiOutput(value: unknown, envelope: AiInputEnvelope): { o
     }
     for (const conflictItem of result.conflicts) if (conflictItem.competing_refs.some((ref) => !fragments.has(ref))) return { ok: false, code: "foreign_locator", pointer: `results.${index}.conflicts` };
   }
+  return { ok: true };
+}
+
+export function validateContractRepair(original: unknown, repaired: unknown, envelope: AiInputEnvelope): { ok: true } | { ok: false; code: string; pointer?: string } {
+  const validation = validateAiOutput(repaired, envelope);
+  if (!validation.ok) return validation;
+  if (detectRepairSemanticChange(original, repaired)) return { ok: false, code: "repair_semantic_change" };
   return { ok: true };
 }
 
