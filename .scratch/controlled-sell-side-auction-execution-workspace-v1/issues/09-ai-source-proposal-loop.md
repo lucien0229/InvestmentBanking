@@ -13,3 +13,15 @@
 - [ ] AI results are typed proposals with explicit Origin, Evidence candidates, limitations, and unsupported states and cannot create Fact, Assumption approval, Human Decision, Professional Usability, Readiness, or external action.
 - [ ] Raw provider request/response content remains protected Deal-scoped data and never enters Banker export, Recipient view, logs, email, Sentry, or measurement.
 - [ ] Idempotency, retry, one constrained repair attempt, task enable/suspend/rollback, adversarial corpus, and cross-Deal isolation tests satisfy AC-031, AC-034, AC-035, and AC-066.
+
+## Comments
+
+### 2026-09-04 development verification
+
+- The Ticket 09 migrations were applied through `20260903160000` by the development migration gate (GitHub Actions run `33744184734`). A read-only query from the API container confirmed one `ai` schema, 12 AI tables, the `ai.start_run` function, forced RLS on all 12 AI tables, and temporary ownership-transfer `CREATE` privileges revoked for both `app_ai_owner` and `app_source_owner`.
+- The immutable Docker Cell release `/opt/cells/investmentbanking/dev/releases/20260903-ticket09-ai-v3` is active under Compose project `investmentbanking-dev`; API and Web are healthy on loopback ports `3101` and `3102`, Nginx is active, HTTPS root is `200`, and unauthenticated session plus flat/nested AI routes return the expected `401 authentication_required` boundary.
+- Local and release checks passed: `npm run contracts:check`, `npm run db:validate` (33 files), `npm run test:unit` (18/18), `npm run build`, remote TypeScript check, and remote Next standalone build. The full local `npm test` gate remains blocked by the existing local migration-history checksum for `20260903010000` differing from the corrected ownership-grant migration; Docker is unavailable in the local environment for a fresh disposable replay.
+- Real browser verification completed the public Project Northstar synthetic flow through all 9 checkpoints, downloaded the Revision 0.4 XLSX, inspected the Sources Output Ceiling and Analysis Proposal surfaces, and recorded zero browser console errors/warnings. This is synthetic UI/control-model evidence only.
+- Authenticated Banker Account/Deal/Source Packet to AI Run acceptance remains blocked: the development runtime has no usable test-account/session credential for browser login, the database has no seeded Deal/Work Objective/Source Packet, and `hellox-source-proposals-v1` has no verified processing capability. No live HelloX request was made and no provider or production claim is asserted.
+
+Status remains `ready-for-agent` until the authenticated development chain and provider capability evidence are supplied and verified.
