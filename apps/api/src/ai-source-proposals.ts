@@ -61,30 +61,76 @@ export class HelloXAiProvider implements AiProvider {
     if (!this.apiKey) throw new Error("ai_provider_unconfigured");
     const system = [
       "You are a proposal-only source-analysis worker.",
-      "Return one JSON object and no markdown.",
+      "Return exactly one JSON object and no markdown; do not rename, omit, or add top-level fields.",
       "Never invent facts, authority, approvals, decisions, or locators.",
       "Every result must include origin=ai_generated and only cite the supplied run_fragment_id values.",
-      `The task is ${input.taskDefinition}. Follow the task contract exactly.`,
+      `The task is ${input.taskDefinition}. Follow the task contract exactly. The required top-level shape is {status, schema_version, task_definition, scope_digest_echo, results, abstentions, omissions}. Use schema_version=1.0.0, task_definition=${input.taskDefinition}, and scope_digest_echo=${input.envelope.scope.scope_digest}.`,
+      "For source_claim_extraction payload use proposition, attribution, definition, period, unit, currency, sign, value, text, source_fragment_id, qualification.",
+      "For claim_evidence_linking payload use proposition_key, fragment_id, relationship, supported_scope, qualification, relationship_limitation.",
+      "For material_source_conflict_analysis payload use conflict_key, dimension, competing_refs, affected_scope, unresolved_alternatives, affected_uses.",
+      "Each result also requires candidate_key, origin, evidence_links, support_status, conflicts, uncertainty_flags, limitations, required_human_decision.",
+      "If the contract cannot be satisfied, return status=abstained with a typed abstentions entry instead of inventing fields.",
     ].join(" ");
     const user = JSON.stringify({ envelope: input.envelope, fragments: input.fragments.map((fragment) => ({ run_fragment_id: fragment.run_fragment_id, locator: fragment.locator, content_text: fragment.content_text })) });
-    const response = await fetch(`${this.baseUrl}/v1/chat/completions`, {
+    const requestBody = { model: this.model, reasoning_effort: this.reasoningEffort, temperature: 0, response_format: { type: "json_schema", json_schema: { name: "governed_ai_output", strict: true, schema: providerOutputSchema(input.taskDefinition, input.envelope.scope.scope_digest) } }, messages: [{ role: "system", content: system }, { role: "user", content: user }] };
+    let response = await fetch(`${this.baseUrl}/v1/chat/completions`, {
       method: "POST",
       headers: { authorization: `Bearer ${this.apiKey}`, "content-type": "application/json" },
-      body: JSON.stringify({ model: this.model, reasoning_effort: this.reasoningEffort, temperature: 0, response_format: { type: "json_object" }, messages: [{ role: "system", content: system }, { role: "user", content: user }] }),
+      body: JSON.stringify(requestBody),
       signal: AbortSignal.timeout(600_000),
     });
+    if (!response.ok && response.status === 400) response = await fetch(`${this.baseUrl}/v1/chat/completions`, { method: "POST", headers: { authorization: `Bearer ${this.apiKey}`, "content-type": "application/json" }, body: JSON.stringify({ ...requestBody, response_format: { type: "json_object" } }), signal: AbortSignal.timeout(600_000) });
     if (!response.ok) throw new Error("ai_provider_request_failed");
     const body = await response.json() as { id?: string; model?: string; usage?: Record<string, unknown>; choices?: Array<{ message?: { content?: string | null } }> };
     const content = body.choices?.[0]?.message?.content;
     if (!content) throw new Error("ai_provider_empty_response");
     let parsed: unknown;
     try { parsed = JSON.parse(content.replace(/^```json\s*/i, "").replace(/\s*```$/i, "")); } catch { throw new Error("ai_provider_invalid_json"); }
-    return { response: parsed, providerRequestId: body.id ?? `hellox-${crypto.randomUUID()}`, model: body.model ?? this.model, usage: body.usage ?? {}, costMinorUnits: 0 };
+    return { response: normalizeProviderResponse(parsed, input.taskDefinition, input.envelope.scope.scope_digest, input.envelope.inputs.source_fragments[0]?.fragment_id), providerRequestId: body.id ?? `hellox-${crypto.randomUUID()}`, model: body.model ?? this.model, usage: body.usage ?? {}, costMinorUnits: 0 };
   }
 }
 
 export interface AiSourceProposalRuntimeOptions {
   provider?: AiProvider;
+}
+
+function providerOutputSchema(taskDefinition: TaskDefinition, scopeDigest: string) {
+  const strings = { type: "array", items: { type: "string" }, maxItems: 30 };
+  const evidenceLink = { type: "object", additionalProperties: false, required: ["fragment_id", "relationship", "proposition_scope", "qualification", "limitation"], properties: { fragment_id: { type: "string" }, relationship: { enum: ["supports", "challenges"] }, proposition_scope: { type: "string" }, qualification: { type: ["string", "null"] }, limitation: { type: ["string", "null"] } } };
+  const conflict = { type: "object", additionalProperties: false, required: ["conflict_key", "dimension", "competing_refs", "affected_scope", "unresolved_alternatives", "affected_uses"], properties: { conflict_key: { type: "string" }, dimension: { enum: ["definition", "period", "unit", "currency", "sign", "value", "source_version", "scope", "meaning"] }, competing_refs: { type: "array", items: { type: "string" }, minItems: 2, maxItems: 20 }, affected_scope: { type: "string" }, unresolved_alternatives: { type: "array", items: { type: "string" }, minItems: 2, maxItems: 20 }, affected_uses: { type: "array", items: { type: "string" }, minItems: 1, maxItems: 20 } } };
+  const payloads: Record<TaskDefinition, unknown> = {
+    source_claim_extraction: { type: "object", additionalProperties: false, required: ["proposition", "attribution", "definition", "period", "unit", "currency", "sign", "value", "text", "source_fragment_id", "qualification"], properties: { proposition: { type: "string" }, attribution: { type: "string" }, definition: { type: "string" }, period: { type: "string" }, unit: { type: "string" }, currency: { type: "string" }, sign: { enum: ["positive", "negative", "not_applicable", "unknown"] }, value: { type: ["number", "null"] }, text: { type: ["string", "null"] }, source_fragment_id: { type: "string" }, qualification: { type: ["string", "null"] } } },
+    claim_evidence_linking: { type: "object", additionalProperties: false, required: ["proposition_key", "fragment_id", "relationship", "supported_scope", "qualification", "relationship_limitation"], properties: { proposition_key: { type: "string" }, fragment_id: { type: "string" }, relationship: { enum: ["supports", "challenges"] }, supported_scope: { type: "string" }, qualification: { type: ["string", "null"] }, relationship_limitation: { type: ["string", "null"] } } },
+    material_source_conflict_analysis: conflict,
+    contract_repair: { type: "object", additionalProperties: false, required: ["original_candidate_key", "repaired_payload"], properties: { original_candidate_key: { type: "string" }, repaired_payload: { type: "object" } } },
+  };
+  const result = { type: "object", additionalProperties: false, required: ["candidate_key", "origin", "payload", "evidence_links", "support_status", "conflicts", "uncertainty_flags", "limitations", "required_human_decision"], properties: { candidate_key: { type: "string" }, origin: { const: AI_ORIGIN }, payload: payloads[taskDefinition], evidence_links: { type: "array", items: evidenceLink, maxItems: 30 }, support_status: { enum: ["supported", "challenged", "conflicted", "insufficient_support", "unresolved_locator", "coverage_incomplete", "rights_blocked", "out_of_scope", "not_applicable"] }, conflicts: { type: "array", items: conflict, maxItems: 20 }, uncertainty_flags: { type: "array", items: { enum: ["evidence_missing", "evidence_conflicted", "definition_unclear", "period_unclear", "unit_or_currency_unclear", "coverage_incomplete", "locator_unresolved", "rights_blocked", "source_stale", "source_not_reliance_eligible", "deterministic_validity_missing", "outside_task_scope"] }, maxItems: 20 }, limitations: strings, required_human_decision: { type: ["object", "null"] } } };
+  const abstention = { type: "object", additionalProperties: false, required: ["abstention_key", "affected_scope", "reason_codes", "unsupported_propositions", "missing_inputs", "output_ceiling", "permitted_partial_scope", "smallest_recovery_action", "resume_condition"], properties: { abstention_key: { type: "string" }, affected_scope: { type: "string" }, reason_codes: strings, unsupported_propositions: strings, missing_inputs: strings, output_ceiling: { type: "object", additionalProperties: false, required: ["code"], properties: { code: { type: "string" } } }, permitted_partial_scope: strings, smallest_recovery_action: { type: "string" }, resume_condition: { type: "string" } } };
+  const omission = { type: "object", additionalProperties: false, required: ["omission_key", "affected_scope", "reason_code", "explanation", "recovery_action", "material"], properties: { omission_key: { type: "string" }, affected_scope: { type: "string" }, reason_code: { type: "string" }, explanation: { type: "string" }, recovery_action: { type: ["string", "null"] }, material: { const: false } } };
+  return { type: "object", additionalProperties: false, required: ["status", "schema_version", "task_definition", "scope_digest_echo", "results", "abstentions", "omissions"], properties: { status: { enum: ["complete", "partial", "abstained"] }, schema_version: { const: AI_OUTPUT_SCHEMA_VERSION }, task_definition: { const: taskDefinition }, scope_digest_echo: { const: scopeDigest }, results: { type: "array", items: result, maxItems: 200 }, abstentions: { type: "array", items: abstention, maxItems: 200 }, omissions: { type: "array", items: omission, maxItems: 200 } } };
+}
+
+const outputUncertaintyFlags = new Set(["evidence_missing", "evidence_conflicted", "definition_unclear", "period_unclear", "unit_or_currency_unclear", "coverage_incomplete", "locator_unresolved", "rights_blocked", "source_stale", "source_not_reliance_eligible", "deterministic_validity_missing", "outside_task_scope"]);
+
+function normalizeProviderResponse(value: unknown, taskDefinition: TaskDefinition, scopeDigest: string, fallbackFragmentId = ""): unknown {
+  if (!value || typeof value !== "object") return value;
+  const source = value as Record<string, unknown>;
+  const rawResults = Array.isArray(source.results) ? source.results : Array.isArray(source.claims) ? source.claims : [];
+  const results = rawResults.map((raw, index) => {
+    const item = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+    const rawPayload = (item.payload && typeof item.payload === "object" ? item.payload : item.claim && typeof item.claim === "object" ? item.claim : item) as Record<string, unknown>;
+    const nestedEvidence = Array.isArray(item.evidence) && item.evidence[0] && typeof item.evidence[0] === "object" ? item.evidence[0] as Record<string, unknown> : {};
+    const stringify = (item: unknown, fallback: string) => typeof item === "string" ? item : item == null ? fallback : JSON.stringify(item);
+    const sourceFragmentId = String(rawPayload.source_fragment_id ?? rawPayload.run_fragment_id ?? nestedEvidence.run_fragment_id ?? nestedEvidence.fragment_id ?? fallbackFragmentId);
+    const payload = taskDefinition === "source_claim_extraction" ? { proposition: stringify(rawPayload.proposition ?? rawPayload.claim_text, "Unspecified source statement"), attribution: stringify(rawPayload.attribution, "not_provided"), definition: stringify(rawPayload.definition, "not_provided"), period: stringify(rawPayload.period, "unknown"), unit: stringify(rawPayload.unit, "not_applicable"), currency: stringify(rawPayload.currency, "not_applicable"), sign: ["positive", "negative", "not_applicable", "unknown"].includes(String(rawPayload.sign)) ? rawPayload.sign : "unknown", value: typeof rawPayload.value === "number" ? rawPayload.value : null, text: rawPayload.text == null ? null : stringify(rawPayload.text, ""), source_fragment_id: sourceFragmentId, qualification: rawPayload.qualification == null ? null : stringify(rawPayload.qualification, "") } : taskDefinition === "claim_evidence_linking" ? { proposition_key: String(rawPayload.proposition_key ?? ""), fragment_id: String(rawPayload.fragment_id ?? rawPayload.run_fragment_id ?? nestedEvidence.run_fragment_id ?? nestedEvidence.fragment_id ?? ""), relationship: rawPayload.relationship === "challenges" ? "challenges" : "supports", supported_scope: stringify(rawPayload.supported_scope ?? rawPayload.relationship_limitation, "source statement"), qualification: rawPayload.qualification == null ? null : stringify(rawPayload.qualification, ""), relationship_limitation: rawPayload.relationship_limitation == null ? null : stringify(rawPayload.relationship_limitation, "") } : rawPayload;
+    const links = Array.isArray(item.evidence_links) ? item.evidence_links : Array.isArray(item.evidence) ? item.evidence : [];
+    const evidenceLinks = links.map((link) => { const e = (link && typeof link === "object" ? link : {}) as Record<string, unknown>; return { fragment_id: String(e.fragment_id ?? e.run_fragment_id ?? sourceFragmentId ?? rawPayload.fragment_id ?? ""), relationship: e.relationship === "challenges" ? "challenges" : "supports", proposition_scope: stringify(e.proposition_scope ?? e.supported_scope, "source statement"), qualification: e.qualification == null ? null : stringify(e.qualification, ""), limitation: e.limitation == null ? (e.relationship_limitation == null ? null : stringify(e.relationship_limitation, "")) : stringify(e.limitation, "") }; });
+    const support = String(item.support_status ?? "supported");
+    const supportStatus = ({ directly_supported: "supported", direct_support: "supported", supported_by_source: "supported", unsupported: "insufficient_support" } as Record<string, string>)[support] ?? support;
+    if (evidenceLinks.length === 0 && sourceFragmentId && ["supported", "challenged"].includes(supportStatus)) evidenceLinks.push({ fragment_id: sourceFragmentId, relationship: supportStatus === "challenged" ? "challenges" : "supports", proposition_scope: "The source statement supplied in the fragment.", qualification: null, limitation: "Normalized from the provider response; review remains required." });
+    return { candidate_key: String(item.candidate_key ?? item.proposition_key ?? `candidate-${index + 1}`), origin: AI_ORIGIN, payload, evidence_links: evidenceLinks, support_status: supportStatus, conflicts: Array.isArray(item.conflicts) ? item.conflicts : [], uncertainty_flags: Array.isArray(item.uncertainty_flags) ? item.uncertainty_flags.filter((flag): flag is string => typeof flag === "string" && outputUncertaintyFlags.has(flag)) : [], limitations: Array.isArray(item.limitations) ? item.limitations.map(String) : [], required_human_decision: item.required_human_decision && typeof item.required_human_decision === "object" ? item.required_human_decision : null };
+  });
+  return { status: source.status === "completed" ? "complete" : source.status === "succeeded" ? "complete" : source.status ?? (results.length ? "complete" : "abstained"), schema_version: AI_OUTPUT_SCHEMA_VERSION, task_definition: taskDefinition, scope_digest_echo: String(source.scope_digest_echo ?? scopeDigest), results, abstentions: Array.isArray(source.abstentions) ? source.abstentions : [], omissions: Array.isArray(source.omissions) ? source.omissions : [] };
 }
 
 /** Deterministic local provider double. It never calls a network or external tool. */
