@@ -269,11 +269,13 @@ CROSS JOIN (VALUES ('synthetic','public'),('synthetic','internal'),('real','publ
 WHERE NOT EXISTS (SELECT 1 FROM ai.task_enablement e WHERE e.task_definition=t.task_definition AND e.task_definition_version=t.task_definition_version AND e.provider_profile_id='hellox-source-proposals-v1-development' AND e.environment_code='development' AND e.provenance_class=c.provenance_class AND e.confidentiality_class=c.confidentiality_class);
 
 GRANT USAGE ON SCHEMA ai TO app_runtime, app_ai_owner;
-GRANT EXECUTE ON FUNCTION ai.bind_run_manifest(uuid,uuid,uuid,uuid,text,text,text,text,jsonb), ai.start_run_v2(uuid,uuid,uuid,uuid,uuid,uuid,uuid,text,text,uuid,text,text,text,text,text,text,text,text,text,text,text,text,text,text), ai.complete_run_v2(uuid,uuid,uuid,uuid,text,text,jsonb,jsonb,jsonb,jsonb,bytea,bytea,text,text,jsonb,integer,integer,text), ai.get_run_projection(uuid,uuid,uuid,uuid) TO app_runtime;
+GRANT EXECUTE ON FUNCTION ai.bind_run_manifest(uuid,uuid,uuid,uuid,text,text,text,text,jsonb), ai.start_run_v2(uuid,uuid,uuid,uuid,uuid,uuid,uuid,text,text,uuid,text,text,text,text,text,text,text,text,text,text,text,text,text,jsonb), ai.complete_run_v2(uuid,uuid,uuid,uuid,text,text,jsonb,jsonb,jsonb,jsonb,bytea,bytea,text,text,jsonb,integer,integer,text), ai.get_run_projection(uuid,uuid,uuid,uuid) TO app_runtime;
+GRANT CREATE ON SCHEMA ai TO app_ai_owner;
 ALTER FUNCTION ai.bind_run_manifest(uuid,uuid,uuid,uuid,text,text,text,text,jsonb) OWNER TO app_ai_owner;
-ALTER FUNCTION ai.start_run_v2(uuid,uuid,uuid,uuid,uuid,uuid,uuid,text,text,uuid,text,text,text,text,text,text,text,text,text,text,text,text,text,text) OWNER TO app_ai_owner;
+ALTER FUNCTION ai.start_run_v2(uuid,uuid,uuid,uuid,uuid,uuid,uuid,text,text,uuid,text,text,text,text,text,text,text,text,text,text,text,text,text,jsonb) OWNER TO app_ai_owner;
 ALTER FUNCTION ai.complete_run_v2(uuid,uuid,uuid,uuid,text,text,jsonb,jsonb,jsonb,jsonb,bytea,bytea,text,text,jsonb,integer,integer,text) OWNER TO app_ai_owner;
 ALTER FUNCTION ai.get_run_projection(uuid,uuid,uuid,uuid) OWNER TO app_ai_owner;
 GRANT SELECT ON jobs.job_scope TO app_ai_owner;
+REVOKE CREATE ON SCHEMA ai FROM app_ai_owner;
 
 COMMIT;
