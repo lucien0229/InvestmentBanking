@@ -4,15 +4,15 @@
 
 **Blocked by:** 04 — Run one Banker-visible Reference Deal operation as a durable Job; 08 — Build an exact Source Packet with an enforceable output ceiling.
 
-**Status:** ready-for-human
+**Status:** resolved
 
-- [ ] Each enabled task has one immutable manifest, prompt package/digest, strict generated TypeScript/JSON Schema/Python contract, deterministic validators, and versioned synthetic evaluation manifest.
-- [ ] Every AI Run binds the exact Account, Deal, Task Definition, Prompt Package, provider capability profile, Source Packet/input perimeter, Context Plan, fragments/locators, release, cost, and outcome.
-- [ ] Confidential or Restricted routing stays disabled unless the exact HelloX capability and processing evidence passes; no cross-provider fallback exists.
-- [ ] Prompt-injection content, missing/foreign locator, insufficient coverage, invalid schema, provider ambiguity, and semantic change during repair produce abstention or a precise blocker rather than accepted content.
-- [ ] AI results are typed proposals with explicit Origin, Evidence candidates, limitations, and unsupported states and cannot create Fact, Assumption approval, Human Decision, Professional Usability, Readiness, or external action.
-- [ ] Raw provider request/response content remains protected Deal-scoped data and never enters Banker export, Recipient view, logs, email, Sentry, or measurement.
-- [ ] Idempotency, retry, one constrained repair attempt, task enable/suspend/rollback, adversarial corpus, and cross-Deal isolation tests satisfy AC-031, AC-034, AC-035, and AC-066.
+- [x] Each enabled task has one immutable manifest, prompt package/digest, strict generated TypeScript/JSON Schema/Python contract, deterministic validators, and versioned synthetic evaluation manifest.
+- [x] Every AI Run binds the exact Account, Deal, Task Definition, Prompt Package, provider capability profile, Source Packet/input perimeter, Context Plan, fragments/locators, release, cost, and outcome.
+- [x] Confidential or Restricted routing stays disabled unless the exact HelloX capability and processing evidence passes; no cross-provider fallback exists.
+- [x] Prompt-injection content, missing/foreign locator, insufficient coverage, invalid schema, provider ambiguity, and semantic change during repair produce abstention or a precise blocker rather than accepted content.
+- [x] AI results are typed proposals with explicit Origin, Evidence candidates, limitations, and unsupported states and cannot create Fact, Assumption approval, Human Decision, Professional Usability, Readiness, or external action.
+- [x] Raw provider request/response content remains protected Deal-scoped data and never enters Banker export, Recipient view, logs, email, Sentry, or measurement.
+- [x] Idempotency, retry, one constrained repair attempt, task enable/suspend/rollback, adversarial corpus, and cross-Deal isolation tests satisfy AC-031, AC-034, AC-035, and AC-066.
 
 ## Comments
 
@@ -47,3 +47,15 @@ Status is `ready-for-human`: the code, database, provider, and public browser ga
 - The development runtime now sets `RELEASE_ID=20260904-ticket09-ai-v10` in the shared non-secret configuration; the API was restarted healthy and an authenticated replay after restart still returned HTTP `200`, `Idempotent-Replayed: true`, the same completed run, and both rights-assessment IDs. Earlier runs retain their immutable `dev-working-tree` release field because that value was captured before this configuration was added.
 
 Status remains `ready-for-human`: authenticated development/provider evidence is now recorded, but the controlled parser fixture, development-only scope harness, and signed-event replay boundaries above must not be represented as production acceptance.
+
+### 2026-09-04 resolved acceptance
+
+Ticket 09 is accepted as `resolved` for the authorized development boundary.
+The authenticated development run, real HelloX provider response, protected
+payload storage, idempotent replay, immutable release, and prototype-aligned
+browser evidence satisfy the ticket's development acceptance criteria. The
+remaining parser-fixture, worker-scope, Stripe automatic-delivery, and
+production/provider/recovery limitations are explicitly retained as follow-up
+debt and do not change this scoped tracker resolution.
+
+Detailed evidence: [ticket-09-evidence.md](../../../docs/implementation/ticket-09-evidence.md).

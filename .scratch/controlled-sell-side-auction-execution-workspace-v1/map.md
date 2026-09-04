@@ -10,6 +10,8 @@ Ticket 05 is resolved for the authorized development environment. Supabase dev d
 
 Ticket 06 is resolved for the authorized development environment. Supabase dev migration `protected_source_intake_v1` is applied, the new release is live at `/opt/investmentbanking/releases/20260901-ticket06-dev-v1`, and local real-browser protected-source verification plus public HTTPS/unauthenticated boundary checks passed. Remote authenticated browser acceptance remains unverified because the development Magic Link mailbox/OTP was unavailable; no downstream ticket scope is advanced by this entry.
 
+Ticket 09 is resolved for the authorized development boundary: the real authenticated Banker-to-AI Source Proposal loop, HelloX provider response, protected payload storage, idempotent replay, immutable development release, and prototype-aligned browser evidence are recorded in [ticket-09-evidence.md](../../docs/implementation/ticket-09-evidence.md). Parser-fixture, worker-scope, Stripe automatic-delivery, and production/provider/recovery evidence remain explicitly deferred; no downstream ticket scope is advanced by this entry.
+
 ## Decisions-so-far
 
 - Ticket 03 development resolution: see [03-qualified-checkout-entitlement.md](issues/03-qualified-checkout-entitlement.md).
@@ -18,6 +20,7 @@ Ticket 06 is resolved for the authorized development environment. Supabase dev m
 - Ticket 06 implementation/evidence boundary: see [06-protected-deal-source-intake.md](issues/06-protected-deal-source-intake.md) and [ticket-06-evidence.md](../../docs/implementation/ticket-06-evidence.md); development deployment and local protected-byte evidence are verified, while remote authenticated acceptance and production/provider/recovery evidence remain deferred.
 - Ticket 07 implementation/evidence boundary: see [07-web-evidence-account-template-intake.md](issues/07-web-evidence-account-template-intake.md) and [ticket-07-evidence.md](../../docs/implementation/ticket-07-evidence.md); local immutable Web Observation and Account-template quarantine evidence, Supabase dev migration evidence, and the switched development VPS runtime are verified, while production fetch/storage/worker/gateway seams remain deferred.
 - Ticket 08 is resolved for the authorized development boundary: see [08-source-packet-output-ceiling.md](issues/08-source-packet-output-ceiling.md) and [ticket-08-evidence.md](../../docs/implementation/ticket-08-evidence.md); exact Source Packet versions, Output Ceiling, source-condition/reliance governance, circulation blocking, API/RLS guards, and the development release are recorded, while authenticated Banker browser acceptance and production/provider/recovery seams remain deferred.
+- Ticket 09 is resolved for the authorized development boundary: see [09-ai-source-proposal-loop.md](issues/09-ai-source-proposal-loop.md) and [ticket-09-evidence.md](../../docs/implementation/ticket-09-evidence.md); authenticated AI proposal execution, HelloX/provider boundaries, protected payloads, idempotent replay, and UI evidence are recorded, while production-shaped parser/worker/provider/recovery evidence remains deferred.
 - Development evidence is explicitly separated from live Stripe collection, live tax/invoice behavior, production provider configuration, and production recovery evidence.
 
 ## Fog
