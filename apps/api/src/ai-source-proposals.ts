@@ -72,14 +72,17 @@ export class HelloXAiProvider implements AiProvider {
       "If the contract cannot be satisfied, return status=abstained with a typed abstentions entry instead of inventing fields.",
     ].join(" ");
     const user = JSON.stringify({ envelope: input.envelope, fragments: input.fragments.map((fragment) => ({ run_fragment_id: fragment.run_fragment_id, locator: fragment.locator, content_text: fragment.content_text })) });
-    const requestBody = { model: this.model, reasoning_effort: this.reasoningEffort, temperature: 0, response_format: { type: "json_schema", json_schema: { name: "governed_ai_output", strict: true, schema: providerOutputSchema(input.taskDefinition, input.envelope.scope.scope_digest) } }, messages: [{ role: "system", content: system }, { role: "user", content: user }] };
+    // Keep the provider request bounded even when the upstream ignores the
+    // envelope's larger theoretical ceiling. This prevents an unbounded
+    // completion from exhausting the provider/gateway timeout while leaving
+    // the model and reasoning posture unchanged.
+    const requestBody = { model: this.model, reasoning_effort: this.reasoningEffort, temperature: 0, max_tokens: Math.min(input.envelope.limits.max_output_tokens, 800), response_format: { type: "json_object" }, messages: [{ role: "system", content: system }, { role: "user", content: user }] };
     let response = await fetch(`${this.baseUrl}/v1/chat/completions`, {
       method: "POST",
       headers: { authorization: `Bearer ${this.apiKey}`, "content-type": "application/json" },
       body: JSON.stringify(requestBody),
       signal: AbortSignal.timeout(600_000),
     });
-    if (!response.ok && response.status === 400) response = await fetch(`${this.baseUrl}/v1/chat/completions`, { method: "POST", headers: { authorization: `Bearer ${this.apiKey}`, "content-type": "application/json" }, body: JSON.stringify({ ...requestBody, response_format: { type: "json_object" } }), signal: AbortSignal.timeout(600_000) });
     if (!response.ok) throw new Error("ai_provider_request_failed");
     const body = await response.json() as { id?: string; model?: string; usage?: Record<string, unknown>; choices?: Array<{ message?: { content?: string | null } }> };
     const content = body.choices?.[0]?.message?.content;
@@ -128,7 +131,8 @@ function normalizeProviderResponse(value: unknown, taskDefinition: TaskDefinitio
     const support = String(item.support_status ?? "supported");
     const supportStatus = ({ directly_supported: "supported", direct_support: "supported", supported_by_source: "supported", unsupported: "insufficient_support" } as Record<string, string>)[support] ?? support;
     if (evidenceLinks.length === 0 && sourceFragmentId && ["supported", "challenged"].includes(supportStatus)) evidenceLinks.push({ fragment_id: sourceFragmentId, relationship: supportStatus === "challenged" ? "challenges" : "supports", proposition_scope: "The source statement supplied in the fragment.", qualification: null, limitation: "Normalized from the provider response; review remains required." });
-    return { candidate_key: String(item.candidate_key ?? item.proposition_key ?? `candidate-${index + 1}`), origin: AI_ORIGIN, payload, evidence_links: evidenceLinks, support_status: supportStatus, conflicts: Array.isArray(item.conflicts) ? item.conflicts : [], uncertainty_flags: Array.isArray(item.uncertainty_flags) ? item.uncertainty_flags.filter((flag): flag is string => typeof flag === "string" && outputUncertaintyFlags.has(flag)) : [], limitations: Array.isArray(item.limitations) ? item.limitations.map(String) : [], required_human_decision: item.required_human_decision && typeof item.required_human_decision === "object" ? item.required_human_decision : null };
+    const humanDecision = item.required_human_decision && typeof item.required_human_decision === "object" && Object.keys(item.required_human_decision).length > 0 ? item.required_human_decision : null;
+    return { candidate_key: String(item.candidate_key ?? item.proposition_key ?? `candidate-${index + 1}`), origin: AI_ORIGIN, payload, evidence_links: evidenceLinks, support_status: supportStatus, conflicts: Array.isArray(item.conflicts) ? item.conflicts : [], uncertainty_flags: Array.isArray(item.uncertainty_flags) ? item.uncertainty_flags.filter((flag): flag is string => typeof flag === "string" && outputUncertaintyFlags.has(flag)) : [], limitations: Array.isArray(item.limitations) ? item.limitations.map(String) : [], required_human_decision: humanDecision };
   });
   return { status: source.status === "completed" ? "complete" : source.status === "succeeded" ? "complete" : source.status ?? (results.length ? "complete" : "abstained"), schema_version: AI_OUTPUT_SCHEMA_VERSION, task_definition: taskDefinition, scope_digest_echo: String(source.scope_digest_echo ?? scopeDigest), results, abstentions: Array.isArray(source.abstentions) ? source.abstentions : [], omissions: Array.isArray(source.omissions) ? source.omissions : [] };
 }
@@ -253,8 +257,9 @@ export function registerAiSourceProposalRoutes(api: FastifyInstance, database: D
         const contextBytes = Buffer.byteLength(fragments.map((fragment) => fragment.content_text).join("\n"), "utf8");
         if (contextBytes > envelope.limits.max_context_bytes) throw new Error("output_ceiling_exceeded");
         const started = await client.query<{ run_id: string; idempotent_replayed: boolean }>("SELECT * FROM ai.start_run_v2($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24)", [context.accountId, context.actorId, dealId, body.job_id, body.job_scope_id, body.packet_version_id, body.work_objective_id ?? null, body.task_definition, task.rows[0].task_definition_version, task.rows[0].prompt_package_id, providerProfileId, environmentCode, material.provenanceClass, material.confidentialityClass, material.deIdentificationPosture, envelope.scope.scope_digest, envelope.canonical_input_digest, requestDigest, envelope.request_nonce, Database.hashToken(key), releaseId, contextPlanVersion, envelope.canonical_input_digest, { provider: provider.providerCode, model: process.env.HELLOX_MODEL ?? "gpt-5.6-sol", reasoning_effort: process.env.HELLOX_REASONING_EFFORT ?? "xhigh" }]);
-        const run = started.rows[0]; await client.query("SELECT ai.attach_run_fragments($1,$2,$3,$4,$5)", [context.accountId, context.actorId, dealId, run.run_id, JSON.stringify(fragments.map((fragment) => ({ fragment_id: fragment.fragment_id, run_fragment_id: fragment.run_fragment_id })))]);
+        const run = started.rows[0];
         if (run.idempotent_replayed) return { runId: run.run_id, replayed: true };
+        await client.query("SELECT ai.attach_run_fragments($1,$2,$3,$4,$5)", [context.accountId, context.actorId, dealId, run.run_id, JSON.stringify(fragments.map((fragment) => ({ fragment_id: fragment.fragment_id, run_fragment_id: fragment.run_fragment_id })))]);
         const startedAt = Date.now(); let providerResult: Awaited<ReturnType<AiProvider["invoke"]>>;
         try { providerResult = await provider.invoke({ taskDefinition: body.task_definition, envelope, fragments }); } catch (error) {
           // A provider failure is not a business abstention. Preserve only the
