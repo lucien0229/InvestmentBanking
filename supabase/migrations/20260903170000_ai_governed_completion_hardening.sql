@@ -2,12 +2,14 @@ BEGIN;
 
 -- Task definitions are immutable versions, not one mutable row per task name.
 ALTER TABLE ai.prompt_package ADD COLUMN IF NOT EXISTS task_definition_version text;
+ALTER TABLE ai.prompt_package DISABLE TRIGGER ai_prompt_package_immutable;
 UPDATE ai.prompt_package p
 SET task_definition_version = t.task_definition_version
 FROM ai.task_definition t
 WHERE t.task_definition = p.task_definition
   AND p.task_definition_version IS NULL;
 ALTER TABLE ai.prompt_package ALTER COLUMN task_definition_version SET NOT NULL;
+ALTER TABLE ai.prompt_package ENABLE TRIGGER ai_prompt_package_immutable;
 ALTER TABLE ai.prompt_package DROP CONSTRAINT IF EXISTS prompt_package_task_definition_fkey;
 ALTER TABLE ai.task_enablement DROP CONSTRAINT IF EXISTS task_enablement_task_definition_fkey;
 ALTER TABLE ai.run DROP CONSTRAINT IF EXISTS run_task_definition_fkey;
@@ -257,14 +259,14 @@ CREATE TRIGGER ai_run_immutable BEFORE UPDATE OR DELETE ON ai.run FOR EACH ROW E
 -- profile stays capability-unverified until endpoint processing evidence is
 -- explicitly recorded; confidential/restricted routing remains fail-closed.
 INSERT INTO ai.provider_capability_profile(id,provider_code,profile_version,environment_code,lifecycle_status,model_contract,evidence)
-VALUES ('hellox-source-proposals-development-v1','hellox','1.0.0','development','enabled','{}'::jsonb,'{}'::jsonb)
-ON CONFLICT (id) DO NOTHING;
+VALUES ('hellox-source-proposals-v1-development','hellox','1.0.0','development','enabled','{}'::jsonb,'{}'::jsonb)
+ON CONFLICT (id) DO UPDATE SET environment_code='development', lifecycle_status='enabled';
 INSERT INTO ai.task_enablement(task_definition,task_definition_version,prompt_package_id,provider_profile_id,environment_code,provenance_class,confidentiality_class,status_code,reason,enabled_at)
-SELECT t.task_definition,t.task_definition_version,p.id,'hellox-source-proposals-development-v1','development',c.provenance_class,c.confidentiality_class,'enabled','Development HelloX proposal-only route; confidential classes remain capability-gated',clock_timestamp()
+SELECT t.task_definition,t.task_definition_version,p.id,'hellox-source-proposals-v1-development','development',c.provenance_class,c.confidentiality_class,'enabled','Development HelloX proposal-only route; confidential classes remain capability-gated',clock_timestamp()
 FROM ai.task_definition t
 JOIN ai.prompt_package p ON p.task_definition=t.task_definition AND p.task_definition_version=t.task_definition_version AND p.package_version='1.0.0'
 CROSS JOIN (VALUES ('synthetic','public'),('synthetic','internal'),('real','public'),('real','internal')) c(provenance_class,confidentiality_class)
-WHERE NOT EXISTS (SELECT 1 FROM ai.task_enablement e WHERE e.task_definition=t.task_definition AND e.task_definition_version=t.task_definition_version AND e.provider_profile_id='hellox-source-proposals-development-v1' AND e.environment_code='development' AND e.provenance_class=c.provenance_class AND e.confidentiality_class=c.confidentiality_class);
+WHERE NOT EXISTS (SELECT 1 FROM ai.task_enablement e WHERE e.task_definition=t.task_definition AND e.task_definition_version=t.task_definition_version AND e.provider_profile_id='hellox-source-proposals-v1-development' AND e.environment_code='development' AND e.provenance_class=c.provenance_class AND e.confidentiality_class=c.confidentiality_class);
 
 GRANT USAGE ON SCHEMA ai TO app_runtime, app_ai_owner;
 GRANT EXECUTE ON FUNCTION ai.bind_run_manifest(uuid,uuid,uuid,uuid,text,text,text,text,jsonb), ai.start_run_v2(uuid,uuid,uuid,uuid,uuid,uuid,uuid,text,text,uuid,text,text,text,text,text,text,text,text,text,text,text,text,text,text), ai.complete_run_v2(uuid,uuid,uuid,uuid,text,text,jsonb,jsonb,jsonb,jsonb,bytea,bytea,text,text,jsonb,integer,integer,text), ai.get_run_projection(uuid,uuid,uuid,uuid) TO app_runtime;

@@ -190,7 +190,7 @@ export function registerAiSourceProposalRoutes(api: FastifyInstance, database: D
     try {
       const result = await database.withContext(session, dealId, async (client, context) => {
         const environmentCode = process.env.APP_ENV === "production" ? "production" : process.env.APP_ENV === "development" ? "development" : "local";
-        const providerProfileId = environmentCode === "local" ? "hellox-source-proposals-v1" : `hellox-source-proposals-${environmentCode}-v1`;
+        const providerProfileId = environmentCode === "local" ? "hellox-source-proposals-v1" : `hellox-source-proposals-v1-${environmentCode}`;
         const releaseId = process.env.RELEASE_ID ?? process.env.APP_RELEASE_ID ?? "dev-working-tree";
         const contextPlanVersion = "1.0.0";
         await client.query("SELECT source.get_packet_worker_input($1,$2,$3,$4,$5)", [context.accountId, dealId, body.packet_version_id, body.work_objective_id, "ai_processing"]);
