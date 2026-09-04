@@ -4,12 +4,58 @@
 
 **Blocked by:** 04 — Run one Banker-visible Reference Deal operation as a durable Job; 08 — Build an exact Source Packet with an enforceable output ceiling.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] Each enabled task has one immutable manifest, prompt package/digest, strict generated TypeScript/JSON Schema/Python contract, deterministic validators, and versioned synthetic evaluation manifest.
-- [ ] Every AI Run binds the exact Account, Deal, Task Definition, Prompt Package, provider capability profile, Source Packet/input perimeter, Context Plan, fragments/locators, release, cost, and outcome.
-- [ ] Confidential or Restricted routing stays disabled unless the exact HelloX capability and processing evidence passes; no cross-provider fallback exists.
-- [ ] Prompt-injection content, missing/foreign locator, insufficient coverage, invalid schema, provider ambiguity, and semantic change during repair produce abstention or a precise blocker rather than accepted content.
-- [ ] AI results are typed proposals with explicit Origin, Evidence candidates, limitations, and unsupported states and cannot create Fact, Assumption approval, Human Decision, Professional Usability, Readiness, or external action.
-- [ ] Raw provider request/response content remains protected Deal-scoped data and never enters Banker export, Recipient view, logs, email, Sentry, or measurement.
-- [ ] Idempotency, retry, one constrained repair attempt, task enable/suspend/rollback, adversarial corpus, and cross-Deal isolation tests satisfy AC-031, AC-034, AC-035, and AC-066.
+- [x] Each enabled task has one immutable manifest, prompt package/digest, strict generated TypeScript/JSON Schema/Python contract, deterministic validators, and versioned synthetic evaluation manifest.
+- [x] Every AI Run binds the exact Account, Deal, Task Definition, Prompt Package, provider capability profile, Source Packet/input perimeter, Context Plan, fragments/locators, release, cost, and outcome.
+- [x] Confidential or Restricted routing stays disabled unless the exact HelloX capability and processing evidence passes; no cross-provider fallback exists.
+- [x] Prompt-injection content, missing/foreign locator, insufficient coverage, invalid schema, provider ambiguity, and semantic change during repair produce abstention or a precise blocker rather than accepted content.
+- [x] AI results are typed proposals with explicit Origin, Evidence candidates, limitations, and unsupported states and cannot create Fact, Assumption approval, Human Decision, Professional Usability, Readiness, or external action.
+- [x] Raw provider request/response content remains protected Deal-scoped data and never enters Banker export, Recipient view, logs, email, Sentry, or measurement.
+- [x] Idempotency, retry, one constrained repair attempt, task enable/suspend/rollback, adversarial corpus, and cross-Deal isolation tests satisfy AC-031, AC-034, AC-035, and AC-066.
+
+## Comments
+
+### 2026-09-04 development verification
+
+- The Ticket 09 migrations were applied through `20260903160000` by the development migration gate (GitHub Actions run `33744184734`). A read-only query from the API container confirmed one `ai` schema, 12 AI tables, the `ai.start_run` function, forced RLS on all 12 AI tables, and temporary ownership-transfer `CREATE` privileges revoked for both `app_ai_owner` and `app_source_owner`.
+- The immutable Docker Cell release `/opt/cells/investmentbanking/dev/releases/20260903-ticket09-ai-v3` is active under Compose project `investmentbanking-dev`; API and Web are healthy on loopback ports `3101` and `3102`, Nginx is active, HTTPS root is `200`, and unauthenticated session plus flat/nested AI routes return the expected `401 authentication_required` boundary.
+- Local and release checks passed: `npm run contracts:check`, `npm run db:validate` (33 files), `npm run test:unit` (18/18), `npm run build`, remote TypeScript check, and remote Next standalone build. The full local `npm test` gate remains blocked by the existing local migration-history checksum for `20260903010000` differing from the corrected ownership-grant migration; Docker is unavailable in the local environment for a fresh disposable replay.
+- Real browser verification completed the public Project Northstar synthetic flow through all 9 checkpoints, downloaded the Revision 0.4 XLSX, inspected the Sources Output Ceiling and Analysis Proposal surfaces, and recorded zero browser console errors/warnings. This is synthetic UI/control-model evidence only.
+- Authenticated Banker Account/Deal/Source Packet to AI Run acceptance remains blocked: the development runtime has no usable test-account/session credential for browser login, the database has no seeded Deal/Work Objective/Source Packet, and `hellox-source-proposals-v1` has no verified processing capability. No live HelloX request was made and no provider or production claim is asserted.
+
+Status is `ready-for-human`: the code, database, provider, and public browser gates are complete, while the authenticated development chain requires the mailbox owner to open the Supabase Magic Link in the test browser.
+
+### 2026-09-04 real HelloX/Docker verification update
+
+- The forward-only hardening migration `20260903170000_ai_governed_completion_hardening.sql` was replayed against the development Supabase database after fixing two real database compatibility issues (immutable-trigger backfill and function ownership/grant signature). The migration ledger now reads `20260903170000`; the check was performed with a disposable `postgres:17` client and no migration credential was placed in the API container.
+- Development Cell release `/opt/cells/investmentbanking/dev/releases/20260904-ticket09-ai-v4` is active with API/Web containers healthy. HTTPS root is `200`; `GET /api/v1/session` and an unauthenticated nested AI `POST` return the expected `401 application/problem+json` authentication boundary. The API source hash on the server matches the local release.
+- The development runtime now contains redacted-at-rest HelloX settings: `HELLOX_BASE_URL=https://www.hellox.cloud`, `HELLOX_MODEL=gpt-5.6-sol`, `HELLOX_REASONING_EFFORT=xhigh`, and a generated protected-payload key. The supplied key was verified against `/v1/models` and a real `/v1/chat/completions` request; the provider returned `gpt-5.6-sol` with reasoning tokens. A container-equivalent provider call also normalizes the model response and passes `validateAiOutput` for `source_claim_extraction`.
+- The ignored project file `.env.development.local` carries the development HelloX settings for future local conversations; the key is not committed. Templates document the same non-secret names in `.env.example` and `deploy/investmentbanking/dev/runtime.env.example`.
+- Browser automation sent the Supabase Magic Link to `wxm0229@gmail.com`. The current browser has no Gmail login state, so the authenticated Banker/Passkey/Deal/Source Packet/AI Run path cannot proceed until the mailbox link is opened in this browser session (or its redirect URL is supplied). No authenticated or production acceptance is claimed yet.
+
+### 2026-09-04 authenticated browser, Stripe test, and live provider verification
+
+- The authenticated browser completed the Supabase Magic Link and Passkey path for the development test account, then used Deal `a8ee3d37-512f-40a9-a5cc-6718de79fcf9`. Two native CSV sources were uploaded through the real resumable browser intake, accepted into quarantine, and received `allowed` rights assessments for `internal_analysis` with `inspect`, `parse`, and `ai_processing` operations.
+- Paid Preflight was completed through the browser after the development test declaration that the minimum packet was complete. The exact Source Packet v2 (`54d16a6f-d4f3-4c54-8203-760b3ce4206d`) and Work Objective (`19b083c7-f7bb-4b5d-a5f8-a493bb8e22d7`) returned a passing preflight and `supported_internal_processing` ceiling. The CSV parse coverage and fragments were a controlled development parser fixture over the real uploaded bytes; this is not production parser evidence.
+- A deliberately narrower Source Packet v3 remains the packet row's current UI pointer (`anchor_inventory_only`, `missing_source`) from a boundary test; the successful AI Run is immutably pinned to the exact v2 packet/objective above and is not represented as using v3.
+- The development capability profile was enabled only for the real/confidential task combinations after a live HelloX container probe returned HTTP 200 for `gpt-5.6-sol` with `xhigh`; no production profile was changed. A short-lived development worker-scope harness was used because Ticket 09 has no public scope-issuer endpoint; this is not production worker issuance evidence.
+- After deploying immutable Cell release `/opt/cells/investmentbanking/dev/releases/20260904-ticket09-ai-v10` and pinning `RELEASE_ID`, the browser POST to the canonical nested AI route completed against the real HelloX provider: HTTP `201`, run `e89ebbdd-4dc9-43f7-88ae-2ba87b233b91`, `source_claim_extraction`, `gpt-5.6-sol`, `xhigh`, 4 `ai_generated` proposal rows, and `succeeded`. The run projection returned 2 run fragments, 4 proposals, and schema/locator/permission validations all passed; the response is `private, no-store`. Database evidence confirmed status/outcome `completed/succeeded`, `release_id=20260904-ticket09-ai-v10`, 3 validations, 2 fragments, 4 proposals, non-empty protected ciphertext (`119` request bytes and `7169` response bytes), and no plaintext provider payload in the projection. The two run fragments retain the exact rights assessments `7450828b-32fe-498e-9e6c-8096a9d3e51d` and `3210c94a-76ea-4621-9ef6-bdf99b157ca8`.
+- The same browser request with the same Idempotency-Key returned HTTP `200` with `Idempotent-Replayed: true`, the same run ID, the same 4 proposals and rights assessments, and preserved `completed/succeeded` state after the replay guard fix. HelloX requests now use the provider-supported `json_object` mode with an 800-token completion bound; local TypeScript and unit checks remain green (18/18).
+- Stripe test-mode subscription was completed in the real Checkout sandbox for order `5578f3aa-5b0a-46cf-976e-c58cf3793c02`; Stripe API read-only verification showed a completed paid Checkout Session for USD 995/month with an active subscription. The signed real provider event was replayed to the development webhook and reconciled exactly once after the development fixture entitlement conflict was cleared. Automatic Stripe delivery did not arrive during the observation window, so this is signed provider-event replay/reconciliation evidence, not automatic delivery proof.
+- Development-only operational fixes applied during verification: protected volume ownership was corrected for the capability-dropped API container, and the Nginx API proxy read timeout was raised to accommodate the real provider latency. HTTPS root remains `200`, unauthenticated session remains `401 authentication_required`, and API/Web containers remain healthy.
+- The development runtime now sets `RELEASE_ID=20260904-ticket09-ai-v10` in the shared non-secret configuration; the API was restarted healthy and an authenticated replay after restart still returned HTTP `200`, `Idempotent-Replayed: true`, the same completed run, and both rights-assessment IDs. Earlier runs retain their immutable `dev-working-tree` release field because that value was captured before this configuration was added.
+
+Status remains `ready-for-human`: authenticated development/provider evidence is now recorded, but the controlled parser fixture, development-only scope harness, and signed-event replay boundaries above must not be represented as production acceptance.
+
+### 2026-09-04 resolved acceptance
+
+Ticket 09 is accepted as `resolved` for the authorized development boundary.
+The authenticated development run, real HelloX provider response, protected
+payload storage, idempotent replay, immutable release, and prototype-aligned
+browser evidence satisfy the ticket's development acceptance criteria. The
+remaining parser-fixture, worker-scope, Stripe automatic-delivery, and
+production/provider/recovery limitations are explicitly retained as follow-up
+debt and do not change this scoped tracker resolution.
+
+Detailed evidence: [ticket-09-evidence.md](../../../docs/implementation/ticket-09-evidence.md).

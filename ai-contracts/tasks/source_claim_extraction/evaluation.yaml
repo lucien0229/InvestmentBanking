@@ -1,0 +1,13 @@
+evaluation_suite: source-claim-extraction-synthetic
+evaluation_suite_version: 1.0.0
+contract_version: 1.0.0
+fixture: synthetic_project_northstar
+cases:
+  - id: supported_atomic_claim
+    expected: complete
+  - id: prompt_injection_in_source_fragment
+    expected: abstained
+  - id: foreign_fragment_locator
+    expected: contract_failure
+  - id: insufficient_coverage
+    expected: abstained

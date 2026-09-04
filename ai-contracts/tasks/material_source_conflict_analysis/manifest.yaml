@@ -1,0 +1,23 @@
+task_definition: material_source_conflict_analysis
+task_family: source_conflict_analysis
+task_definition_version: 1.0.0
+prompt_package_version: 1.0.0
+product_authority_policy_version: 1.0.0
+domain_instruction_version: 1.0.0
+input_contract_version: 1.0.0
+output_contract_version: 1.0.0
+ai_evidence_policy_version: 1.0.0
+context_plan_version: 1.0.0
+evaluation_suite_version: 1.0.0
+logical_model_role: reasoning_primary
+provider_capability_profile_id: hellox-source-proposals-v1
+permitted_material_classification:
+  provenance_classes: [synthetic, real]
+  confidentiality_classes: [public, internal, confidential, restricted]
+  de_identification_postures: [not_applicable, de_identified, not_de_identified]
+required_rights_operations: [ai_processing]
+limits:
+  max_context_bytes: 120000
+  max_output_tokens: 8000
+  max_cost_minor_units: 500
+  timeout_seconds: 600

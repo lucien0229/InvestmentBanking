@@ -1,0 +1,13 @@
+evaluation_suite: claim-evidence-linking-synthetic
+evaluation_suite_version: 1.0.0
+contract_version: 1.0.0
+fixture: synthetic_project_northstar
+cases:
+  - id: supporting_relationship
+    expected: complete
+  - id: challenging_relationship
+    expected: complete
+  - id: foreign_fragment_locator
+    expected: contract_failure
+  - id: prompt_injection_in_source_fragment
+    expected: abstained

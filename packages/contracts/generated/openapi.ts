@@ -3391,6 +3391,194 @@ export const openApiContract = {
         }
       }
     },
+    "/api/v1/deals/{deal_id}/ai-runs": {
+      "get": {
+        "operationId": "list_ai_source_runs",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deal-scoped AI source proposal runs"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      },
+      "post": {
+        "operationId": "start_ai_source_run",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AiSourceRunCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Typed proposal-only AI Run"
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/work-objectives/{work_objective_id}/ai-runs": {
+      "post": {
+        "operationId": "start_ai_source_run_for_objective",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "name": "work_objective_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AiSourceRunCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Typed proposal-only AI Run"
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/ai-runs/{run_id}": {
+      "get": {
+        "operationId": "get_ai_source_run",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "AI Run projection without protected provider payloads"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/ai-runs/{run_id}/retries": {
+      "post": {
+        "operationId": "retry_ai_source_run",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AiSourceRunRetry"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Bounded AI Run retry or repair queued"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
     "/objects/{protected_object_id}": {
       "get": {
         "operationId": "stream_protected_object",
@@ -3699,6 +3887,65 @@ export const openApiContract = {
             "maxLength": 160
           },
           "purpose": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          }
+        }
+      },
+      "AiSourceRunCreate": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "packet_version_id",
+          "work_objective_id",
+          "task_definition",
+          "job_id",
+          "job_scope_id"
+        ],
+        "properties": {
+          "packet_version_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "work_objective_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "task_definition": {
+            "enum": [
+              "source_claim_extraction",
+              "claim_evidence_linking",
+              "material_source_conflict_analysis",
+              "contract_repair"
+            ]
+          },
+          "job_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "job_scope_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "AiSourceRunRetry": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "reason_code"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "transient_provider",
+              "contract_repair"
+            ]
+          },
+          "reason_code": {
             "type": "string",
             "minLength": 1,
             "maxLength": 120

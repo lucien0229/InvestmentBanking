@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://investment-banking.local/ai/input/1.0.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["envelope_version", "task", "scope", "inputs", "coverage", "limits", "request_nonce", "canonical_input_digest"],
+  "properties": {
+    "envelope_version": {"const": "1.0.0"},
+    "task": {
+      "type": "object", "additionalProperties": false,
+      "required": ["task_definition", "task_definition_version", "prompt_package_version", "input_contract_version", "output_contract_version", "ai_evidence_policy_version", "context_plan_version"],
+      "properties": {
+        "task_definition": {"enum": ["source_claim_extraction", "claim_evidence_linking", "material_source_conflict_analysis", "contract_repair"]},
+        "task_definition_version": {"type": "string", "minLength": 1},
+        "prompt_package_version": {"type": "string", "minLength": 1},
+        "input_contract_version": {"type": "string", "minLength": 1},
+        "output_contract_version": {"type": "string", "minLength": 1},
+        "ai_evidence_policy_version": {"type": "string", "minLength": 1},
+        "context_plan_version": {"type": "string", "minLength": 1}
+      }
+    },
+    "scope": {
+      "type": "object", "additionalProperties": false,
+      "required": ["account_id", "deal_id", "job_id", "job_scope_id", "packet_version_id", "work_objective", "intended_use", "audience", "material_classification", "rights_posture", "scope_digest"],
+      "properties": {
+        "account_id": {"type": "string", "format": "uuid"}, "deal_id": {"type": "string", "format": "uuid"}, "job_id": {"type": "string", "format": "uuid"}, "job_scope_id": {"type": "string", "format": "uuid"}, "packet_version_id": {"type": "string", "format": "uuid"},
+        "work_objective": {"type": "string", "minLength": 1, "maxLength": 500}, "intended_use": {"type": "string", "minLength": 1, "maxLength": 240}, "audience": {"type": "string", "minLength": 1, "maxLength": 240},
+        "material_classification": {
+          "type": "object", "additionalProperties": false,
+          "required": ["provenance_class", "confidentiality_class", "de_identification_posture", "assessment_ids"],
+          "properties": {
+            "provenance_class": {"enum": ["synthetic", "real"]}, "confidentiality_class": {"enum": ["public", "internal", "confidential", "restricted"]},
+            "de_identification_posture": {"type": "string", "minLength": 1, "maxLength": 120}, "assessment_ids": {"type": "array", "maxItems": 20, "items": {"type": "string", "minLength": 1, "maxLength": 200}}
+          }
+        },
+        "rights_posture": {"type": "object", "additionalProperties": false, "required": ["assessment_id", "required_operation"], "properties": {"assessment_id": {"type": "string", "minLength": 1, "maxLength": 200}, "required_operation": {"const": "ai_processing"}}},
+        "scope_digest": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"}
+      }
+    },
+    "inputs": {
+      "type": "object", "additionalProperties": false,
+      "required": ["source_records", "source_representations", "source_fragments", "processing_coverage", "facts", "assumptions", "human_decisions", "calculations", "models", "scenarios", "artifact_contracts", "current_revisions", "deterministic_results"],
+      "properties": {
+        "source_records": {"type": "array", "maxItems": 200, "items": {"type": "object", "additionalProperties": false, "required": ["source_record_id", "version", "content_digest"], "properties": {"source_record_id": {"type": "string", "format": "uuid"}, "version": {"type": "integer", "minimum": 0}, "content_digest": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"}}}},
+        "source_representations": {"type": "array", "maxItems": 200, "items": {"type": "object", "additionalProperties": false, "required": ["representation_id", "source_record_id", "content_digest"], "properties": {"representation_id": {"type": "string", "format": "uuid"}, "source_record_id": {"type": "string", "format": "uuid"}, "content_digest": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"}}}},
+        "source_fragments": {
+          "type": "array", "maxItems": 200,
+          "items": {
+            "type": "object", "additionalProperties": false,
+            "required": ["fragment_id", "source_record_id", "representation_id", "locator", "content_digest"],
+            "properties": {
+              "fragment_id": {"type": "string", "format": "uuid"}, "source_record_id": {"type": "string", "format": "uuid"}, "representation_id": {"type": "string", "format": "uuid"},
+              "locator": {"type": "object", "additionalProperties": false, "minProperties": 1, "properties": {"kind": {"type": "string", "minLength": 1, "maxLength": 80}, "page": {"type": "integer", "minimum": 1}, "start": {"type": "integer", "minimum": 0}, "end": {"type": "integer", "minimum": 0}, "line": {"type": "integer", "minimum": 1}, "column": {"type": "integer", "minimum": 1}, "char_start": {"type": "integer", "minimum": 0}, "char_end": {"type": "integer", "minimum": 0}, "section": {"type": "string", "minLength": 1, "maxLength": 200}, "sheet": {"type": "string", "minLength": 1, "maxLength": 120}, "range": {"type": "string", "minLength": 1, "maxLength": 120}}},
+              "content_digest": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"}
+            }
+          }
+        },
+        "processing_coverage": {"type": "array", "maxItems": 200, "items": {"type": "object", "additionalProperties": false, "required": ["source_record_id", "coverage_code", "coverage_digest"], "properties": {"source_record_id": {"type": "string", "format": "uuid"}, "coverage_code": {"type": "string", "minLength": 1, "maxLength": 120}, "coverage_digest": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"}}}},
+        "facts": {"type": "array", "maxItems": 0, "items": {"type": "object", "additionalProperties": false}}, "assumptions": {"type": "array", "maxItems": 0, "items": {"type": "object", "additionalProperties": false}}, "human_decisions": {"type": "array", "maxItems": 0, "items": {"type": "object", "additionalProperties": false}}, "calculations": {"type": "array", "maxItems": 0, "items": {"type": "object", "additionalProperties": false}}, "models": {"type": "array", "maxItems": 0, "items": {"type": "object", "additionalProperties": false}}, "scenarios": {"type": "array", "maxItems": 0, "items": {"type": "object", "additionalProperties": false}}, "artifact_contracts": {"type": "array", "maxItems": 0, "items": {"type": "object", "additionalProperties": false}}, "current_revisions": {"type": "array", "maxItems": 0, "items": {"type": "object", "additionalProperties": false}}, "deterministic_results": {"type": "array", "maxItems": 0, "items": {"type": "object", "additionalProperties": false}}
+      }
+    },
+    "coverage": {"type": "object", "additionalProperties": false, "required": ["required_input_keys", "included_input_keys", "excluded_input_keys", "failed_input_keys", "coverage_complete"], "properties": {"required_input_keys": {"type": "array", "maxItems": 200, "items": {"type": "string", "format": "uuid"}}, "included_input_keys": {"type": "array", "maxItems": 200, "items": {"type": "string", "format": "uuid"}}, "excluded_input_keys": {"type": "array", "maxItems": 200, "items": {"type": "string", "maxLength": 200}}, "failed_input_keys": {"type": "array", "maxItems": 200, "items": {"type": "string", "maxLength": 200}}, "coverage_complete": {"type": "boolean"}}},
+    "limits": {"type": "object", "additionalProperties": false, "required": ["max_context_bytes", "max_output_tokens", "timeout_seconds", "max_cost_minor_units"], "properties": {"max_context_bytes": {"type": "integer", "minimum": 1}, "max_output_tokens": {"type": "integer", "minimum": 1}, "timeout_seconds": {"type": "integer", "minimum": 1}, "max_cost_minor_units": {"type": "integer", "minimum": 0}}},
+    "request_nonce": {"type": "string", "minLength": 16}, "canonical_input_digest": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"}
+  }
+}

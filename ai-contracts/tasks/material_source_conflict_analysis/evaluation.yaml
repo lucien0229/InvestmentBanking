@@ -1,0 +1,13 @@
+evaluation_suite: material-source-conflict-synthetic
+evaluation_suite_version: 1.0.0
+contract_version: 1.0.0
+fixture: synthetic_project_northstar
+cases:
+  - id: competing_values
+    expected: complete
+  - id: competing_periods
+    expected: complete
+  - id: insufficient_competing_context
+    expected: abstained
+  - id: prompt_injection_in_source_fragment
+    expected: abstained
