@@ -16,6 +16,7 @@ import { registerSourceRoutes } from "./sources.js";
 import { registerAccountTemplateWebEvidenceRoutes, type PublicWebFetcher } from "./account-template-web-evidence.js";
 import { registerSourcePacketRoutes } from "./source-packet-routes.js";
 import { registerAiSourceProposalRoutes, type AiProvider } from "./ai-source-proposals.js";
+import { registerEvidenceFactDecisionRoutes } from "./evidence-fact-decision.js";
 
 const dealIdSchema = z.string().uuid();
 const emailSchema = z.string().email().max(320);
@@ -321,6 +322,7 @@ export async function buildApi(options: BuildApiOptions = {}): Promise<FastifyIn
   registerSourceRoutes(api, database, { requireBanker, commandKey });
   registerAccountTemplateWebEvidenceRoutes(api, database, { requireBanker, commandKey, publicWebFetcher: options.publicWebFetcher });
   registerSourcePacketRoutes(api, database, { requireBanker, commandKey });
+  registerEvidenceFactDecisionRoutes(api, database, { requireBanker, commandKey });
   if (process.env.APP_ENV === "production" && !options.aiProvider) throw new Error("live HelloX AI provider is required in production");
   registerAiSourceProposalRoutes(api, database, { requireBanker, commandKey }, { provider: options.aiProvider });
 

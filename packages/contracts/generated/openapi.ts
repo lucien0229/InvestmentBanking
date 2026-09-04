@@ -3579,6 +3579,639 @@ export const openApiContract = {
         }
       }
     },
+    "/api/v1/deals/{deal_id}/evidence": {
+      "get": {
+        "operationId": "list_evidence",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Evidence Inspector projection"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/evidence-acceptances": {
+      "post": {
+        "operationId": "accept_evidence",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EvidenceAcceptance"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Exact Source Evidence accepted"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/evidence/{evidence_id}": {
+      "get": {
+        "operationId": "get_evidence",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "name": "evidence_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Evidence"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/claims": {
+      "get": {
+        "operationId": "list_claims",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Typed Claims"
+          }
+        }
+      },
+      "post": {
+        "operationId": "create_claim",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClaimCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Claim created"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/claims/{claim_id}": {
+      "get": {
+        "operationId": "get_claim",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "name": "claim_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Claim"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/claims/{claim_id}/fact-acceptances": {
+      "post": {
+        "operationId": "accept_claim_as_fact",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "name": "claim_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/IfMatch"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FactAcceptance"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Fact accepted with typed Human Decision"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "412": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/claims/{claim_id}/corrections": {
+      "post": {
+        "operationId": "correct_claim",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "name": "claim_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClaimCorrection"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Append-only Claim correction"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/facts": {
+      "get": {
+        "operationId": "list_facts",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Typed Facts"
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/facts/{fact_id}": {
+      "get": {
+        "operationId": "get_fact",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "name": "fact_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Fact"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/assumptions": {
+      "get": {
+        "operationId": "list_assumptions",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Typed Assumptions"
+          }
+        }
+      },
+      "post": {
+        "operationId": "create_assumption",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssumptionCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Assumption created"
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/assumptions/{assumption_id}": {
+      "get": {
+        "operationId": "get_assumption",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "name": "assumption_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Assumption"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/assumptions/{assumption_id}/approvals": {
+      "post": {
+        "operationId": "approve_assumption",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "name": "assumption_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssumptionApproval"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Assumption approved for bounded use"
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/conflicts": {
+      "get": {
+        "operationId": "list_conflicts",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Information conflicts"
+          }
+        }
+      },
+      "post": {
+        "operationId": "create_conflict",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConflictCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Conflict created"
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/conflicts/{conflict_id}": {
+      "get": {
+        "operationId": "get_conflict",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "name": "conflict_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Information conflict"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/conflicts/{conflict_id}/resolutions": {
+      "post": {
+        "operationId": "resolve_conflict",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "name": "conflict_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/KnowledgeIfMatchRequired"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConflictResolution"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Conflict resolved with typed Human Decision"
+          },
+          "412": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/human-decisions": {
+      "get": {
+        "operationId": "list_human_decisions",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Human Decisions"
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/human-decisions/{decision_id}": {
+      "get": {
+        "operationId": "get_human_decision",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "name": "decision_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Human Decision"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
     "/objects/{protected_object_id}": {
       "get": {
         "operationId": "stream_protected_object",
@@ -3705,6 +4338,15 @@ export const openApiContract = {
         "schema": {
           "type": "string",
           "pattern": "^(W/)?\\\"source-packet-[0-9]+\\\"$"
+        }
+      },
+      "KnowledgeIfMatchRequired": {
+        "name": "If-Match",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "pattern": "^(W/)?\\\"conflict-[0-9]+\\\"$"
         }
       },
       "SourcePacketId": {
@@ -6212,6 +6854,331 @@ export const openApiContract = {
           },
           "stream_url": {
             "type": "string"
+          }
+        }
+      },
+      "EvidenceAcceptance": {
+        "type": "object",
+        "required": [
+          "source_record_id",
+          "representation_id",
+          "locator",
+          "proposition",
+          "relationship",
+          "supported_scope"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "source_record_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "representation_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "locator": {
+            "type": "object"
+          },
+          "proposition": {
+            "type": "string"
+          },
+          "relationship": {
+            "enum": [
+              "supports",
+              "challenges"
+            ]
+          },
+          "supported_scope": {
+            "type": "string"
+          },
+          "qualification": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "limitation": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "ClaimCreate": {
+        "type": "object",
+        "required": [
+          "proposition",
+          "attribution",
+          "definition",
+          "period",
+          "unit",
+          "currency",
+          "sign",
+          "purpose",
+          "scope"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "proposition": {
+            "type": "string"
+          },
+          "attribution": {
+            "type": "string"
+          },
+          "definition": {
+            "type": "string"
+          },
+          "period": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "sign": {
+            "enum": [
+              "positive",
+              "negative",
+              "not_applicable",
+              "unknown"
+            ]
+          },
+          "value": {},
+          "purpose": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "string"
+          },
+          "origin": {
+            "type": "string"
+          },
+          "source_proposal_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "corrects_claim_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          }
+        }
+      },
+      "FactAcceptance": {
+        "type": "object",
+        "required": [
+          "evidence_relationship_ids",
+          "purpose",
+          "scope",
+          "rationale"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "evidence_relationship_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "purpose": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "string"
+          },
+          "rationale": {
+            "type": "string"
+          },
+          "alternatives": {
+            "type": "array"
+          },
+          "contrary_evidence": {
+            "type": "array"
+          },
+          "conditions": {
+            "type": "array"
+          }
+        }
+      },
+      "ClaimCorrection": {
+        "type": "object",
+        "required": [
+          "corrected_value",
+          "scope",
+          "purpose",
+          "rationale",
+          "evidence_relationship_ids"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "corrected_value": {},
+          "corrected_proposition": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "string"
+          },
+          "purpose": {
+            "type": "string"
+          },
+          "rationale": {
+            "type": "string"
+          },
+          "evidence_relationship_ids": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "alternatives": {
+            "type": "array"
+          }
+        }
+      },
+      "AssumptionCreate": {
+        "type": "object",
+        "required": [
+          "proposition",
+          "purpose",
+          "scope",
+          "rationale"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "proposition": {
+            "type": "string"
+          },
+          "value": {},
+          "purpose": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "string"
+          },
+          "rationale": {
+            "type": "string"
+          },
+          "bounds": {
+            "type": "object"
+          },
+          "invalidation_triggers": {
+            "type": "array"
+          },
+          "origin": {
+            "type": "string"
+          },
+          "source_proposal_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          }
+        }
+      },
+      "AssumptionApproval": {
+        "type": "object",
+        "required": [
+          "purpose",
+          "scope",
+          "rationale"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "purpose": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "string"
+          },
+          "allowed_uses": {
+            "type": "array"
+          },
+          "rationale": {
+            "type": "string"
+          },
+          "alternatives": {
+            "type": "array"
+          },
+          "evidence_relationship_ids": {
+            "type": "array"
+          },
+          "conditions": {
+            "type": "array"
+          },
+          "invalidation_triggers": {
+            "type": "array"
+          }
+        }
+      },
+      "ConflictCreate": {
+        "type": "object",
+        "required": [
+          "dimension",
+          "affected_scope",
+          "claim_ids"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "dimension": {
+            "type": "string"
+          },
+          "affected_scope": {
+            "type": "string"
+          },
+          "affected_uses": {
+            "type": "array"
+          },
+          "claim_ids": {
+            "type": "array",
+            "minItems": 2,
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        }
+      },
+      "ConflictResolution": {
+        "type": "object",
+        "required": [
+          "disposition",
+          "scope",
+          "rationale",
+          "selected_claim_ids"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "disposition": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "string"
+          },
+          "rationale": {
+            "type": "string"
+          },
+          "selected_claim_ids": {
+            "type": "array",
+            "minItems": 2
+          },
+          "evidence_relationship_ids": {
+            "type": "array"
+          },
+          "alternatives": {
+            "type": "array"
           }
         }
       }
