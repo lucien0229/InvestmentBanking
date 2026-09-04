@@ -1,0 +1,5 @@
+{
+  "fixture": "rejects_float_value",
+  "input": {"value": 4.7},
+  "expected": {"status": "rejected", "reason_code": "schema_invalid", "authority_created": false}
+}

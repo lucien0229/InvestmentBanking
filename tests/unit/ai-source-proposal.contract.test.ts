@@ -105,7 +105,7 @@ test("one repair is structure-only and semantic changes reject the response", ()
 });
 
 test("each concrete task ships a versioned strict output contract and synthetic evaluation manifest", () => {
-  for (const task of ["source_claim_extraction", "claim_evidence_linking", "material_source_conflict_analysis", "contract_repair"]) {
+  for (const task of ["source_claim_extraction", "claim_evidence_linking", "material_source_conflict_analysis", "contract_repair", "financial_semantic_extraction", "financial_normalization_mapping", "sell_side_analysis_draft", "valuation_commentary_draft"]) {
     const output = JSON.parse(fs.readFileSync(`ai-contracts/tasks/${task}/output.schema.json`, "utf8")) as Record<string, unknown>;
     assert.equal(output.additionalProperties, false, task);
     const resultSchema = (output.$defs as Record<string, unknown>).result as Record<string, unknown>;
@@ -114,5 +114,12 @@ test("each concrete task ships a versioned strict output contract and synthetic 
     assert.equal(fs.existsSync(`ai-contracts/tasks/${task}/evaluation.yaml`), true, task);
     assert.match(fs.readFileSync(`ai-contracts/tasks/${task}/manifest.yaml`, "utf8"), /evaluation_suite_version: 1\.0\.0/);
     assert.match(fs.readFileSync(`ai-contracts/tasks/${task}/evaluation.yaml`, "utf8"), /evaluation_suite_version: 1\.0\.0/);
+    if (task.startsWith("financial_") || task.endsWith("_draft")) {
+      const evaluation = fs.readFileSync(`ai-contracts/tasks/${task}/evaluation.yaml`, "utf8");
+      assert.match(evaluation, /gates:/, `${task}: evaluation gates are required`);
+      const fixturePaths = [...evaluation.matchAll(/- (fixtures\/[^\n]+)/g)].map((match) => match[1]);
+      assert.ok(fixturePaths.length >= 2, `${task}: fixture paths are required`);
+      for (const fixture of fixturePaths) assert.equal(fs.existsSync(`ai-contracts/tasks/${task}/${fixture}`), true, `${task}: missing ${fixture}`);
+    }
   }
 });

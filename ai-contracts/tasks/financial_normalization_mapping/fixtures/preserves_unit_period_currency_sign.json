@@ -1,0 +1,5 @@
+{
+  "fixture": "preserves_unit_period_currency_sign",
+  "input": {"period": "FY2025E", "unit": "USD million", "currency": "USD", "sign": "positive", "precision": 2},
+  "expected": {"preserves": ["period", "unit", "currency", "sign", "precision"], "authority_created": false}
+}

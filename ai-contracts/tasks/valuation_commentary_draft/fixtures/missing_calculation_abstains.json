@@ -1,0 +1,5 @@
+{
+  "fixture": "missing_calculation_abstains",
+  "input": {"model_version_id": "controlled-model-version-id", "calculation_run_ids": [], "scenario_version_ids": ["controlled-scenario-version-id"]},
+  "expected": {"status": "abstained", "reason_code": "deterministic_validity_missing", "authority_created": false}
+}

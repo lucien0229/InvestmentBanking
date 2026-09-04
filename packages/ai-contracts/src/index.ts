@@ -12,6 +12,10 @@ export const taskDefinitions = [
   "claim_evidence_linking",
   "material_source_conflict_analysis",
   "contract_repair",
+  "financial_semantic_extraction",
+  "financial_normalization_mapping",
+  "sell_side_analysis_draft",
+  "valuation_commentary_draft",
 ] as const;
 export type TaskDefinition = (typeof taskDefinitions)[number];
 export type MaterialProvenanceClass = "synthetic" | "real";
@@ -84,6 +88,7 @@ export type AiInputEnvelope = {
     processing_coverage: Array<{ source_record_id: string; coverage_code: string; coverage_digest: string }>;
     facts: unknown[];
     assumptions: unknown[];
+    evidence: unknown[];
     human_decisions: unknown[];
     calculations: unknown[];
     models: unknown[];
@@ -184,6 +189,7 @@ type InputOptions = {
   excludedInputKeys: string[];
   failedInputKeys: string[];
   limits: { maxContextBytes: number; maxOutputTokens: number; timeoutSeconds: number; maxCostMinorUnits: number };
+  controlledInputs?: { facts?: unknown[]; assumptions?: unknown[]; evidence?: unknown[]; humanDecisions?: unknown[]; calculations?: unknown[]; models?: unknown[]; scenarios?: unknown[]; artifactContracts?: unknown[]; currentRevisions?: unknown[]; deterministicResults?: unknown[] };
 };
 
 function canonical(value: unknown): string {
@@ -219,11 +225,13 @@ export function buildAiInputEnvelope(options: InputOptions): AiInputEnvelope {
     source_representations: [...new Map(options.fragments.map((fragment) => [fragment.representationId, { representation_id: fragment.representationId, source_record_id: fragment.sourceRecordId, content_digest: fragment.representationDigest ?? fragment.contentDigest }])).values()],
     source_fragments: fragments,
     processing_coverage: [...new Map(options.fragments.map((fragment) => [fragment.sourceRecordId, { source_record_id: fragment.sourceRecordId, coverage_code: fragment.coverageCode ?? "parsed", coverage_digest: digest({ source_record_id: fragment.sourceRecordId, coverage_code: fragment.coverageCode ?? "parsed" }) }])).values()],
-    facts: [], assumptions: [], human_decisions: [], calculations: [], models: [], scenarios: [], artifact_contracts: [], current_revisions: [], deterministic_results: [],
+    facts: options.controlledInputs?.facts ?? [], assumptions: options.controlledInputs?.assumptions ?? [], evidence: options.controlledInputs?.evidence ?? [], human_decisions: options.controlledInputs?.humanDecisions ?? [], calculations: options.controlledInputs?.calculations ?? [], models: options.controlledInputs?.models ?? [], scenarios: options.controlledInputs?.scenarios ?? [], artifact_contracts: options.controlledInputs?.artifactContracts ?? [], current_revisions: options.controlledInputs?.currentRevisions ?? [], deterministic_results: options.controlledInputs?.deterministicResults ?? [],
   };
+  const controlledIds = Object.values(inputs).flatMap((items) => Array.isArray(items) ? items.flatMap((item) => item && typeof item === "object" && "id" in item && typeof (item as { id?: unknown }).id === "string" ? [(item as { id: string }).id] : []) : []);
+  const includedInputKeys = [...new Set([...fragments.map((fragment) => fragment.fragment_id), ...controlledIds])];
   const coverage = {
-    required_input_keys: [...options.requiredInputKeys], included_input_keys: fragments.map((fragment) => fragment.fragment_id),
-    excluded_input_keys: [...options.excludedInputKeys], failed_input_keys: [...options.failedInputKeys], coverage_complete: options.failedInputKeys.length === 0 && options.requiredInputKeys.every((key) => fragments.some((fragment) => fragment.fragment_id === key)),
+    required_input_keys: [...options.requiredInputKeys], included_input_keys: includedInputKeys,
+    excluded_input_keys: [...options.excludedInputKeys], failed_input_keys: [...options.failedInputKeys], coverage_complete: options.failedInputKeys.length === 0 && options.requiredInputKeys.every((key) => includedInputKeys.includes(key)),
   };
   const unsigned = {
     envelope_version: AI_INPUT_SCHEMA_VERSION,
@@ -257,11 +265,48 @@ const sourceClaimPayload = z.object({ proposition: z.string().min(1).max(2000), 
 const evidenceLinkPayload = z.object({ proposition_key: z.string().min(1).max(160), fragment_id: z.string().min(1).max(160), relationship: z.enum(["supports", "challenges"]), supported_scope: z.string().min(1).max(500), qualification: z.string().max(500).nullable(), relationship_limitation: z.string().max(500).nullable() }).strict();
 const conflictPayload = z.object({ conflict_key: z.string().min(1).max(160), dimension: z.enum(["definition", "period", "unit", "currency", "sign", "value", "source_version", "scope", "meaning"]), competing_refs: z.array(z.string().min(1).max(160)).min(2).max(20), affected_scope: z.string().min(1).max(500), unresolved_alternatives: z.array(z.string().min(1).max(500)).min(2).max(20), affected_uses: z.array(z.string().min(1).max(240)).min(1).max(20) }).strict();
 const repairPayload = z.union([sourceClaimPayload, evidenceLinkPayload, conflictPayload]);
+const decimalText = z.string().regex(/^-?(?:0|[1-9]\d*)(?:\.\d+)?$/);
+function hasDeclaredDecimalPrecision(value: unknown, precision: unknown): boolean {
+  if (value === null) return true;
+  if (typeof value !== "string" || typeof precision !== "number") return false;
+  const fraction = value.split(".")[1] ?? "";
+  return fraction.length === precision;
+}
+const locator = z.record(z.string(), z.union([z.string(), z.number()]));
+const financialSemanticPayload = z.object({
+  proposition: z.string().min(1).max(2000), definition: z.string().min(1).max(500), period: z.string().min(1).max(120),
+  unit: z.string().min(1).max(80), currency: z.string().min(1).max(20), sign: z.enum(["positive", "negative", "not_applicable", "unknown"]),
+  precision: z.number().int().min(0).max(12), value_text: decimalText.nullable(), actual_forecast: z.enum(["actual", "forecast", "unknown"]),
+  source_fragment_id: z.string().min(1).max(160), source_locator: locator, qualification: z.string().max(500).nullable(),
+}).strict();
+const financialMappingPayload = z.object({
+  mapping_key: z.string().min(1).max(160), source_fragment_id: z.string().min(1).max(160), source_definition: z.string().min(1).max(500),
+  canonical_definition: z.string().min(1).max(500), canonical_taxonomy_version: z.string().min(1).max(80), period: z.string().min(1).max(120),
+  unit: z.string().min(1).max(80), currency: z.string().min(1).max(20), sign: z.enum(["positive", "negative", "not_applicable", "unknown"]),
+  precision: z.number().int().min(0).max(12), value_text: decimalText.nullable(), actual_forecast: z.enum(["actual", "forecast", "unknown"]),
+  decision_id: z.string().uuid().nullable(), assumption_id: z.string().uuid().nullable(), mapping_notes: z.string().max(1000),
+}).strict();
+const sellSideDraftPayload = z.object({
+  question: z.string().min(1).max(500), conclusion: z.string().min(1).max(4000), supporting_fact_ids: z.array(z.string().uuid()).max(30),
+  supporting_assumption_ids: z.array(z.string().uuid()).max(30), supporting_calculation_run_ids: z.array(z.string().uuid()).max(30),
+  supporting_evidence_ids: z.array(z.string().uuid()).max(30), limitations: z.array(z.string().min(1).max(500)).max(20),
+  intended_use: z.string().min(1).max(240), audience: z.string().min(1).max(240),
+}).strict();
+const valuationCommentaryPayload = z.object({
+  valuation_question: z.string().min(1).max(500), commentary: z.string().min(1).max(4000), model_version_id: z.string().uuid().nullable(),
+  calculation_run_ids: z.array(z.string().uuid()).max(30), assumption_ids: z.array(z.string().uuid()).max(30),
+  evidence_ids: z.array(z.string().uuid()).max(30), scenario_version_ids: z.array(z.string().uuid()).max(30),
+  limitations: z.array(z.string().min(1).max(500)).max(20),
+}).strict();
 const taskPayloads: Record<TaskDefinition, z.ZodType<Record<string, unknown>>> = {
   source_claim_extraction: sourceClaimPayload as z.ZodType<Record<string, unknown>>,
   claim_evidence_linking: evidenceLinkPayload as z.ZodType<Record<string, unknown>>,
   material_source_conflict_analysis: conflictPayload as z.ZodType<Record<string, unknown>>,
   contract_repair: z.object({ original_candidate_key: z.string().min(1).max(160), repaired_payload: repairPayload }).strict() as z.ZodType<Record<string, unknown>>,
+  financial_semantic_extraction: financialSemanticPayload as z.ZodType<Record<string, unknown>>,
+  financial_normalization_mapping: financialMappingPayload as z.ZodType<Record<string, unknown>>,
+  sell_side_analysis_draft: sellSideDraftPayload as z.ZodType<Record<string, unknown>>,
+  valuation_commentary_draft: valuationCommentaryPayload as z.ZodType<Record<string, unknown>>,
 };
 
 export function validateAiOutput(value: unknown, envelope: AiInputEnvelope): { ok: true } | { ok: false; code: string; pointer?: string } {
@@ -275,27 +320,74 @@ export function validateAiOutput(value: unknown, envelope: AiInputEnvelope): { o
   if (!abstentions.success) return { ok: false, code: "schema_invalid", pointer: `abstentions.${abstentions.error.issues[0]?.path.join(".") ?? ""}` };
   const omissions = z.array(omission).max(200).safeParse(base.data.omissions);
   if (!omissions.success) return { ok: false, code: "schema_invalid", pointer: `omissions.${omissions.error.issues[0]?.path.join(".") ?? ""}` };
+  if (base.data.status === "complete" && results.data.length === 0) return { ok: false, code: "complete_without_results" };
   if (base.data.status === "complete" && (base.data.abstentions.length > 0 || base.data.omissions.length > 0)) return { ok: false, code: "complete_with_omissions" };
   if (base.data.status === "partial" && (results.data.length === 0 || (base.data.abstentions.length === 0 && base.data.omissions.length === 0))) return { ok: false, code: "partial_without_boundary" };
   if (base.data.status === "abstained" && (results.data.length > 0 || base.data.abstentions.length === 0)) return { ok: false, code: "abstention_status_invalid" };
-  const fragments = new Set(envelope.inputs.source_fragments.map((fragment) => fragment.fragment_id));
+  const fragments = new Map(envelope.inputs.source_fragments.map((fragment) => [fragment.fragment_id, fragment]));
+  const controlled = new Map<string, string>();
+  const addControlled = (value: unknown, kind: string) => {
+    if (Array.isArray(value)) { value.forEach((item) => addControlled(item, kind)); return; }
+    if (!value || typeof value !== "object") return;
+    const record = value as Record<string, unknown>;
+    const typedKind = kind === "calculations" ? ("result" in record && "checks" in record ? "calculation_runs" : "method_code" in record ? "calculation_versions" : null) : kind === "models" ? ("version_ordinal" in record ? "model_versions" : null) : kind === "scenarios" ? ("version_ordinal" in record ? "scenario_versions" : null) : kind;
+    if (typedKind && "id" in record && typeof record.id === "string") controlled.set(record.id, typedKind);
+    for (const [key, item] of Object.entries(record)) {
+      const childKind = key === "runs" ? "calculation_runs" : key === "versions" && kind === "calculations" ? "calculation_versions" : key === "versions" && kind === "models" ? "model_versions" : key === "versions" && kind === "scenarios" ? "scenario_versions" : kind;
+      addControlled(item, childKind);
+    }
+  };
+  for (const [kind, values] of Object.entries(envelope.inputs)) if (kind !== "source_fragments") addControlled(values, kind);
+  const idsFor = (kind: string) => new Set([...controlled.entries()].filter(([, value]) => value === kind).map(([id]) => id));
+  const assertIds = (values: unknown, allowed: Set<string>, pointer: string) => {
+    if (!Array.isArray(values)) return null;
+    return values.some((value) => typeof value !== "string" || !allowed.has(value)) ? { ok: false as const, code: "foreign_controlled_input", pointer } : null;
+  };
+  const sourceFragmentSet = new Set(fragments.keys());
   const candidateKeys = new Set<string>();
   for (const [index, result] of results.data.entries()) {
     if (candidateKeys.has(result.candidate_key)) return { ok: false, code: "duplicate_candidate_key", pointer: `results.${index}.candidate_key` };
     candidateKeys.add(result.candidate_key);
     if (containsForbiddenAuthority(result.payload)) return { ok: false, code: "authority_field_forbidden", pointer: `results.${index}.payload` };
     if (result.required_human_decision && containsForbiddenAuthority(result.required_human_decision)) return { ok: false, code: "authority_field_forbidden", pointer: `results.${index}.required_human_decision` };
-    for (const link of result.evidence_links) if (!fragments.has(link.fragment_id)) return { ok: false, code: "foreign_locator", pointer: `results.${index}.evidence_links` };
+    for (const link of result.evidence_links) if (!sourceFragmentSet.has(link.fragment_id)) return { ok: false, code: "foreign_locator", pointer: `results.${index}.evidence_links` };
     if (["supported", "challenged"].includes(result.support_status) && result.evidence_links.length === 0) return { ok: false, code: "material_result_without_evidence", pointer: `results.${index}.evidence_links` };
     const payload = result.payload as Record<string, unknown>;
     const payloadFragment = payload.source_fragment_id ?? payload.fragment_id;
-    if (typeof payloadFragment === "string" && !fragments.has(payloadFragment)) return { ok: false, code: "foreign_locator", pointer: `results.${index}.payload` };
-    if (envelope.task.task_definition === "claim_evidence_linking" && typeof payload.proposition_key === "string" && !fragments.has(payload.proposition_key)) return { ok: false, code: "foreign_proposition", pointer: `results.${index}.payload.proposition_key` };
+    if (typeof payloadFragment === "string" && !sourceFragmentSet.has(payloadFragment)) return { ok: false, code: "foreign_locator", pointer: `results.${index}.payload` };
+    if (envelope.task.task_definition === "financial_semantic_extraction" && typeof payload.source_fragment_id === "string") {
+      const fragment = fragments.get(payload.source_fragment_id);
+      if (fragment && canonical(payload.source_locator) !== canonical(fragment.locator)) return { ok: false, code: "locator_mismatch", pointer: `results.${index}.payload.source_locator` };
+    }
+    if (["financial_semantic_extraction", "financial_normalization_mapping"].includes(envelope.task.task_definition) && !hasDeclaredDecimalPrecision(payload.value_text, payload.precision)) return { ok: false, code: "precision_mismatch", pointer: `results.${index}.payload.value_text` };
+    if (envelope.task.task_definition === "claim_evidence_linking" && typeof payload.proposition_key === "string" && !sourceFragmentSet.has(payload.proposition_key)) return { ok: false, code: "foreign_proposition", pointer: `results.${index}.payload.proposition_key` };
     if (envelope.task.task_definition === "material_source_conflict_analysis") {
       const refs = (payload.competing_refs ?? []) as unknown[];
-      if (refs.some((ref) => typeof ref !== "string" || !fragments.has(ref))) return { ok: false, code: "foreign_locator", pointer: `results.${index}.payload.competing_refs` };
+      if (refs.some((ref) => typeof ref !== "string" || !sourceFragmentSet.has(ref))) return { ok: false, code: "foreign_locator", pointer: `results.${index}.payload.competing_refs` };
     }
-    for (const conflictItem of result.conflicts) if (conflictItem.competing_refs.some((ref) => !fragments.has(ref))) return { ok: false, code: "foreign_locator", pointer: `results.${index}.conflicts` };
+    for (const conflictItem of result.conflicts) if (conflictItem.competing_refs.some((ref) => !sourceFragmentSet.has(ref))) return { ok: false, code: "foreign_locator", pointer: `results.${index}.conflicts` };
+    if (envelope.task.task_definition === "financial_normalization_mapping") {
+      const decisionIds = idsFor("human_decisions"); const assumptionIds = idsFor("assumptions");
+      if (payload.decision_id !== null && payload.decision_id !== undefined && (!decisionIds.has(payload.decision_id as string))) return { ok: false, code: "foreign_controlled_input", pointer: `results.${index}.payload.decision_id` };
+      if (payload.assumption_id !== null && payload.assumption_id !== undefined && (!assumptionIds.has(payload.assumption_id as string))) return { ok: false, code: "foreign_controlled_input", pointer: `results.${index}.payload.assumption_id` };
+    }
+    if (envelope.task.task_definition === "sell_side_analysis_draft") {
+      const payloadFactIds = assertIds(payload.supporting_fact_ids, idsFor("facts"), `results.${index}.payload.supporting_fact_ids`);
+      const payloadAssumptionIds = assertIds(payload.supporting_assumption_ids, idsFor("assumptions"), `results.${index}.payload.supporting_assumption_ids`);
+      const payloadCalculationIds = assertIds(payload.supporting_calculation_run_ids, idsFor("calculation_runs"), `results.${index}.payload.supporting_calculation_run_ids`);
+      const payloadEvidenceIds = assertIds(payload.supporting_evidence_ids, idsFor("evidence"), `results.${index}.payload.supporting_evidence_ids`);
+      if (payloadFactIds) return payloadFactIds;
+      if (payloadAssumptionIds) return payloadAssumptionIds;
+      if (payloadCalculationIds) return payloadCalculationIds;
+      if (payloadEvidenceIds) return payloadEvidenceIds;
+      if (![payload.supporting_fact_ids, payload.supporting_assumption_ids, payload.supporting_calculation_run_ids, payload.supporting_evidence_ids].some((value) => Array.isArray(value) && value.length > 0)) return { ok: false, code: "controlled_input_missing", pointer: `results.${index}.payload` };
+    }
+    if (envelope.task.task_definition === "valuation_commentary_draft") {
+      const modelIds = idsFor("model_versions"); const calcIds = idsFor("calculation_runs"); const assumptionIds = idsFor("assumptions"); const evidenceIds = idsFor("evidence"); const scenarioIds = idsFor("scenario_versions");
+      if (payload.model_version_id !== null && payload.model_version_id !== undefined && !modelIds.has(payload.model_version_id as string)) return { ok: false, code: "foreign_controlled_input", pointer: `results.${index}.payload.model_version_id` };
+      for (const [key, values, allowed] of [["calculation_run_ids", payload.calculation_run_ids, calcIds], ["assumption_ids", payload.assumption_ids, assumptionIds], ["evidence_ids", payload.evidence_ids, evidenceIds], ["scenario_version_ids", payload.scenario_version_ids, scenarioIds]] as const) { const invalid = assertIds(values, allowed, `results.${index}.payload.${key}`); if (invalid) return invalid; }
+      if (payload.model_version_id === null && !(payload.calculation_run_ids as unknown[]).length && !(payload.assumption_ids as unknown[]).length && !(payload.evidence_ids as unknown[]).length && !(payload.scenario_version_ids as unknown[]).length) return { ok: false, code: "controlled_input_missing", pointer: `results.${index}.payload` };
+    }
   }
   return { ok: true };
 }

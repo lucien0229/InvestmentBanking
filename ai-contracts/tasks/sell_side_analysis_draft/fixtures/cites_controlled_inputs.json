@@ -1,0 +1,5 @@
+{
+  "fixture": "cites_controlled_inputs",
+  "input": {"supporting_fact_ids": ["controlled-fact-id"], "supporting_evidence_ids": ["controlled-evidence-id"]},
+  "expected": {"requires_controlled_input": true, "authority_created": false}
+}

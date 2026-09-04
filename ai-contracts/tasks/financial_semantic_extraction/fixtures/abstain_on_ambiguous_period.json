@@ -1,0 +1,5 @@
+{
+  "fixture": "abstain_on_ambiguous_period",
+  "input": {"period": null, "unit": null, "currency": null},
+  "expected": {"status": "abstained", "reason_code": "period_unclear", "authority_created": false}
+}

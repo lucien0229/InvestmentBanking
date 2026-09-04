@@ -1,0 +1,5 @@
+{
+  "fixture": "model_scenario_lineage",
+  "input": {"model_version_id": "controlled-model-version-id", "calculation_run_ids": ["controlled-calculation-run-id"], "scenario_version_ids": ["controlled-scenario-version-id"]},
+  "expected": {"requires": ["model_version_id", "calculation_run_ids", "scenario_version_ids"], "authority_created": false}
+}

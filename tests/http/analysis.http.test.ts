@@ -1,0 +1,20 @@
+import assert from "node:assert/strict";
+import crypto from "node:crypto";
+import test from "node:test";
+import { buildApi } from "../../apps/api/src/app.js";
+import { createTestDatabase } from "../../apps/api/src/test-database.js";
+import { hashToken } from "../../apps/api/src/database.js";
+
+test("Analysis API creates a pinned Calculation Version, deterministic Run, and validation receipt", async (t) => {
+  const database = await createTestDatabase(); t.after(() => database.close());
+  const email = `analysis-${crypto.randomUUID()}@example.test`; const cookie = await database.seedAuthenticatedSession(email);
+  const actor = (await database.ownerPool.query<{ id: string; account_id: string }>("SELECT a.id, aa.account_id FROM app.actor a JOIN app.account_actor aa ON aa.actor_id=a.id AND aa.active WHERE a.email_digest=$1", [hashToken(email)])).rows[0]!;
+  const dealId = crypto.randomUUID(); await database.ownerPool.query("INSERT INTO app.deal(id,account_id,name,client_label,transaction_subject,mandate_objective,business_stage) VALUES ($1,$2,'Analysis fixture','Client','Subject','Valuation','Preparation')", [dealId, actor.account_id]); await database.ownerPool.query("INSERT INTO app.deal_workspace(account_id,deal_id,overview_revision_id,displayed_state) VALUES ($1,$2,$3,$4)", [actor.account_id, dealId, `overview-${dealId}`, JSON.stringify({ stage: "Preparation" })]);
+  const api = await buildApi({ database, authMode: "local" }); t.after(() => api.close()); const key = () => `analysis-${crypto.randomUUID()}`;
+  const created = await api.inject({ method: "POST", url: `/api/v1/deals/${dealId}/calculations`, headers: { cookie, "idempotency-key": key() }, payload: { calculation_code: "VAL-009", label: "EV-to-equity tie-out" } }); assert.equal(created.statusCode, 201, created.body); const calculationId = created.json().data.id as string;
+  const version = await api.inject({ method: "POST", url: `/api/v1/deals/${dealId}/calculations/${calculationId}/versions`, headers: { cookie, "idempotency-key": key(), "if-match": '"1"' }, payload: { method_code: "ev_to_equity_tie_out", formula_text: "EV + Cash - Debt = Equity", method_version: "2", unit: "USD million", currency: "USD", period: "FY2025E", input_digest: "sha256:pinned-inputs", definition: { measures: [] } } }); assert.equal(version.statusCode, 201, version.body); const versionId = version.json().data.id as string;
+  const run = await api.inject({ method: "POST", url: `/api/v1/deals/${dealId}/calculations/${calculationId}/runs`, headers: { cookie, "idempotency-key": key() }, payload: { calculation_version_id: versionId, enterprise_value: "100.0", cash: "6.2", debt: "10.0", expected_equity_value: "94.7" } }); assert.equal(run.statusCode, 201, run.body); assert.equal(run.json().data.result.difference, "1.5"); const runId = run.json().data.id as string;
+  const validation = await api.inject({ method: "POST", url: `/api/v1/deals/${dealId}/deterministic-validation-runs`, headers: { cookie, "idempotency-key": key() }, payload: { calculation_run_id: runId, validation_code: "EV-EQ-TIE-004" } }); assert.equal(validation.statusCode, 201, validation.body); assert.equal(validation.json().data.outcome, "failed");
+  const projection = await api.inject({ method: "GET", url: `/api/v1/deals/${dealId}/calculations/${calculationId}`, headers: { cookie } }); assert.equal(projection.statusCode, 200, projection.body); assert.equal(projection.json().data.calculation_code, "VAL-009");
+  const foreign = await api.inject({ method: "GET", url: `/api/v1/deals/${crypto.randomUUID()}/calculations/${calculationId}`, headers: { cookie } }); assert.equal(foreign.statusCode, 404); assert.equal(foreign.json().code, "resource_not_found");
+});

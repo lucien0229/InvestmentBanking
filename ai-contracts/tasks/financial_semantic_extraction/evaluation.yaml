@@ -1,0 +1,6 @@
+evaluation_suite_version: 1.0.0
+fixtures:
+  - fixtures/exact_decimal_and_locator.json
+  - fixtures/abstain_on_ambiguous_period.json
+gates: [schema, locator_lineage, abstention_boundary, no_authority]
+forbidden_authority: [fact, decision, readiness, professional_usability]

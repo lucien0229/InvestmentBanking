@@ -11,6 +11,57 @@ export const openApiContract = {
     }
   ],
   "paths": {
+    "/api/v1/deals/{deal_id}/normalized-financial-values": {
+      "get": {
+        "operationId": "list_normalized_financial_values",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Scoped normalized financial values"
+          }
+        }
+      },
+      "post": {
+        "operationId": "create_normalized_financial_value",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NormalizedFinancialValueCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Normalized value proposal"
+          }
+        }
+      }
+    },
     "/api/v1/session/bootstrap": {
       "post": {
         "operationId": "bootstrap_session",
@@ -4266,6 +4317,889 @@ export const openApiContract = {
         }
       }
     },
+    "/api/v1/deals/{deal_id}/calculations": {
+      "get": {
+        "operationId": "list_calculations",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Scoped deterministic Calculations"
+          }
+        }
+      },
+      "post": {
+        "operationId": "create_calculation",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CalculationCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Calculation created"
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/calculations/{calculation_id}": {
+      "get": {
+        "operationId": "get_calculation",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "name": "calculation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Calculation projection"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/calculations/{calculation_id}/versions": {
+      "get": {
+        "operationId": "list_calculation_versions",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "name": "calculation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Calculation versions"
+          }
+        }
+      },
+      "post": {
+        "operationId": "create_calculation_version",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/IfMatch"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CalculationVersionCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Immutable Calculation Version"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "412": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/calculations/{calculation_id}/runs": {
+      "get": {
+        "operationId": "list_calculation_runs",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "name": "calculation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Calculation runs"
+          }
+        }
+      },
+      "post": {
+        "operationId": "create_calculation_run",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CalculationRunCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Deterministic Calculation Run"
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/calculations/{calculation_id}/reruns": {
+      "post": {
+        "operationId": "rerun_calculation",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CalculationRerun"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Replayed Calculation Run"
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/models": {
+      "get": {
+        "operationId": "list_models",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Scoped Models"
+          }
+        }
+      },
+      "post": {
+        "operationId": "create_model",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModelCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Model created"
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/models/{model_id}/versions": {
+      "get": {
+        "operationId": "list_model_versions",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "name": "model_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Immutable Model Versions"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      },
+      "post": {
+        "operationId": "create_model_version",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "name": "model_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModelVersionCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Immutable Model Version"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/models/{model_id}/versions/{version_id}": {
+      "get": {
+        "operationId": "get_model_version",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "name": "model_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "version_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Immutable Model Version"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/scenarios": {
+      "get": {
+        "operationId": "list_scenarios",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Scoped Scenarios"
+          }
+        }
+      },
+      "post": {
+        "operationId": "create_scenario",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScenarioCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Scenario created"
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/scenarios/{scenario_id}/versions": {
+      "get": {
+        "operationId": "list_scenario_versions",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "name": "scenario_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Immutable Scenario Versions"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      },
+      "post": {
+        "operationId": "create_scenario_version",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "name": "scenario_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScenarioVersionCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Immutable Scenario Version"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/scenarios/{scenario_id}/versions/{version_id}": {
+      "get": {
+        "operationId": "get_scenario_version",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "name": "scenario_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "version_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Immutable Scenario Version"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/analyses": {
+      "get": {
+        "operationId": "list_analyses",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Scoped Analysis drafts"
+          }
+        }
+      },
+      "post": {
+        "operationId": "create_analysis",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnalysisCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Analysis created"
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/analyses/{analysis_id}": {
+      "get": {
+        "operationId": "get_analysis",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "name": "analysis_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Analysis projection"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/analyses/{analysis_id}/versions": {
+      "get": {
+        "operationId": "list_analysis_versions",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "name": "analysis_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Analysis versions"
+          }
+        }
+      },
+      "post": {
+        "operationId": "create_analysis_version",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/IfMatch"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnalysisVersionCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Immutable Analysis Version"
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/analyses/{analysis_id}/versions/{version_id}": {
+      "get": {
+        "operationId": "get_analysis_version",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "name": "analysis_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "version_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Analysis version"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/deterministic-validation-records": {
+      "get": {
+        "operationId": "list_deterministic_validation_records",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deterministic validation records"
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/deterministic-validation-records/{record_id}": {
+      "get": {
+        "operationId": "get_deterministic_validation_record",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "name": "record_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deterministic validation record"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/normalized-financial-values/{value_id}": {
+      "get": {
+        "operationId": "get_normalized_financial_value",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "name": "value_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Normalized financial value"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/deterministic-validation-runs": {
+      "post": {
+        "operationId": "create_deterministic_validation_run",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeterministicValidationCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Validation record"
+          }
+        }
+      }
+    },
     "/webhooks/stripe": {
       "post": {
         "operationId": "receive_stripe_webhook",
@@ -4378,6 +5312,415 @@ export const openApiContract = {
       }
     },
     "schemas": {
+      "CalculationCreate": {
+        "type": "object",
+        "required": [
+          "calculation_code",
+          "label"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "calculation_code": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          }
+        }
+      },
+      "CalculationVersionCreate": {
+        "type": "object",
+        "required": [
+          "method_code",
+          "formula_text",
+          "method_version",
+          "unit",
+          "currency",
+          "period",
+          "input_digest",
+          "definition"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "method_code": {
+            "const": "ev_to_equity_tie_out"
+          },
+          "formula_text": {
+            "type": "string"
+          },
+          "method_version": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "period": {
+            "type": "string"
+          },
+          "input_digest": {
+            "type": "string"
+          },
+          "definition": {
+            "type": "object",
+            "required": [
+              "measures"
+            ],
+            "properties": {
+              "measures": {
+                "type": "array"
+              }
+            }
+          }
+        }
+      },
+      "CalculationRunCreate": {
+        "type": "object",
+        "required": [
+          "calculation_version_id",
+          "enterprise_value",
+          "cash",
+          "debt",
+          "expected_equity_value"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "calculation_version_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "enterprise_value": {
+            "type": "string"
+          },
+          "cash": {
+            "type": "string"
+          },
+          "debt": {
+            "type": "string"
+          },
+          "expected_equity_value": {
+            "type": "string"
+          }
+        }
+      },
+      "CalculationRerun": {
+        "type": "object",
+        "required": [
+          "run_id"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "AnalysisRootCreate": {
+        "type": "object",
+        "required": [
+          "analysis_code",
+          "title"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "analysis_code": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 240
+          }
+        }
+      },
+      "AnalysisVersionCreate": {
+        "type": "object",
+        "required": [
+          "draft"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "draft": {
+            "type": "object",
+            "required": [
+              "question",
+              "method",
+              "conclusion",
+              "limitations"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "question": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500
+              },
+              "method": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500
+              },
+              "conclusion": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 4000
+              },
+              "limitations": {
+                "type": "array",
+                "maxItems": 20,
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 500
+                }
+              }
+            }
+          },
+          "calculation_run_ids": {
+            "type": "array",
+            "maxItems": 50,
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "model_version_ids": {
+            "type": "array",
+            "maxItems": 50,
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "scenario_version_ids": {
+            "type": "array",
+            "maxItems": 50,
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "fact_ids": {
+            "type": "array",
+            "maxItems": 50,
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "assumption_ids": {
+            "type": "array",
+            "maxItems": 50,
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "evidence_ids": {
+            "type": "array",
+            "maxItems": 50,
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        }
+      },
+      "ModelCreate": {
+        "type": "object",
+        "required": [
+          "model_code",
+          "label"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "model_code": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          }
+        }
+      },
+      "ScenarioCreate": {
+        "type": "object",
+        "required": [
+          "scenario_code",
+          "label"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "scenario_code": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          }
+        }
+      },
+      "AnalysisCreate": {
+        "type": "object",
+        "required": [
+          "analysis_code",
+          "title"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "analysis_code": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        }
+      },
+      "NormalizedFinancialValueCreate": {
+        "type": "object",
+        "required": [
+          "definition",
+          "period",
+          "unit",
+          "currency",
+          "sign",
+          "precision",
+          "value_text",
+          "actual_forecast",
+          "source_locator"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "definition": {
+            "type": "string"
+          },
+          "period": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "sign": {
+            "enum": [
+              "positive",
+              "negative",
+              "not_applicable",
+              "unknown"
+            ]
+          },
+          "precision": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 12
+          },
+          "value_text": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "actual_forecast": {
+            "enum": [
+              "actual",
+              "forecast",
+              "unknown"
+            ]
+          },
+          "source_locator": {
+            "type": "object"
+          },
+          "source_fragment_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "decision_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "assumption_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          }
+        }
+      },
+      "ModelVersionCreate": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "definition": {
+            "type": "object"
+          },
+          "calculation_version_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "fact_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "assumption_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        }
+      },
+      "ScenarioVersionCreate": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "model_version_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "overrides": {
+            "type": "object"
+          }
+        }
+      },
+      "DeterministicValidationCreate": {
+        "type": "object",
+        "required": [
+          "calculation_run_id",
+          "validation_code"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "calculation_run_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "validation_code": {
+            "type": "string"
+          }
+        }
+      },
       "PaidDealCreate": {
         "type": "object",
         "required": [
@@ -4559,7 +5902,11 @@ export const openApiContract = {
               "source_claim_extraction",
               "claim_evidence_linking",
               "material_source_conflict_analysis",
-              "contract_repair"
+              "contract_repair",
+              "financial_semantic_extraction",
+              "financial_normalization_mapping",
+              "sell_side_analysis_draft",
+              "valuation_commentary_draft"
             ]
           },
           "job_id": {

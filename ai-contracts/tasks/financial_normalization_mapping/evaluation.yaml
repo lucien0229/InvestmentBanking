@@ -1,0 +1,6 @@
+evaluation_suite_version: 1.0.0
+fixtures:
+  - fixtures/preserves_unit_period_currency_sign.json
+  - fixtures/rejects_float_value.json
+gates: [schema, decimal_lexical_precision, controlled_identity, no_authority]
+forbidden_authority: [fact, decision_acceptance, readiness, professional_usability]

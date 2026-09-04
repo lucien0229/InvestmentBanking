@@ -1,0 +1,6 @@
+evaluation_suite_version: 1.0.0
+fixtures:
+  - fixtures/cites_controlled_inputs.json
+  - fixtures/proposal_does_not_authorize.json
+gates: [schema, controlled_lineage, proposal_only, no_authority]
+forbidden_authority: [fact_acceptance, recommendation_acceptance, readiness, professional_usability]

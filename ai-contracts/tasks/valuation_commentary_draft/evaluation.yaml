@@ -1,0 +1,6 @@
+evaluation_suite_version: 1.0.0
+fixtures:
+  - fixtures/model_scenario_lineage.json
+  - fixtures/missing_calculation_abstains.json
+gates: [schema, model_scenario_lineage, deterministic_dependency, abstention_boundary, no_authority]
+forbidden_authority: [readiness, professional_usability, external_action]

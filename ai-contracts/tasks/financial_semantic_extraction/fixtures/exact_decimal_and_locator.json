@@ -1,0 +1,5 @@
+{
+  "fixture": "exact_decimal_and_locator",
+  "input": {"value_text": "4.70", "precision": 2, "source_locator": {"sheet": "Operating Case", "cell": "F42"}},
+  "expected": {"value_text": "4.70", "precision": 2, "locator_must_match": true, "authority_created": false}
+}

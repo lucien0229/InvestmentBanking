@@ -1,0 +1,5 @@
+{
+  "fixture": "proposal_does_not_authorize",
+  "input": {"payload": {"conclusion": "Proposal only"}},
+  "expected": {"forbidden_authority": ["readiness", "professional_usability", "fact_acceptance"], "authority_created": false}
+}
