@@ -4,7 +4,7 @@
 
 **Blocked by:** 04 — Run one Banker-visible Reference Deal operation as a durable Job; 08 — Build an exact Source Packet with an enforceable output ceiling.
 
-**Status:** ready-for-agent
+**Status:** ready-for-human
 
 - [ ] Each enabled task has one immutable manifest, prompt package/digest, strict generated TypeScript/JSON Schema/Python contract, deterministic validators, and versioned synthetic evaluation manifest.
 - [ ] Every AI Run binds the exact Account, Deal, Task Definition, Prompt Package, provider capability profile, Source Packet/input perimeter, Context Plan, fragments/locators, release, cost, and outcome.
@@ -24,7 +24,7 @@
 - Real browser verification completed the public Project Northstar synthetic flow through all 9 checkpoints, downloaded the Revision 0.4 XLSX, inspected the Sources Output Ceiling and Analysis Proposal surfaces, and recorded zero browser console errors/warnings. This is synthetic UI/control-model evidence only.
 - Authenticated Banker Account/Deal/Source Packet to AI Run acceptance remains blocked: the development runtime has no usable test-account/session credential for browser login, the database has no seeded Deal/Work Objective/Source Packet, and `hellox-source-proposals-v1` has no verified processing capability. No live HelloX request was made and no provider or production claim is asserted.
 
-Status remains `ready-for-agent` until the authenticated development chain and provider capability evidence are supplied and verified.
+Status is `ready-for-human`: the code, database, provider, and public browser gates are complete, while the authenticated development chain requires the mailbox owner to open the Supabase Magic Link in the test browser.
 
 ### 2026-09-04 real HelloX/Docker verification update
 
