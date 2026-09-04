@@ -48,11 +48,13 @@ export class HelloXAiProvider implements AiProvider {
   private readonly baseUrl: string;
   private readonly apiKey: string;
   private readonly model: string;
+  private readonly reasoningEffort: string;
 
   constructor(options: { baseUrl?: string; apiKey?: string; model?: string } = {}) {
     this.baseUrl = (options.baseUrl ?? process.env.HELLOX_BASE_URL ?? "https://www.hellox.cloud").replace(/\/$/, "");
     this.apiKey = options.apiKey ?? process.env.HELLOX_API_KEY ?? "";
-    this.model = options.model ?? process.env.HELLOX_MODEL ?? "gpt-5.4-mini";
+    this.model = options.model ?? process.env.HELLOX_MODEL ?? "gpt-5.6-sol";
+    this.reasoningEffort = process.env.HELLOX_REASONING_EFFORT ?? "xhigh";
   }
 
   async invoke(input: { taskDefinition: TaskDefinition; envelope: AiInputEnvelope; fragments: AiSourceFragment[] }) {
@@ -68,7 +70,7 @@ export class HelloXAiProvider implements AiProvider {
     const response = await fetch(`${this.baseUrl}/v1/chat/completions`, {
       method: "POST",
       headers: { authorization: `Bearer ${this.apiKey}`, "content-type": "application/json" },
-      body: JSON.stringify({ model: this.model, temperature: 0, response_format: { type: "json_object" }, messages: [{ role: "system", content: system }, { role: "user", content: user }] }),
+      body: JSON.stringify({ model: this.model, reasoning_effort: this.reasoningEffort, temperature: 0, response_format: { type: "json_object" }, messages: [{ role: "system", content: system }, { role: "user", content: user }] }),
       signal: AbortSignal.timeout(600_000),
     });
     if (!response.ok) throw new Error("ai_provider_request_failed");
@@ -204,7 +206,7 @@ export function registerAiSourceProposalRoutes(api: FastifyInstance, database: D
         const envelope = buildAiInputEnvelope({ taskDefinition: body.task_definition, taskDefinitionVersion: task.rows[0].task_definition_version, promptPackageVersion: task.rows[0].package_version, inputContractVersion: task.rows[0].input_contract_version, outputContractVersion: task.rows[0].output_contract_version, aiEvidencePolicyVersion: task.rows[0].ai_evidence_policy_version, contextPlanVersion, accountId: context.accountId, dealId, jobId: body.job_id, jobScopeId: body.job_scope_id, packetVersionId: body.packet_version_id, workObjective: body.work_objective_id, intendedUse: "internal_analysis", audience: "individual_banker", materialClassification: { provenanceClass: material.provenanceClass, confidentialityClass: material.confidentialityClass, deIdentificationPosture: material.deIdentificationPosture, assessmentIds: material.rightsAssessmentIds }, rightsAssessmentId: material.rightsAssessmentId, fragments: fragments.map((fragment) => ({ id: fragment.run_fragment_id!, sourceRecordId: fragment.source_record_id, sourceRecordVersion: fragment.source_record_version, sourceRecordDigest: fragment.source_record_digest, representationId: fragment.representation_id, representationDigest: fragment.representation_digest, locator: fragment.locator as Record<string, string | number>, contentDigest: fragment.content_digest, coverageCode: fragment.coverage_code })), requiredInputKeys: fragments.map((fragment) => fragment.run_fragment_id!), excludedInputKeys: [], failedInputKeys: [], limits: { maxContextBytes: 120000, maxOutputTokens: 8000, timeoutSeconds: 600, maxCostMinorUnits: 500 } });
         const contextBytes = Buffer.byteLength(fragments.map((fragment) => fragment.content_text).join("\n"), "utf8");
         if (contextBytes > envelope.limits.max_context_bytes) throw new Error("output_ceiling_exceeded");
-        const started = await client.query<{ run_id: string; idempotent_replayed: boolean }>("SELECT * FROM ai.start_run_v2($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24)", [context.accountId, context.actorId, dealId, body.job_id, body.job_scope_id, body.packet_version_id, body.work_objective_id ?? null, body.task_definition, task.rows[0].task_definition_version, task.rows[0].prompt_package_id, providerProfileId, environmentCode, material.provenanceClass, material.confidentialityClass, material.deIdentificationPosture, envelope.scope.scope_digest, envelope.canonical_input_digest, requestDigest, envelope.request_nonce, Database.hashToken(key), releaseId, contextPlanVersion, envelope.canonical_input_digest, { provider: provider.providerCode, model: process.env.HELLOX_MODEL ?? "gpt-5.4-mini" }]);
+        const started = await client.query<{ run_id: string; idempotent_replayed: boolean }>("SELECT * FROM ai.start_run_v2($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24)", [context.accountId, context.actorId, dealId, body.job_id, body.job_scope_id, body.packet_version_id, body.work_objective_id ?? null, body.task_definition, task.rows[0].task_definition_version, task.rows[0].prompt_package_id, providerProfileId, environmentCode, material.provenanceClass, material.confidentialityClass, material.deIdentificationPosture, envelope.scope.scope_digest, envelope.canonical_input_digest, requestDigest, envelope.request_nonce, Database.hashToken(key), releaseId, contextPlanVersion, envelope.canonical_input_digest, { provider: provider.providerCode, model: process.env.HELLOX_MODEL ?? "gpt-5.6-sol", reasoning_effort: process.env.HELLOX_REASONING_EFFORT ?? "xhigh" }]);
         const run = started.rows[0]; await client.query("SELECT ai.attach_run_fragments($1,$2,$3,$4,$5)", [context.accountId, context.actorId, dealId, run.run_id, JSON.stringify(fragments.map((fragment) => ({ fragment_id: fragment.fragment_id, run_fragment_id: fragment.run_fragment_id })))]);
         if (run.idempotent_replayed) return { runId: run.run_id, replayed: true };
         const startedAt = Date.now(); let providerResult: Awaited<ReturnType<AiProvider["invoke"]>>;
