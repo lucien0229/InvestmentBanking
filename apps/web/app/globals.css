@@ -321,15 +321,15 @@ p { text-wrap: pretty; }
 .dc-workbook-shell-actions, .dc-workbook-shell-close { display: none; }
 @media (min-width: 1280px) and (max-width: 1360px) { .dc-workspace-root[data-workbook] .dc-workspace-grid { grid-template-columns: 214px minmax(0, 1fr) 288px; } }
 @media (max-width: 1279px) {
-  .dc-workspace-root[data-workbook] .dc-workspace-grid { grid-template-columns: minmax(0, 1fr); }
+  .dc-workspace-root[data-workspace-panels] .dc-workspace-grid { grid-template-columns: minmax(0, 1fr); }
   .dc-workbook-shell-actions { display: flex; gap: 8px; }
   .dc-workbook-shell-actions button, .dc-workbook-shell-close { min-height: 44px; padding: 8px 12px; border: 1px solid var(--dc-border); border-radius: 6px; background: var(--dc-surface); }
   .dc-workbook-shell-close { display: block; margin-bottom: 16px; }
-  .dc-workspace-root[data-workbook] .dc-workspace-sidebar, .dc-workspace-root[data-workbook] .dc-workspace-inspector { display: none; position: fixed; top: 116px; bottom: 0; z-index: 40; width: min(316px, calc(100vw - 32px)); overflow-y: auto; box-shadow: var(--dc-shadow-overlay); }
-  .dc-workspace-root[data-workbook] .dc-workspace-sidebar[data-open], .dc-workspace-root[data-workbook] .dc-workspace-inspector[data-open] { display: block; }
-  .dc-workspace-root[data-workbook] .dc-workspace-sidebar { left: 0; padding: 16px; }
-  .dc-workspace-root[data-workbook] .dc-workspace-inspector { right: 0; }
-  .dc-workspace-root[data-workbook] .dc-workspace-nav { grid-template-columns: 1fr; }
+  .dc-workspace-root[data-workspace-panels] .dc-workspace-sidebar, .dc-workspace-root[data-workspace-panels] .dc-workspace-inspector { display: none; position: fixed; top: 116px; bottom: 0; z-index: 40; width: min(316px, calc(100vw - 32px)); overflow-y: auto; box-shadow: var(--dc-shadow-overlay); }
+  .dc-workspace-root[data-workspace-panels] .dc-workspace-sidebar[data-open], .dc-workspace-root[data-workspace-panels] .dc-workspace-inspector[data-open] { display: block; }
+  .dc-workspace-root[data-workspace-panels] .dc-workspace-sidebar { left: 0; padding: 16px; }
+  .dc-workspace-root[data-workspace-panels] .dc-workspace-inspector { right: 0; }
+  .dc-workspace-root[data-workspace-panels] .dc-workspace-nav { grid-template-columns: 1fr; }
 }
 @media (max-width: 767px) { .dc-workspace-root[data-workbook] .dc-page { padding: 20px !important; } .dc-workbook-shell-actions { flex-wrap: wrap; } }
 .dc-workbook-screen { display: grid; gap: 24px; min-width: 0; }

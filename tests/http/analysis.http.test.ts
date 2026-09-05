@@ -16,5 +16,14 @@ test("Analysis API creates a pinned Calculation Version, deterministic Run, and 
   const run = await api.inject({ method: "POST", url: `/api/v1/deals/${dealId}/calculations/${calculationId}/runs`, headers: { cookie, "idempotency-key": key() }, payload: { calculation_version_id: versionId, enterprise_value: "100.0", cash: "6.2", debt: "10.0", expected_equity_value: "94.7" } }); assert.equal(run.statusCode, 201, run.body); assert.equal(run.json().data.result.difference, "1.5"); const runId = run.json().data.id as string;
   const validation = await api.inject({ method: "POST", url: `/api/v1/deals/${dealId}/deterministic-validation-runs`, headers: { cookie, "idempotency-key": key() }, payload: { calculation_run_id: runId, validation_code: "EV-EQ-TIE-004" } }); assert.equal(validation.statusCode, 201, validation.body); assert.equal(validation.json().data.outcome, "failed");
   const projection = await api.inject({ method: "GET", url: `/api/v1/deals/${dealId}/calculations/${calculationId}`, headers: { cookie } }); assert.equal(projection.statusCode, 200, projection.body); assert.equal(projection.json().data.calculation_code, "VAL-009");
+  const listed = await api.inject({ method: "GET", url: `/api/v1/deals/${dealId}/calculations`, headers: { cookie } });
+  assert.equal(listed.statusCode, 200, listed.body);
+  assert.equal(listed.json().data[0].versions[0].runs[0].id, runId, "collection retains the exact pinned version run");
+  for (const kind of ["model", "scenario"] as const) {
+    const parent = await api.inject({ method: "POST", url: `/api/v1/deals/${dealId}/${kind}s`, headers: { cookie, "idempotency-key": key() }, payload: { [`${kind}_code`]: `synthetic-${kind}`, label: `Synthetic ${kind}` } });
+    assert.equal(parent.statusCode, 201, parent.body);
+    const rows = await api.inject({ method: "GET", url: `/api/v1/deals/${dealId}/${kind}s`, headers: { cookie } });
+    assert.deepEqual(rows.json().data[0].versions, [], "an unversioned object exposes an empty collection");
+  }
   const foreign = await api.inject({ method: "GET", url: `/api/v1/deals/${crypto.randomUUID()}/calculations/${calculationId}`, headers: { cookie } }); assert.equal(foreign.statusCode, 404); assert.equal(foreign.json().code, "resource_not_found");
 });
