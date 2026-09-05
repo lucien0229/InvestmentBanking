@@ -7234,6 +7234,34 @@ export const openApiContract = {
       }
     },
     "schemas": {
+      "FinancialSourceBasis": {
+        "type": "object",
+        "required": [
+          "fact_id",
+          "evidence_id",
+          "source_record_id",
+          "representation_id"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "fact_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "evidence_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "source_record_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "representation_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
       "WorkbookCreate": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -7549,7 +7577,15 @@ export const openApiContract = {
             ],
             "properties": {
               "measures": {
-                "type": "array"
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "source_basis": {
+                      "$ref": "#/components/schemas/FinancialSourceBasis"
+                    }
+                  }
+                }
               }
             }
           }
@@ -7813,6 +7849,9 @@ export const openApiContract = {
           },
           "source_locator": {
             "type": "object"
+          },
+          "source_basis": {
+            "$ref": "#/components/schemas/FinancialSourceBasis"
           },
           "source_fragment_id": {
             "type": [

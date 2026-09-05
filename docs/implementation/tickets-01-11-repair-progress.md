@@ -187,3 +187,24 @@ the Source supervisor's release switch interrupted one in-flight test.
   new Web build exposed a generic inference difference in its stricter project
   configuration; explicit tab union types corrected it. Refreshed build,
   release switch and final browser checks are pending.
+
+2026-09-05 11:26 UTC — exact financial Source identity:
+
+The bounded Spec follow-up identified one remaining ambiguity: two accepted
+files may have the same native `Sheet!Cell` selector. Normalized values and
+Calculation input measures now persist the chosen Fact, Evidence, Source Record
+and Representation IDs in `source_basis`, separately from the unchanged native
+selector. A scoped database trigger verifies the selected accepted relationship
+and Decision; downstream Workbook lineage uses that same selected file.
+
+The new HTTP test first rejected the added identity contract (400), then passed
+with two Source files sharing the same locator: exact identity survives readback,
+and mixing the first file's ID with the second Evidence is rejected (404).
+**14/14 affected tests and 1/1 Workbook HTTP integration test passed** on the
+server. Web build also passed. Hosted history is now 78 migrations.
+
+While executing the Analysis payload contract, its UI method/version fields were
+aligned to the existing supported V1 engine (`EV + Cash - Debt = Equity`, method
+2, FY2025E / USD million), and displayed delta now reads the real `difference`
+result. The expected-equity benchmark remains in the Calculation; Workbook
+lineage consumes its three formula inputs.

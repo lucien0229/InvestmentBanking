@@ -7,14 +7,16 @@ import { hashToken } from "../../apps/api/src/database.js";
 
 type Fixture = Awaited<ReturnType<typeof createTestDatabase>> & { cookie: string; accountId: string; actorId: string; dealId: string; sourceRecordId: string; representationId: string; fragmentId: string };
 
-async function fixture(): Promise<Fixture> {
+async function fixture(scope?: Fixture): Promise<Fixture> {
   const database = await createTestDatabase();
   const email = `knowledge-${crypto.randomUUID()}@example.test`;
-  const cookie = await database.seedAuthenticatedSession(email);
-  const actor = (await database.ownerPool.query<{ id: string; account_id: string }>("SELECT a.id, aa.account_id FROM app.actor a JOIN app.account_actor aa ON aa.actor_id=a.id AND aa.active WHERE a.email_digest=$1", [hashToken(email)])).rows[0]!;
-  const dealId = crypto.randomUUID();
+  const cookie = scope?.cookie ?? await database.seedAuthenticatedSession(email);
+  const actor = scope ? { id: scope.actorId, account_id: scope.accountId } : (await database.ownerPool.query<{ id: string; account_id: string }>("SELECT a.id, aa.account_id FROM app.actor a JOIN app.account_actor aa ON aa.actor_id=a.id AND aa.active WHERE a.email_digest=$1", [hashToken(email)])).rows[0]!;
+  const dealId = scope?.dealId ?? crypto.randomUUID();
+  if (!scope) {
   await database.ownerPool.query("INSERT INTO app.deal(id,account_id,name,client_label,transaction_subject,mandate_objective,business_stage) VALUES ($1,$2,$3,'Client','Subject','Controlled review','Preparation')", [dealId, actor.account_id, `Knowledge ${dealId}`]);
   await database.ownerPool.query("INSERT INTO app.deal_workspace(account_id,deal_id,overview_revision_id,displayed_state) VALUES ($1,$2,$3,$4)", [actor.account_id, dealId, `overview-${dealId}`, JSON.stringify({ stage: "Preparation" })]);
+  }
   const materialId = crypto.randomUUID(); const uploadId = crypto.randomUUID(); const uploadSessionId = crypto.randomUUID(); const objectId = crypto.randomUUID(); const coverageId = crypto.randomUUID(); const sourceRecordId = crypto.randomUUID(); const representationId = crypto.randomUUID(); const fragmentId = crypto.randomUUID();
   const digest = "a".repeat(64);
   const fragmentText = "Adjusted EBITDA was 17.8 million";
@@ -118,6 +120,24 @@ test("Evidence binds the selected Claim even when proposition wording is identic
   assert.deepEqual(projection.json().data[0].relationships.map((item: { claim_id: string }) => item.claim_id), [older.json().data.id]);
   assert.equal((await post("/evidence-acceptances", { ...payload, claim_id: crypto.randomUUID() })).statusCode, 404);
   assert.equal((await post("/evidence-acceptances", { ...payload, proposition: "Different proposition" })).statusCode, 404);
+  const sameDealSource = await fixture(database); t.after(() => sameDealSource.close());
+  const second = await post("/evidence-acceptances", { ...payload, source_record_id: sameDealSource.sourceRecordId, representation_id: sameDealSource.representationId });
+  assert.equal(second.statusCode, 201, second.body);
+  const fact = await post(`/claims/${older.json().data.id}/fact-acceptances`, { evidence_relationship_ids: [accepted.json().data.relationship.id, second.json().data.relationship.id], purpose: base.purpose, scope: base.scope, rationale: "Both exact Sources support this controlled Fact", alternatives: [], contrary_evidence: [] });
+  assert.equal(fact.statusCode, 201, fact.body);
+  const basis = { fact_id: fact.json().data.id, evidence_id: second.json().data.id, source_record_id: sameDealSource.sourceRecordId, representation_id: sameDealSource.representationId };
+  const financial = { definition: base.definition, period: "FY2024", unit: base.unit, currency: base.currency, sign: base.sign, precision: 1, value_text: "17.8", actual_forecast: "actual", source_locator: payload.locator, decision_id: fact.json().data.human_decision.id, source_basis: basis };
+  const normalized = await post("/normalized-financial-values", financial);
+  assert.equal(normalized.statusCode, 201, normalized.body);
+  const stored = await api.inject({ method: "GET", url: `${root}/normalized-financial-values/${normalized.json().data.id}`, headers: { cookie: database.cookie } });
+  assert.deepEqual(stored.json().data.source_basis, basis);
+  assert.deepEqual(stored.json().data.source_locator, payload.locator);
+  assert.equal((await post("/normalized-financial-values", { ...financial, source_basis: { ...basis, source_record_id: database.sourceRecordId } })).statusCode, 404);
+  const calculation = await post("/calculations", { calculation_code: "exact-source", label: "Exact selected Source basis" });
+  const version = await post(`/calculations/${calculation.json().data.id}/versions`, { method_code: "ev_to_equity_tie_out", formula_text: "EV + Cash - Debt = Equity", method_version: "2", unit: "USD million", currency: "USD", period: "FY2025E", input_digest: "sha256:development-selected-source", definition: { measures: [{ measure_key: "cash", definition: financial.definition, period: financial.period, unit: financial.unit, currency: financial.currency, sign: financial.sign, precision: 1, value_text: "17.8", source_locator: payload.locator, source_basis: basis, fact_id: basis.fact_id, decision_id: financial.decision_id }] } });
+  assert.equal(version.statusCode, 201, version.body);
+  const calculationRead = await api.inject({ method: "GET", url: `${root}/calculations/${calculation.json().data.id}`, headers: { cookie: database.cookie } });
+  assert.deepEqual(calculationRead.json().data.versions[0].definition.measures[0].source_basis, basis);
   const foreign = await fixture(); t.after(() => foreign.close());
   const denied = await api.inject({ method: "POST", url: `${root}/evidence-acceptances`, headers: { cookie: foreign.cookie, "idempotency-key": crypto.randomUUID() }, payload });
   assert.equal(denied.statusCode, 404);
