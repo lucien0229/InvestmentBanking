@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { PageHeader, StatePanel, StatusBadge } from "./ui";
+import { WorkbookSurface } from "./workbooks";
 
 type Tone = "neutral" | "info" | "warning" | "critical" | "success";
 
@@ -136,6 +137,7 @@ function AnalysisDetailSurface({ dealId }: { dealId: string }) {
 
 export default function DealSurfacePage({ dealId, slug }: { dealId: string; slug: string[] }) {
   const path = slug.join("/");
+  if (/^[0-9a-f-]{36}$/i.test(dealId) && dealId !== "00000000-0000-0000-0000-000000000000" && (path === "execution-package" || path === "review-readiness" || slug[0] === "deliverables")) return <WorkbookSurface dealId={dealId} slug={slug} />;
   const commonRows = [
     { id: "ACT-0042", name: "EBITDA basis conflict", state: "Decision required", detail: "CLM-018 retains both source values; scoped disposition required.", tone: "warning" as Tone },
     { id: "SRC-002", name: "Northstar financial model", state: "Accepted", detail: "Native workbook with exact sheet and cell locators.", tone: "success" as Tone },

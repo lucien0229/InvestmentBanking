@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 type Tone = "neutral" | "info" | "warning" | "critical" | "success";
 
@@ -67,9 +67,21 @@ const dealNav = [
 
 export function WorkspaceShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  if (pathname.startsWith("/app/account")) return <AccountShell>{children}</AccountShell>;
+  const activeDealId = pathname.match(/^\/app\/deals\/([^/]+)/)?.[1];
+  const activeBase = activeDealId ? `/app/deals/${activeDealId}` : "/app/deals";
   const isSynthetic = pathname.includes("project-northstar") || pathname.includes("00000000-0000-0000-0000-000000000000");
-  return <div className="dc-workspace-root">
+  const isWorkbook = !isSynthetic && /^\/app\/deals\/[-a-f0-9]{36}\/(deliverables|execution-package|review-readiness)(?:\/|$)/.test(pathname);
+  const [workbookPanel,setWorkbookPanel]=useState<"nav"|"context"|null>(null);
+  const closeWorkbookPanel=()=>{const target=workbookPanel;setWorkbookPanel(null);if(target)document.getElementById(`workbook-${target}-toggle`)?.focus();};
+  useEffect(()=>{setWorkbookPanel(null);},[pathname]);
+  useEffect(()=>{if(!workbookPanel)return;const close=(event:KeyboardEvent)=>{if(event.key==="Escape")closeWorkbookPanel();};document.addEventListener("keydown",close);return()=>document.removeEventListener("keydown",close);},[workbookPanel]);
+  const [dealContext,setDealContext]=useState<{name:string;stage:string;posture:string}|null>(null);
+  useEffect(()=>{let disposed=false;setDealContext(null);if(!activeDealId||isSynthetic||!/^[-a-f0-9]{36}$/.test(activeDealId))return;
+    fetch(`/api/v1/deals/${activeDealId}/overview`,{credentials:"same-origin",cache:"no-store"}).then(async response=>{if(!response.ok)return;const value=await response.json();if(!disposed)setDealContext({name:value.deal.name,stage:value.deal.business_stage??value.displayed_state.stage??"Not recorded",posture:value.workspace.posture});}).catch(()=>undefined);return()=>{disposed=true;};
+  },[activeDealId,isSynthetic]);
+  if(pathname.startsWith("/app/account"))return <AccountShell>{children}</AccountShell>;
+
+  return <div className="dc-workspace-root" data-workbook={isWorkbook||undefined}>
     <a className="dc-skip-link" href="#main-content">Skip to main content</a>
     <header className="dc-global-bar">
       <a className="dc-brand" href="/app"><span className="dc-brand-mark" aria-hidden="true">DC</span><span>Deal Control</span></a>
@@ -77,28 +89,29 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
     </header>
     <div className="dc-context-bar">
       <div className="dc-context-copy">
-        <div><span className="dc-context-kicker">Current Deal</span><strong>{isSynthetic ? "Project Northstar" : "No Deal selected"}</strong></div>
+        <div><span className="dc-context-kicker">Current Deal</span><strong>{isSynthetic ? "Project Northstar" : activeDealId ? dealContext?.name??`Deal ${activeDealId.slice(0, 8)}` : "No Deal selected"}</strong></div>
         <span className="dc-context-divider" aria-hidden="true" />
-        <div><span className="dc-context-kicker">Stage</span><strong>{isSynthetic ? "Preparation" : "Setup"}</strong></div>
-        {isSynthetic ? <StatusBadge tone="success">Paid Preflight passed</StatusBadge> : <StatusBadge>Account scope</StatusBadge>}
+        <div><span className="dc-context-kicker">Stage</span><strong>{isSynthetic ? "Preparation" : dealContext?.stage??"Not loaded"}</strong></div>
+        {isSynthetic ? <StatusBadge tone="success">Paid Preflight passed</StatusBadge> : <StatusBadge>{dealContext?.posture??"Scoped access"}</StatusBadge>}
       </div>
-      <span className="dc-mono">REV {isSynthetic ? "0.3" : "—"}</span>
+      {isWorkbook?<div className="dc-workbook-shell-actions"><button id="workbook-nav-toggle" aria-controls="workbook-navigation" aria-expanded={workbookPanel==="nav"} onClick={()=>setWorkbookPanel(workbookPanel==="nav"?null:"nav")}>Work areas</button><button id="workbook-context-toggle" aria-controls="workbook-context" aria-expanded={workbookPanel==="context"} onClick={()=>setWorkbookPanel(workbookPanel==="context"?null:"context")}>Context inspector</button></div>:<span className="dc-mono">REV {isSynthetic ? "0.3" : "—"}</span>}
     </div>
     {isSynthetic ? <div className="dc-synthetic-banner" role="note"><strong>Project Northstar synthetic demo data</strong><span>Companies, files, amounts, timestamps, hashes, and actions shown here do not represent a real transaction or production capability.</span></div> : null}
     <div className="dc-workspace-grid">
-      <aside className="dc-workspace-sidebar" aria-label="Deal work areas">
+      <aside className="dc-workspace-sidebar" id={isWorkbook?"workbook-navigation":undefined} data-open={workbookPanel==="nav"||undefined} aria-label="Deal work areas">
+        {isWorkbook?<button className="dc-workbook-shell-close" onClick={closeWorkbookPanel}>Close work areas</button>:null}
         <nav className="dc-workspace-nav">
           <p className="dc-nav-label">Work areas</p>
-          {dealNav.map(([label, href, implemented]) => implemented ? <a key={label} className="dc-nav-link" href={href} aria-current={pathname === href || pathname.startsWith(`${href}/`) ? "page" : undefined}>{label}</a> : <span key={label} className="dc-nav-link" aria-disabled="true" title="This work area is outside the current implemented product scope">{label}</span>)}
+          {dealNav.map(([label, target, implemented]) => { const href = activeDealId ? `${activeBase}/${target.split("/").at(-1)}` : target; return implemented ? <a key={label} className="dc-nav-link" href={href} aria-current={pathname === href || pathname.startsWith(`${href}/`) ? "page" : undefined}>{label}</a> : <span key={label} className="dc-nav-link" aria-disabled="true" title="This work area is outside the current implemented product scope">{label}</span>; })}
           <p className="dc-nav-label">Context</p>
-          <a className="dc-nav-link" href="/app/deals/project-northstar/setup">Deal Controls</a>
-          <a className="dc-nav-link" href="/app/deals/project-northstar/guide">First Deal Guide</a>
+          <a className="dc-nav-link" href={`${activeBase}/setup`}>Deal Controls</a>
+          <a className="dc-nav-link" href={`${activeBase}/guide`}>First Deal Guide</a>
           <a className="dc-nav-link" href="/app/account/usage-plan">Usage & plan</a>
         </nav>
         <div className="dc-sidebar-foot"><span className="dc-mono">V1 · DEVELOPMENT</span><p>Protected actions stay scoped to the current Account and Deal.</p></div>
       </aside>
       <div id="main-content" className="dc-workspace-content">{children}</div>
-      <aside className="dc-workspace-inspector" aria-label="Deal context inspector"><p className="dc-nav-label">Context inspector</p><section className="dc-inspector-card"><span className="dc-eyebrow">Current workspace</span><h2>Project Northstar</h2><dl><dt>Stage</dt><dd>Preparation</dd><dt>Revision</dt><dd className="dc-mono">0.4</dd><dt>Source posture</dt><dd>Controlled / synthetic</dd></dl><StatusBadge tone="warning">External use blocked</StatusBadge><p>Review readiness, QC and exact authorization remain separate checkpoints.</p><a className="dc-inline-button" href="/app/deals/project-northstar/review-readiness">Inspect readiness →</a></section></aside>
+      <aside className="dc-workspace-inspector" id={isWorkbook?"workbook-context":undefined} data-open={workbookPanel==="context"||undefined} aria-label="Deal context inspector">{isWorkbook?<button className="dc-workbook-shell-close" onClick={closeWorkbookPanel}>Close context inspector</button>:null}<p className="dc-nav-label">Context inspector</p><section className="dc-inspector-card"><span className="dc-eyebrow">Current workspace</span><h2>{isSynthetic ? "Project Northstar" : "Current Deal"}</h2><dl><dt>Deal identity</dt><dd className="dc-mono">{activeDealId ?? "Not selected"}</dd><dt>Review scope</dt><dd>Exact Revision, purpose and audience</dd></dl><StatusBadge tone="warning">External use blocked</StatusBadge><p>Review readiness, QC and exact authorization remain separate checkpoints.</p><a className="dc-inline-button" href={`${activeBase}/review-readiness`}>Inspect readiness →</a></section></aside>
     </div>
   </div>;
 }

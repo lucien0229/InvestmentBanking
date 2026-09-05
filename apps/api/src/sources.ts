@@ -51,7 +51,7 @@ function quarantinePath(sessionId: string, fileId: string) {
   return path.join(storageRoot(), "quarantine", sessionId, `${fileId}.bin`);
 }
 
-function protectedPath(storageKey: string) {
+export function protectedPath(storageKey: string) {
   const root = storageRoot();
   const resolved = path.resolve(root, storageKey);
   if (!resolved.startsWith(`${path.resolve(root)}${path.sep}`)) throw new Error("invalid_storage_key");
@@ -79,7 +79,7 @@ type EnvelopeHeader = {
   media_type: string;
 };
 
-async function encryptProtected(bytes: Buffer, mediaType: string, objectId: string) {
+export async function encryptProtected(bytes: Buffer, mediaType: string, objectId: string) {
   const dek = crypto.randomBytes(32);
   const iv = crypto.randomBytes(12);
   const cipher = crypto.createCipheriv("aes-256-gcm", dek, iv);
@@ -116,7 +116,7 @@ async function encryptProtected(bytes: Buffer, mediaType: string, objectId: stri
   };
 }
 
-async function decryptProtected(container: Buffer) {
+export async function decryptProtected(container: Buffer) {
   if (container.length < 9 || container.subarray(0, 5).toString("ascii") !== "IBPO1") throw new Error("protected_object_corrupt");
   const headerLength = container.readUInt32BE(5);
   if (headerLength <= 0 || headerLength > container.length - 9) throw new Error("protected_object_corrupt");

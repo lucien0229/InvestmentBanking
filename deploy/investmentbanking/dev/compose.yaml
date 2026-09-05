@@ -8,10 +8,12 @@ services:
         required: false
     environment:
       APP_ENV: ${APP_ENV:-development}
+      RELEASE_ID: ${RELEASE_ID:?RELEASE_ID must identify this immutable release}
       HOST: 0.0.0.0
       PORT: 3001
       PROTECTED_STORAGE_ROOT: /var/lib/investmentbanking/protected
       DATABASE_SSL_CA_FILE: /run/secrets/supabase-chain.pem
+      OFFICE_RENDERER_SOCKET: /run/office/renderer.sock
     command:
       - node
       - /opt/app/node_modules/tsx/dist/cli.mjs
@@ -30,6 +32,12 @@ services:
         source: ${DATABASE_SSL_CA_HOST_PATH:-./supabase-chain.pem}
         target: /run/secrets/supabase-chain.pem
         read_only: true
+      - type: bind
+        source: ${OFFICE_SOCKET_DIRECTORY:?OFFICE_SOCKET_DIRECTORY must point to the dedicated rootless supervisor socket directory}
+        target: /run/office
+        read_only: true
+    group_add:
+      - "${OFFICE_RENDERER_GID:-1001}"
     networks:
       - private
     init: true

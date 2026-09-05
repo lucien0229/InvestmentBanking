@@ -11,6 +11,9 @@ TaskDefinition = Literal[
     "financial_normalization_mapping",
     "sell_side_analysis_draft",
     "valuation_commentary_draft",
+    "workbook_commentary_draft",
+    "deliverable_semantic_qc",
+    "native_reader_semantic_parity_review",
 ]
 SupportStatus = Literal[
     "supported", "challenged", "conflicted", "insufficient_support",

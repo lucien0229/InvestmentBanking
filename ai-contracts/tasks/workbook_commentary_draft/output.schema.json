@@ -1,0 +1,211 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://investment-banking.local/ai/tasks/workbook_commentary_draft/output/1.0.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "status",
+    "schema_version",
+    "task_definition",
+    "scope_digest_echo",
+    "results",
+    "abstentions",
+    "omissions"
+  ],
+  "properties": {
+    "status": {
+      "enum": [
+        "complete",
+        "partial",
+        "abstained"
+      ]
+    },
+    "schema_version": {
+      "const": "1.0.0"
+    },
+    "task_definition": {
+      "const": "workbook_commentary_draft"
+    },
+    "scope_digest_echo": {
+      "type": "string"
+    },
+    "results": {
+      "type": "array",
+      "maxItems": 200,
+      "items": {
+        "$ref": "#/$defs/result"
+      }
+    },
+    "abstentions": {
+      "type": "array",
+      "maxItems": 200,
+      "items": {
+        "$ref": "https://investment-banking.local/ai/common/1.0.0#/$defs/Abstention"
+      }
+    },
+    "omissions": {
+      "type": "array",
+      "maxItems": 200,
+      "items": {
+        "$ref": "https://investment-banking.local/ai/common/1.0.0#/$defs/Omission"
+      }
+    }
+  },
+  "$defs": {
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidate_key",
+        "origin",
+        "payload",
+        "evidence_links",
+        "support_status",
+        "conflicts",
+        "uncertainty_flags",
+        "limitations",
+        "required_human_decision"
+      ],
+      "properties": {
+        "candidate_key": {
+          "type": "string"
+        },
+        "origin": {
+          "const": "ai_generated"
+        },
+        "payload": {
+          "$ref": "#/$defs/payload"
+        },
+        "evidence_links": {
+          "type": "array",
+          "maxItems": 30,
+          "items": {
+            "$ref": "https://investment-banking.local/ai/common/1.0.0#/$defs/EvidenceLink"
+          }
+        },
+        "support_status": {
+          "$ref": "https://investment-banking.local/ai/common/1.0.0#/$defs/SupportStatus"
+        },
+        "conflicts": {
+          "type": "array",
+          "maxItems": 20,
+          "items": {
+            "$ref": "https://investment-banking.local/ai/common/1.0.0#/$defs/Conflict"
+          }
+        },
+        "uncertainty_flags": {
+          "type": "array",
+          "maxItems": 20,
+          "items": {
+            "type": "string"
+          }
+        },
+        "limitations": {
+          "type": "array",
+          "maxItems": 20,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        },
+        "required_human_decision": {
+          "anyOf": [
+            {
+              "$ref": "https://investment-banking.local/ai/common/1.0.0#/$defs/RequiredHumanDecision"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "payload": {
+      "type": "object",
+      "properties": {
+        "revision_id": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+        },
+        "deliverable_type": {
+          "type": "string",
+          "const": "analysis_valuation_workbook"
+        },
+        "region_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "purpose": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 240
+        },
+        "audience": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 240
+        },
+        "content_blocks": {
+          "minItems": 1,
+          "maxItems": 20,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "paragraph",
+                  "qualification"
+                ]
+              },
+              "text": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000
+              }
+            },
+            "required": [
+              "kind",
+              "text"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "citations": {
+          "maxItems": 30,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          }
+        },
+        "refresh_calculation_run_ids": {
+          "minItems": 1,
+          "maxItems": 24,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          }
+        }
+      },
+      "required": [
+        "revision_id",
+        "deliverable_type",
+        "region_key",
+        "purpose",
+        "audience",
+        "content_blocks",
+        "citations",
+        "refresh_calculation_run_ids"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

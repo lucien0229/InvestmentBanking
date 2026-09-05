@@ -1,0 +1,21 @@
+[Unit]
+Description=Investment Banking bounded Office renderer
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /opt/cells/investmentbanking/dev/office/supervisor.py
+Environment=OFFICE_RENDERER_SOCKET=/opt/cells/investmentbanking/dev/office/socket/renderer.sock
+Environment=OFFICE_RENDERER_IMAGE=sha256:fa651dcd342157af5e7a7ca9205bf63dc93c4245bf601c3ac82cdfce1fca35ab
+Environment=OFFICE_WORK_ROOT=/opt/cells/investmentbanking/dev/office/work
+Environment=XDG_RUNTIME_DIR=/run/user/1001
+Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1001/bus
+Restart=on-failure
+RestartSec=5
+Delegate=yes
+MemoryMax=1400M
+TasksMax=192
+UMask=0007
+
+[Install]
+WantedBy=default.target

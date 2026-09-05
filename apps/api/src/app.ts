@@ -1,3 +1,4 @@
+import { registerDeliverableRoutes } from "./deliverables.js";
 import crypto from "node:crypto";
 import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from "fastify";
 import cookie from "@fastify/cookie";
@@ -325,6 +326,7 @@ export async function buildApi(options: BuildApiOptions = {}): Promise<FastifyIn
   registerSourcePacketRoutes(api, database, { requireBanker, commandKey });
   registerEvidenceFactDecisionRoutes(api, database, { requireBanker, commandKey });
   registerAnalysisRoutes(api, database, { requireBanker, commandKey });
+  registerDeliverableRoutes(api, database, { requireBanker, commandKey });
   if (process.env.APP_ENV === "production" && !options.aiProvider) throw new Error("live HelloX AI provider is required in production");
   registerAiSourceProposalRoutes(api, database, { requireBanker, commandKey }, { provider: options.aiProvider });
 
@@ -842,15 +844,15 @@ export async function buildApi(options: BuildApiOptions = {}): Promise<FastifyIn
         id: string; account_id: string; deal_id: string; command_type: string; purpose_code: string; accepted_inputs: Record<string, unknown>;
         input_digest: string; input_version: string; workflow_version: string; release_id: string; allowance_class: string; allowance_quantity: string;
         allowance_posture: string; workspace_posture_version: string; security_epoch: string; state: string; progress: Record<string, unknown>; result: Record<string, unknown> | null;
-        problem: Record<string, unknown> | null; requested_at: string; updated_at: string; worker_heartbeat_at: string | null; row_version: string; scope_id: string | null; scope_expires_at: string | null; runtime_principal_code: string | null;
+        problem: Record<string, unknown> | null; requested_at: string; updated_at: string; worker_heartbeat_at: string | null; row_version: string; scope_id: string | null; scope_expires_at: string | null; runtime_principal_code: string | null; operation_code:string|null;
       }>(
         `SELECT j.id, j.account_id, j.deal_id, j.command_type, j.purpose_code, j.accepted_inputs, j.input_digest, j.input_version, j.workflow_version,
                 j.release_id, j.allowance_class, j.allowance_quantity, j.allowance_posture, j.workspace_posture_version, j.security_epoch, j.state, j.progress,
                 j.result, j.problem, j.requested_at, j.updated_at, j.worker_heartbeat_at, j.row_version,
-                latest.id AS scope_id, latest.expires_at AS scope_expires_at, latest.runtime_principal_code
+                latest.id AS scope_id, latest.expires_at AS scope_expires_at, latest.runtime_principal_code, latest.operation_code
          FROM jobs.job j
          LEFT JOIN LATERAL (
-           SELECT s.id, s.expires_at, s.runtime_principal_code
+           SELECT s.id, s.expires_at, s.runtime_principal_code, s.operation_code
            FROM jobs.job_scope s WHERE s.job_id = j.id ORDER BY s.issued_at DESC LIMIT 1
          ) latest ON true
          WHERE j.id = $1`,
@@ -877,7 +879,7 @@ export async function buildApi(options: BuildApiOptions = {}): Promise<FastifyIn
           security_epoch: Number(row.security_epoch),
           scope_id: row.scope_id,
           runtime_principal: row.runtime_principal_code,
-          operations: row.scope_id ? ["reference_workspace_build"] : [],
+          operations: row.scope_id ? [row.operation_code] : [],
           expires_at: row.scope_expires_at,
         },
         result: row.result,
@@ -936,7 +938,11 @@ export async function buildApi(options: BuildApiOptions = {}): Promise<FastifyIn
     if (!Number.isInteger(version)) return problem(reply, 428, "precondition_required", "The current Job version is required.", "reload_and_retry", request.url);
     const session = cookieValue(request, "__Host-banker_session") ?? cookieValue(request, "__Host-pending_passkey");
     if (!session) return problem(reply, 401, "authentication_required", "Authenticate to continue.", "authenticate", request.url);
-    const result = await database.withJobContext(session, jobId, async (client) => (await client.query<{ status: string; job_state: string | null; row_version: string | null }>("SELECT * FROM jobs.cancel_reference_job($1, $2, $3)", [jobId, version, body.reason])).rows[0]);
+    const result = await database.withJobContext(session, jobId, async (client) => {
+      const kind=(await client.query<{command_type:string}>("SELECT command_type FROM jobs.job WHERE id=$1",[jobId])).rows[0]?.command_type;
+      if(kind&&kind!=="reference_workspace_build")return (await client.query<{data:{status:string;job_state:string|null;row_version:string|null}}>("SELECT deliverable.cancel_workbook_job($1,$2) AS data",[jobId,version])).rows[0]?.data;
+      return (await client.query<{status:string;job_state:string|null;row_version:string|null}>("SELECT * FROM jobs.cancel_reference_job($1,$2,$3)",[jobId,version,body.reason])).rows[0];
+    });
     if (result.kind === "invalid") return problem(reply, 401, "session_expired", "The session is no longer valid.", "reauthenticate", request.url);
     if (result.kind === "passkey_required") return problem(reply, 403, "passkey_required", "A Passkey-backed session is required for Job access.", "register_passkey", request.url);
     if (result.kind === "not_found" || !result.value || result.value.status === "not_found") return problem(reply, 404, "resource_not_found", "The requested resource is not available.", "return_to_safe_parent", request.url);
@@ -985,7 +991,7 @@ export async function buildApi(options: BuildApiOptions = {}): Promise<FastifyIn
       await client.query("SELECT app.record_audit($1,$2,$3,$4,$5,$6)", ["deal_overview_read", "completed", "deal_overview", row.deal_id, "authorized_read", traceId()]);
       return {
         account: { display_name: row.account_name },
-        deal: { id: row.deal_id, name: row.deal_name, client_label: row.client_label, transaction_subject: row.transaction_subject, mandate_objective: row.mandate_objective },
+        deal: { id: row.deal_id, name: row.deal_name, client_label: row.client_label, transaction_subject: row.transaction_subject, mandate_objective: row.mandate_objective, business_stage:row.business_stage },
         workspace: { id: row.workspace_id, posture: row.activity_posture, posture_version: Number(row.posture_version), current_pointers: { overview_revision_id: row.overview_revision_id } },
         displayed_state: row.displayed_state,
         authorization: { account_scope: context.accountId, deal_scope: row.deal_id, session_posture: "passkey_backed_session" },

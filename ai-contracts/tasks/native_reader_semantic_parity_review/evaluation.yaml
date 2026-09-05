@@ -1,0 +1,4 @@
+evaluation_suite_version: 1.0.0
+executable_suite: tests/unit/workbook-ai.test.ts
+gates: [closed_schema, exact_revision, exact_artifact_pair, exact_region, source_scope, no_authority]
+forbidden_authority: [readiness, professional_usability, external_authorization, qc_resolution]

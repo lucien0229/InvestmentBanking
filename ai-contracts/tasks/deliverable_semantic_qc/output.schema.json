@@ -1,0 +1,196 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://investment-banking.local/ai/tasks/deliverable_semantic_qc/output/1.0.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "status",
+    "schema_version",
+    "task_definition",
+    "scope_digest_echo",
+    "results",
+    "abstentions",
+    "omissions"
+  ],
+  "properties": {
+    "status": {
+      "enum": [
+        "complete",
+        "partial",
+        "abstained"
+      ]
+    },
+    "schema_version": {
+      "const": "1.0.0"
+    },
+    "task_definition": {
+      "const": "deliverable_semantic_qc"
+    },
+    "scope_digest_echo": {
+      "type": "string"
+    },
+    "results": {
+      "type": "array",
+      "maxItems": 200,
+      "items": {
+        "$ref": "#/$defs/result"
+      }
+    },
+    "abstentions": {
+      "type": "array",
+      "maxItems": 200,
+      "items": {
+        "$ref": "https://investment-banking.local/ai/common/1.0.0#/$defs/Abstention"
+      }
+    },
+    "omissions": {
+      "type": "array",
+      "maxItems": 200,
+      "items": {
+        "$ref": "https://investment-banking.local/ai/common/1.0.0#/$defs/Omission"
+      }
+    }
+  },
+  "$defs": {
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidate_key",
+        "origin",
+        "payload",
+        "evidence_links",
+        "support_status",
+        "conflicts",
+        "uncertainty_flags",
+        "limitations",
+        "required_human_decision"
+      ],
+      "properties": {
+        "candidate_key": {
+          "type": "string"
+        },
+        "origin": {
+          "const": "ai_generated"
+        },
+        "payload": {
+          "$ref": "#/$defs/payload"
+        },
+        "evidence_links": {
+          "type": "array",
+          "maxItems": 30,
+          "items": {
+            "$ref": "https://investment-banking.local/ai/common/1.0.0#/$defs/EvidenceLink"
+          }
+        },
+        "support_status": {
+          "$ref": "https://investment-banking.local/ai/common/1.0.0#/$defs/SupportStatus"
+        },
+        "conflicts": {
+          "type": "array",
+          "maxItems": 20,
+          "items": {
+            "$ref": "https://investment-banking.local/ai/common/1.0.0#/$defs/Conflict"
+          }
+        },
+        "uncertainty_flags": {
+          "type": "array",
+          "maxItems": 20,
+          "items": {
+            "type": "string"
+          }
+        },
+        "limitations": {
+          "type": "array",
+          "maxItems": 20,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        },
+        "required_human_decision": {
+          "anyOf": [
+            {
+              "$ref": "https://investment-banking.local/ai/common/1.0.0#/$defs/RequiredHumanDecision"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "payload": {
+      "type": "object",
+      "properties": {
+        "revision_id": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+        },
+        "artifact_id": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+        },
+        "region_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "category": {
+          "type": "string",
+          "enum": [
+            "formulas",
+            "numbers",
+            "text",
+            "charts",
+            "tables",
+            "citations",
+            "fonts",
+            "legends",
+            "confidentiality",
+            "qualifications",
+            "order",
+            "lineage"
+          ]
+        },
+        "severity_proposal": {
+          "type": "string",
+          "enum": [
+            "critical",
+            "major",
+            "minor"
+          ]
+        },
+        "observed_condition": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "expected_contract": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "remediation_proposal": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        }
+      },
+      "required": [
+        "revision_id",
+        "artifact_id",
+        "region_key",
+        "category",
+        "severity_proposal",
+        "observed_condition",
+        "expected_contract",
+        "remediation_proposal"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

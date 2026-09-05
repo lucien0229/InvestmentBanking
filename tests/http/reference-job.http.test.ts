@@ -94,14 +94,14 @@ test("duplicate commands replay one Job and one allowance effect", async (t) => 
   const request = {
     method: "POST" as const,
     url: `/api/v1/deals/${northstarDealId}/reference-jobs`,
-    headers: { cookie, "idempotency-key": "reference-job-command-dup-01" },
+    headers: { cookie, "idempotency-key": `reference-job-command-${crypto.randomUUID()}` },
     payload: buildPayload(),
   };
   const [first, second] = await Promise.all([api.inject(request), api.inject(request)]);
   assert.equal(first.statusCode, 202);
   assert.equal(second.statusCode, 202);
   assert.equal(second.json().id, first.json().id);
-  assert.equal(second.headers["idempotent-replayed"], "true");
+  assert.equal([first, second].filter(response => response.headers["idempotent-replayed"] === "true").length, 1);
   const counts = await database.ownerPool.query<{ jobs: string; reservations: string; outbox: string }>(
     `SELECT (SELECT count(*) FROM jobs.job WHERE id = $1) AS jobs,
             (SELECT count(*) FROM commerce.usage_reservation WHERE job_id = $1) AS reservations,

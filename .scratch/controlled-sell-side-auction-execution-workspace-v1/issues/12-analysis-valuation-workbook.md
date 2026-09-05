@@ -4,7 +4,7 @@
 
 **Blocked by:** 04 — Run one Banker-visible Reference Deal operation as a durable Job; 11 — Produce replayable financial Analysis from controlled inputs.
 
-**Status:** ready-for-agent
+**Status:** claimed
 
 - [ ] The workbook preserves native formulas, defined names, input/Assumption separation, periods, units, currency, signs, actual/forecast posture, scenarios, charts, calculation mode, and exact source-to-cell/range lineage.
 - [ ] `workbook_commentary_draft`, `deliverable_semantic_qc`, and `native_reader_semantic_parity_review` run through governed proposal-only contracts and cannot create authoritative readiness.
@@ -14,3 +14,14 @@
 - [ ] Declared supported Office paths complete open, inspect, edit, save, reopen, and reimport smoke tasks without corruption, flattening, formula loss, or protected Banker-content loss.
 - [ ] Material formula failure, corrupt/flattened artifact, wrong locator, or native/reader mismatch creates a Critical Finding and blocks circulation; a passing check clears only its exact blocker.
 - [ ] Black-box artifact observers and independent file checks satisfy AC-051 through AC-059.
+
+## Comments
+
+### 2026-09-05 implementation claim
+
+Claimed on `develop` from `faf72a8` for the user-authorized development scope.
+Implement and verify this ticket, then audit Tickets 01–11 against their
+development acceptance criteria. Later tickets are not included. Verification
+uses authenticated HTTP/browser boundaries and independent artifact/file
+observers, including recalculation, lineage, signature, parity, and supported
+Office round-trip checks. Review compares the completed change with `faf72a8`.

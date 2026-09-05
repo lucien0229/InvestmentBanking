@@ -16,6 +16,9 @@ export const taskDefinitions = [
   "financial_normalization_mapping",
   "sell_side_analysis_draft",
   "valuation_commentary_draft",
+  "workbook_commentary_draft",
+  "deliverable_semantic_qc",
+  "native_reader_semantic_parity_review",
 ] as const;
 export type TaskDefinition = (typeof taskDefinitions)[number];
 export type MaterialProvenanceClass = "synthetic" | "real";
@@ -298,6 +301,19 @@ const valuationCommentaryPayload = z.object({
   evidence_ids: z.array(z.string().uuid()).max(30), scenario_version_ids: z.array(z.string().uuid()).max(30),
   limitations: z.array(z.string().min(1).max(500)).max(20),
 }).strict();
+export const workbookAiTasks = ["workbook_commentary_draft", "deliverable_semantic_qc", "native_reader_semantic_parity_review"] as const;
+const boundedText = z.string().trim().min(1).max(2000);
+const regionKey = z.string().min(1).max(160);
+const semanticCategory = z.enum(["formulas", "numbers", "text", "charts", "tables", "citations", "fonts", "legends", "confidentiality", "qualifications", "order", "lineage"]);
+export const workbookCommentaryPayload = z.object({
+ revision_id:z.string().uuid(),deliverable_type:z.literal("analysis_valuation_workbook"),region_key:regionKey,purpose:z.string().min(1).max(240),audience:z.string().min(1).max(240),
+ content_blocks:z.array(z.object({kind:z.enum(["paragraph","qualification"]),text:boundedText}).strict()).min(1).max(20),citations:z.array(z.string().uuid()).max(30),refresh_calculation_run_ids:z.array(z.string().uuid()).min(1).max(24)
+}).strict();
+export const deliverableQcPayload = z.object({revision_id:z.string().uuid(),artifact_id:z.string().uuid(),region_key:regionKey,category:semanticCategory,severity_proposal:z.enum(["critical","major","minor"]),observed_condition:boundedText,expected_contract:boundedText,remediation_proposal:boundedText}).strict();
+export const nativeReaderParityPayload = z.object({revision_id:z.string().uuid(),native_artifact_id:z.string().uuid(),reader_artifact_id:z.string().uuid(),region_key:regionKey,
+ native_locator:z.object({sheet:z.string().min(1).max(31),range:z.string().regex(/^[A-Z]{1,3}[1-9]\d{0,6}(?::[A-Z]{1,3}[1-9]\d{0,6})?$/)}).strict(),reader_locator:z.object({page:z.number().int().min(1).max(1000),region_label:z.string().min(1).max(160)}).strict(),
+ category:semanticCategory,severity_proposal:z.enum(["critical","major","minor"]),observed_condition:boundedText,expected_contract:boundedText,remediation_proposal:boundedText}).strict();
+
 const taskPayloads: Record<TaskDefinition, z.ZodType<Record<string, unknown>>> = {
   source_claim_extraction: sourceClaimPayload as z.ZodType<Record<string, unknown>>,
   claim_evidence_linking: evidenceLinkPayload as z.ZodType<Record<string, unknown>>,
@@ -307,6 +323,9 @@ const taskPayloads: Record<TaskDefinition, z.ZodType<Record<string, unknown>>> =
   financial_normalization_mapping: financialMappingPayload as z.ZodType<Record<string, unknown>>,
   sell_side_analysis_draft: sellSideDraftPayload as z.ZodType<Record<string, unknown>>,
   valuation_commentary_draft: valuationCommentaryPayload as z.ZodType<Record<string, unknown>>,
+  workbook_commentary_draft: workbookCommentaryPayload,
+  deliverable_semantic_qc: deliverableQcPayload,
+  native_reader_semantic_parity_review: nativeReaderParityPayload,
 };
 
 export function validateAiOutput(value: unknown, envelope: AiInputEnvelope): { ok: true } | { ok: false; code: string; pointer?: string } {
@@ -355,6 +374,21 @@ export function validateAiOutput(value: unknown, envelope: AiInputEnvelope): { o
     const payload = result.payload as Record<string, unknown>;
     const payloadFragment = payload.source_fragment_id ?? payload.fragment_id;
     if (typeof payloadFragment === "string" && !sourceFragmentSet.has(payloadFragment)) return { ok: false, code: "foreign_locator", pointer: `results.${index}.payload` };
+    if ((workbookAiTasks as readonly string[]).includes(envelope.task.task_definition)) {
+      const revision = (envelope.inputs.current_revisions as Array<{id:string;artifacts:Array<{id:string;role:string}>;regions:Array<{region_key:string;artifact_id:string;native_locator:{sheet:string;range:string;reader_pages:number[]}}>}>).find(r=>r.id===payload.revision_id);
+      if (!revision || !revision.regions.some(r=>r.region_key===payload.region_key)) return {ok:false,code:"foreign_artifact_region",pointer:`results.${index}.payload`};
+      if (envelope.task.task_definition === "workbook_commentary_draft") {
+        if(payload.purpose!==envelope.scope.intended_use||payload.audience!==envelope.scope.audience) return {ok:false,code:"artifact_intended_use_mismatch"};
+        const invalid=assertIds(payload.citations,sourceFragmentSet,`results.${index}.payload.citations`)??assertIds(payload.refresh_calculation_run_ids,idsFor("calculation_runs"),`results.${index}.payload.refresh_calculation_run_ids`);if(invalid)return invalid;
+      } else if(envelope.task.task_definition === "deliverable_semantic_qc") {
+        if(!revision.regions.some(r=>r.region_key===payload.region_key&&r.artifact_id===payload.artifact_id))return {ok:false,code:"foreign_artifact"};
+      } else {
+        if(!revision.artifacts.some(a=>a.id===payload.native_artifact_id&&a.role==="native")||!revision.artifacts.some(a=>a.id===payload.reader_artifact_id&&a.role==="reader"))return {ok:false,code:"foreign_artifact_pair"};
+        const region=revision.regions.find(r=>r.region_key===payload.region_key&&r.artifact_id===payload.native_artifact_id);
+        const locator=payload.native_locator as {sheet:string;range:string},reader=payload.reader_locator as {page:number;region_label:string};
+        if(!region||region.native_locator.sheet!==locator.sheet||region.native_locator.range!==locator.range||!region.native_locator.reader_pages.includes(reader.page)||reader.region_label!==payload.region_key)return {ok:false,code:"artifact_locator_mismatch"};
+      }
+    }
     if (envelope.task.task_definition === "financial_semantic_extraction" && typeof payload.source_fragment_id === "string") {
       const fragment = fragments.get(payload.source_fragment_id);
       if (fragment && canonical(payload.source_locator) !== canonical(fragment.locator)) return { ok: false, code: "locator_mismatch", pointer: `results.${index}.payload.source_locator` };

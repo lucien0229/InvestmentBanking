@@ -24,6 +24,8 @@ mkdir -p "${protected_volume}"
 export RUNTIME_ENV_FILE="${runtime_env}"
 export PROTECTED_VOLUME_PATH="${protected_volume}"
 export DATABASE_SSL_CA_HOST_PATH="${ca_file}"
+export OFFICE_SOCKET_DIRECTORY="${CELL_ROOT}/office/socket"
+test -S "${OFFICE_SOCKET_DIRECTORY}/renderer.sock"
 
 docker image inspect "${NODE_RUNTIME_IMAGE:-node:22-bookworm-slim}" >/dev/null 2>&1 \
   || docker pull "${NODE_RUNTIME_IMAGE:-node:22-bookworm-slim}"

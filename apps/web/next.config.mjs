@@ -5,7 +5,7 @@ const nextConfig = {
   output: "standalone",
   outputFileTracingRoot: process.cwd(),
   async rewrites() {
-    return [{ source: "/api/v1/:path*", destination: `${apiOrigin}/api/v1/:path*` }];
+    return [{source:"/.well-known/integrity-keys.json",destination:`${apiOrigin}/.well-known/integrity-keys.json`},{ source: "/api/v1/:path*", destination: `${apiOrigin}/api/v1/:path*` }];
   },
 };
 

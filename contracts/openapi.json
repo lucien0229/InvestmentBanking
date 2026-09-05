@@ -6,6 +6,1689 @@
   },
   "servers": [{ "url": "/" }],
   "paths": {
+"/api/v1/deals/{deal_id}/workbook-bases": {
+    "get": {
+      "operationId": "list_workbook_bases",
+      "description": "Exact eligible Calculation Run, Model Version and Scenario Version tuples.",
+      "security": [
+        {
+          "bankerSession": []
+        }
+      ],
+      "parameters": [
+        {
+          "name": "deal_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Exact eligible Calculation Run, Model Version and Scenario Version tuples."
+        },
+        "400": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "401": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "403": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "404": {
+          "$ref": "#/components/responses/Problem"
+        }
+      }
+    }
+  },
+  "/api/v1/deals/{deal_id}/deliverables": {
+    "get": {
+      "operationId": "list_deliverables",
+      "description": "Scoped Analysis and Valuation Workbooks and their exact current Revision metadata.",
+      "security": [
+        {
+          "bankerSession": []
+        }
+      ],
+      "parameters": [
+        {
+          "name": "deal_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Scoped Analysis and Valuation Workbooks and their exact current Revision metadata."
+        },
+        "400": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "401": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "403": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "404": {
+          "$ref": "#/components/responses/Problem"
+        }
+      }
+    },
+    "post": {
+      "operationId": "create_deliverable",
+      "description": "Workbook registered for the authenticated Banker and exact Work Objective.",
+      "security": [
+        {
+          "bankerSession": []
+        }
+      ],
+      "parameters": [
+        {
+          "name": "deal_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        {
+          "$ref": "#/components/parameters/IdempotencyKey"
+        }
+      ],
+      "responses": {
+        "201": {
+          "description": "Workbook registered for the authenticated Banker and exact Work Objective."
+        },
+        "400": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "401": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "403": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "404": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "409": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "412": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "428": {
+          "$ref": "#/components/responses/Problem"
+        }
+      },
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/WorkbookCreate"
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/v1/deals/{deal_id}/deliverables/{deliverable_id}": {
+    "get": {
+      "operationId": "get_deliverable",
+      "description": "Deliverable metadata; no file bytes or storage location.",
+      "security": [
+        {
+          "bankerSession": []
+        }
+      ],
+      "parameters": [
+        {
+          "name": "deal_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        {
+          "name": "deliverable_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Deliverable metadata; no file bytes or storage location."
+        },
+        "400": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "401": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "403": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "404": {
+          "$ref": "#/components/responses/Problem"
+        }
+      }
+    }
+  },
+  "/api/v1/deals/{deal_id}/deliverables/{deliverable_id}/revisions": {
+    "get": {
+      "operationId": "list_revisions",
+      "description": "Immutable Revision history.",
+      "security": [
+        {
+          "bankerSession": []
+        }
+      ],
+      "parameters": [
+        {
+          "name": "deal_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        {
+          "name": "deliverable_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Immutable Revision history."
+        },
+        "400": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "401": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "403": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "404": {
+          "$ref": "#/components/responses/Problem"
+        }
+      }
+    },
+    "post": {
+      "operationId": "create_revision",
+      "description": "Durable generation Job; exact accepted controlled basis and new immutable Revision identity.",
+      "security": [
+        {
+          "bankerSession": []
+        }
+      ],
+      "parameters": [
+        {
+          "name": "deal_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        {
+          "name": "deliverable_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        {
+          "$ref": "#/components/parameters/IdempotencyKey"
+        },
+        {
+          "name": "If-Match",
+          "in": "header",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "pattern": "^\"[1-9][0-9]*\"$"
+          }
+        }
+      ],
+      "responses": {
+        "202": {
+          "description": "Durable generation Job; exact accepted controlled basis and new immutable Revision identity."
+        },
+        "400": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "401": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "403": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "404": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "409": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "412": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "428": {
+          "$ref": "#/components/responses/Problem"
+        }
+      },
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/WorkbookRevisionCreate"
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/v1/deals/{deal_id}/deliverables/{deliverable_id}/revisions/{revision_id}": {
+    "get": {
+      "operationId": "get_revision",
+      "description": "Exact Revision, artifact metadata and durable Jobs.",
+      "security": [
+        {
+          "bankerSession": []
+        }
+      ],
+      "parameters": [
+        {
+          "name": "deal_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        {
+          "name": "deliverable_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        {
+          "name": "revision_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Exact Revision, artifact metadata and durable Jobs."
+        },
+        "400": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "401": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "403": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "404": {
+          "$ref": "#/components/responses/Problem"
+        }
+      }
+    }
+  },
+  "/api/v1/deals/{deal_id}/deliverables/{deliverable_id}/revisions/{revision_id}/artifacts": {
+    "get": {
+      "operationId": "list_revision_artifacts",
+      "description": "Exact Native, Reader and preview metadata.",
+      "security": [
+        {
+          "bankerSession": []
+        }
+      ],
+      "parameters": [
+        {
+          "name": "deal_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        {
+          "name": "deliverable_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        {
+          "name": "revision_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Exact Native, Reader and preview metadata."
+        },
+        "400": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "401": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "403": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "404": {
+          "$ref": "#/components/responses/Problem"
+        }
+      }
+    }
+  },
+  "/api/v1/deals/{deal_id}/deliverables/{deliverable_id}/revisions/{revision_id}/manifest": {
+    "get": {
+      "operationId": "get_revision_manifest",
+      "description": "Canonical signed manifest and public verification key; no member bytes.",
+      "security": [
+        {
+          "bankerSession": []
+        }
+      ],
+      "parameters": [
+        {
+          "name": "deal_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        {
+          "name": "deliverable_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        {
+          "name": "revision_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Canonical signed manifest and public verification key; no member bytes."
+        },
+        "400": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "401": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "403": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "404": {
+          "$ref": "#/components/responses/Problem"
+        }
+      }
+    }
+  },
+  "/api/v1/deals/{deal_id}/deliverables/{deliverable_id}/revisions/{revision_id}/lineage": {
+    "get": {
+      "operationId": "list_revision_lineage",
+      "description": "Typed bidirectional Artifact Region to source and controlled authority relations.",
+      "security": [
+        {
+          "bankerSession": []
+        }
+      ],
+      "parameters": [
+        {
+          "name": "deal_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        {
+          "name": "deliverable_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        {
+          "name": "revision_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Typed bidirectional Artifact Region to source and controlled authority relations."
+        },
+        "400": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "401": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "403": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "404": {
+          "$ref": "#/components/responses/Problem"
+        }
+      }
+    }
+  },
+  "/api/v1/deals/{deal_id}/deliverables/{deliverable_id}/revisions/{revision_id}/office-runs": {
+    "get": {
+      "operationId": "list_revision_office_runs",
+      "description": "Independent Office compatibility receipts; only the acceptance lab can record these.",
+      "security": [
+        {
+          "bankerSession": []
+        }
+      ],
+      "parameters": [
+        {
+          "name": "deal_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        {
+          "name": "deliverable_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        {
+          "name": "revision_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Independent Office compatibility receipts; only the acceptance lab can record these."
+        },
+        "400": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "401": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "403": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "404": {
+          "$ref": "#/components/responses/Problem"
+        }
+      }
+    }
+  },
+  "/api/v1/deals/{deal_id}/deliverables/{deliverable_id}/revisions/{revision_id}/ai-reviews": {
+    "get": {
+      "operationId": "list_revision_ai_reviews",
+      "description": "Governed proposal-only AI results for this exact Revision.",
+      "security": [
+        {
+          "bankerSession": []
+        }
+      ],
+      "parameters": [
+        {
+          "name": "deal_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        {
+          "name": "deliverable_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        {
+          "name": "revision_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Governed proposal-only AI results for this exact Revision."
+        },
+        "400": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "401": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "403": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "404": {
+          "$ref": "#/components/responses/Problem"
+        }
+      }
+    },
+    "post": {
+      "operationId": "create_revision_ai_review",
+      "description": "Durable proposal-only AI Job; cannot create Review, Fact or readiness authority.",
+      "security": [
+        {
+          "bankerSession": []
+        }
+      ],
+      "parameters": [
+        {
+          "name": "deal_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        {
+          "name": "deliverable_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        {
+          "name": "revision_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        {
+          "$ref": "#/components/parameters/IdempotencyKey"
+        }
+      ],
+      "responses": {
+        "202": {
+          "description": "Durable proposal-only AI Job; cannot create Review, Fact or readiness authority."
+        },
+        "400": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "401": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "403": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "404": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "409": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "412": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "428": {
+          "$ref": "#/components/responses/Problem"
+        }
+      },
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/WorkbookAiReviewCreate"
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/v1/deals/{deal_id}/deliverables/{deliverable_id}/revisions/{revision_id}/readiness": {
+    "get": {
+      "operationId": "get_deliverable_readiness",
+      "description": "Blocker-first exact-use readiness; external_use_authorized remains false.",
+      "security": [
+        {
+          "bankerSession": []
+        }
+      ],
+      "parameters": [
+        {
+          "name": "deal_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        {
+          "name": "deliverable_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        {
+          "name": "revision_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        {
+          "name": "purpose",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 240
+          }
+        },
+        {
+          "name": "audience",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 240
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Blocker-first exact-use readiness; external_use_authorized remains false."
+        },
+        "400": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "401": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "403": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "404": {
+          "$ref": "#/components/responses/Problem"
+        }
+      }
+    }
+  },
+  "/api/v1/deals/{deal_id}/artifacts": {
+    "get": {
+      "operationId": "list_artifacts",
+      "description": "Scoped metadata only.",
+      "security": [
+        {
+          "bankerSession": []
+        }
+      ],
+      "parameters": [
+        {
+          "name": "deal_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        {
+          "name": "revision_id",
+          "in": "query",
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Scoped metadata only."
+        },
+        "400": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "401": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "403": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "404": {
+          "$ref": "#/components/responses/Problem"
+        }
+      }
+    }
+  },
+  "/api/v1/deals/{deal_id}/artifacts/{artifact_id}": {
+    "get": {
+      "operationId": "get_artifact",
+      "description": "Artifact metadata only.",
+      "security": [
+        {
+          "bankerSession": []
+        }
+      ],
+      "parameters": [
+        {
+          "name": "deal_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        {
+          "name": "artifact_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Artifact metadata only."
+        },
+        "400": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "401": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "403": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "404": {
+          "$ref": "#/components/responses/Problem"
+        }
+      }
+    }
+  },
+  "/api/v1/deals/{deal_id}/artifacts/{artifact_id}/manifest": {
+    "get": {
+      "operationId": "get_artifact_manifest",
+      "description": "Exact signed manifest and public verification key.",
+      "security": [
+        {
+          "bankerSession": []
+        }
+      ],
+      "parameters": [
+        {
+          "name": "deal_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        {
+          "name": "artifact_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Exact signed manifest and public verification key."
+        },
+        "400": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "401": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "403": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "404": {
+          "$ref": "#/components/responses/Problem"
+        }
+      }
+    }
+  },
+  "/api/v1/deals/{deal_id}/artifacts/{artifact_id}/preview-grants": {
+    "post": {
+      "operationId": "create_artifact_preview_grant",
+      "description": "Two-minute grant bound to exact PNG, Account, Deal and current session.",
+      "security": [
+        {
+          "bankerSession": []
+        }
+      ],
+      "parameters": [
+        {
+          "name": "deal_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        {
+          "name": "artifact_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "responses": {
+        "201": {
+          "description": "Two-minute grant bound to exact PNG, Account, Deal and current session."
+        },
+        "400": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "401": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "403": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "404": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "409": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "412": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "428": {
+          "$ref": "#/components/responses/Problem"
+        }
+      },
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ArtifactPreviewGrantCreate"
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/v1/deals/{deal_id}/artifacts/{artifact_id}/preview": {
+    "get": {
+      "operationId": "get_artifact_preview",
+      "description": "Integrity-verified image/png bytes. Requires Banker session and exact ObjectGrant. No native/PDF download authority.",
+      "security": [
+        {
+          "bankerSession": []
+        }
+      ],
+      "parameters": [
+        {
+          "name": "deal_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        {
+          "name": "artifact_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        {
+          "name": "Authorization",
+          "in": "header",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "pattern": "^ObjectGrant [A-Za-z0-9_-]{43}$"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Integrity-verified image/png bytes. Requires Banker session and exact ObjectGrant. No native/PDF download authority."
+        },
+        "400": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "401": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "403": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "404": {
+          "$ref": "#/components/responses/Problem"
+        }
+      }
+    }
+  },
+  "/api/v1/deals/{deal_id}/reviews": {
+    "get": {
+      "operationId": "list_reviews",
+      "description": "Scoped immutable records.",
+      "security": [
+        {
+          "bankerSession": []
+        }
+      ],
+      "parameters": [
+        {
+          "name": "deal_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        {
+          "name": "revision_id",
+          "in": "query",
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Scoped immutable records."
+        },
+        "400": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "401": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "403": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "404": {
+          "$ref": "#/components/responses/Problem"
+        }
+      }
+    },
+    "post": {
+      "operationId": "create_review",
+      "description": "Banker Review for exact Revision, purpose, audience and standard.",
+      "security": [
+        {
+          "bankerSession": []
+        }
+      ],
+      "parameters": [
+        {
+          "name": "deal_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        {
+          "$ref": "#/components/parameters/IdempotencyKey"
+        }
+      ],
+      "responses": {
+        "201": {
+          "description": "Banker Review for exact Revision, purpose, audience and standard."
+        },
+        "400": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "401": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "403": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "404": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "409": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "412": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "428": {
+          "$ref": "#/components/responses/Problem"
+        }
+      },
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ArtifactReviewCreate"
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/v1/deals/{deal_id}/reviews/{review_id}": {
+    "get": {
+      "operationId": "get_review",
+      "description": "Exact scoped record.",
+      "security": [
+        {
+          "bankerSession": []
+        }
+      ],
+      "parameters": [
+        {
+          "name": "deal_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        {
+          "name": "review_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Exact scoped record."
+        },
+        "400": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "401": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "403": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "404": {
+          "$ref": "#/components/responses/Problem"
+        }
+      }
+    }
+  },
+  "/api/v1/deals/{deal_id}/qc-runs": {
+    "get": {
+      "operationId": "list_qc_runs",
+      "description": "Scoped immutable records.",
+      "security": [
+        {
+          "bankerSession": []
+        }
+      ],
+      "parameters": [
+        {
+          "name": "deal_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        {
+          "name": "revision_id",
+          "in": "query",
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Scoped immutable records."
+        },
+        "400": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "401": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "403": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "404": {
+          "$ref": "#/components/responses/Problem"
+        }
+      }
+    },
+    "post": {
+      "operationId": "create_qc_run",
+      "description": "Independent QC against exact stored Native/Reader bytes.",
+      "security": [
+        {
+          "bankerSession": []
+        }
+      ],
+      "parameters": [
+        {
+          "name": "deal_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        {
+          "$ref": "#/components/parameters/IdempotencyKey"
+        }
+      ],
+      "responses": {
+        "202": {
+          "description": "Independent QC against exact stored Native/Reader bytes."
+        },
+        "400": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "401": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "403": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "404": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "409": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "412": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "428": {
+          "$ref": "#/components/responses/Problem"
+        }
+      },
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/WorkbookQcCreate"
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/v1/deals/{deal_id}/qc-runs/{qc_run_id}": {
+    "get": {
+      "operationId": "get_qc_run",
+      "description": "Exact scoped record.",
+      "security": [
+        {
+          "bankerSession": []
+        }
+      ],
+      "parameters": [
+        {
+          "name": "deal_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        {
+          "name": "qc_run_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Exact scoped record."
+        },
+        "400": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "401": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "403": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "404": {
+          "$ref": "#/components/responses/Problem"
+        }
+      }
+    }
+  },
+  "/api/v1/deals/{deal_id}/qc-findings": {
+    "get": {
+      "operationId": "list_qc_findings",
+      "description": "Scoped immutable records.",
+      "security": [
+        {
+          "bankerSession": []
+        }
+      ],
+      "parameters": [
+        {
+          "name": "deal_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        {
+          "name": "revision_id",
+          "in": "query",
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Scoped immutable records."
+        },
+        "400": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "401": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "403": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "404": {
+          "$ref": "#/components/responses/Problem"
+        }
+      }
+    }
+  },
+  "/api/v1/deals/{deal_id}/qc-findings/{finding_id}": {
+    "get": {
+      "operationId": "get_qc_finding",
+      "description": "Exact scoped record.",
+      "security": [
+        {
+          "bankerSession": []
+        }
+      ],
+      "parameters": [
+        {
+          "name": "deal_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        {
+          "name": "finding_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Exact scoped record."
+        },
+        "400": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "401": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "403": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "404": {
+          "$ref": "#/components/responses/Problem"
+        }
+      }
+    }
+  },
+  "/api/v1/deals/{deal_id}/qc-findings/{finding_id}/dispositions": {
+    "post": {
+      "operationId": "create_qc_finding_disposition",
+      "description": "Critical failures cannot be waived; rationale remains immutable.",
+      "security": [
+        {
+          "bankerSession": []
+        }
+      ],
+      "parameters": [
+        {
+          "name": "deal_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        {
+          "name": "finding_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        {
+          "$ref": "#/components/parameters/IdempotencyKey"
+        }
+      ],
+      "responses": {
+        "201": {
+          "description": "Critical failures cannot be waived; rationale remains immutable."
+        },
+        "400": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "401": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "403": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "404": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "409": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "412": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "428": {
+          "$ref": "#/components/responses/Problem"
+        }
+      },
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/QcFindingDispositionCreate"
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/v1/deals/{deal_id}/qc-findings/{finding_id}/retests": {
+    "post": {
+      "operationId": "create_qc_retest",
+      "description": "Targeted retest; only a passing exact check clears this Finding.",
+      "security": [
+        {
+          "bankerSession": []
+        }
+      ],
+      "parameters": [
+        {
+          "name": "deal_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        {
+          "name": "finding_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        {
+          "$ref": "#/components/parameters/IdempotencyKey"
+        }
+      ],
+      "responses": {
+        "202": {
+          "description": "Targeted retest; only a passing exact check clears this Finding."
+        },
+        "400": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "401": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "403": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "404": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "409": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "412": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "428": {
+          "$ref": "#/components/responses/Problem"
+        }
+      },
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/WorkbookQcCreate"
+            }
+          }
+        }
+      }
+    },
+    "get": {
+      "operationId": "list_qc_retests",
+      "description": "Immutable exact-Finding retest results.",
+      "security": [
+        {
+          "bankerSession": []
+        }
+      ],
+      "parameters": [
+        {
+          "name": "deal_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        {
+          "name": "finding_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Immutable exact-Finding retest results."
+        },
+        "400": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "401": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "403": {
+          "$ref": "#/components/responses/Problem"
+        },
+        "404": {
+          "$ref": "#/components/responses/Problem"
+        }
+      }
+    }
+  },
+  "/.well-known/integrity-keys.json": {
+    "get": {
+      "operationId": "list_artifact_integrity_keys",
+      "security": [],
+      "parameters": [
+        {
+          "name": "purpose",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "const": "artifact"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Retained artifact signing public keys; no private material."
+        }
+      }
+    }
+  },
     "/api/v1/deals/{deal_id}/normalized-financial-values": { "get": { "operationId": "list_normalized_financial_values", "security": [{ "bankerSession": [] }], "parameters": [{ "$ref": "#/components/parameters/DealId" }], "responses": { "200": { "description": "Scoped normalized financial values" } } }, "post": { "operationId": "create_normalized_financial_value", "security": [{ "bankerSession": [] }], "parameters": [{ "$ref": "#/components/parameters/DealId" }, { "$ref": "#/components/parameters/IdempotencyKey" }], "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/NormalizedFinancialValueCreate" } } } }, "responses": { "201": { "description": "Normalized value proposal" } } } },
     "/api/v1/session/bootstrap": {
       "post": {
@@ -479,6 +2162,263 @@
       "SourceRecordId": { "name": "source_record_id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
     },
     "schemas": {
+"WorkbookCreate": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "work_objective_id": {
+        "type": "string",
+        "format": "uuid",
+        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+      },
+      "title": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 240
+      },
+      "purpose": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 240
+      },
+      "audience": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 240
+      },
+      "confidentiality": {
+        "type": "string",
+        "enum": [
+          "public",
+          "internal",
+          "confidential",
+          "restricted"
+        ]
+      }
+    },
+    "required": [
+      "work_objective_id",
+      "title",
+      "purpose",
+      "audience",
+      "confidentiality"
+    ],
+    "additionalProperties": false
+  },
+  "WorkbookRevisionCreate": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "basis": {
+        "minItems": 1,
+        "maxItems": 24,
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "calculation_run_id": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "model_version_id": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "scenario_version_id": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          "required": [
+            "calculation_run_id",
+            "model_version_id",
+            "scenario_version_id"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "limitations": {
+        "maxItems": 20,
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        }
+      }
+    },
+    "required": [
+      "basis",
+      "limitations"
+    ],
+    "additionalProperties": false
+  },
+  "ArtifactReviewCreate": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "revision_id": {
+        "type": "string",
+        "format": "uuid",
+        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+      },
+      "purpose": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 240
+      },
+      "audience": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 240
+      },
+      "scope": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 1000
+      },
+      "standard": {
+        "type": "string",
+        "enum": [
+          "method_review",
+          "review_scope",
+          "rights_confidentiality",
+          "professional_suitability",
+          "office_roundtrip",
+          "native_reader_parity"
+        ]
+      },
+      "conclusion": {
+        "type": "string",
+        "enum": [
+          "passed",
+          "failed",
+          "limited"
+        ]
+      },
+      "rationale": {
+        "type": "string",
+        "minLength": 20,
+        "maxLength": 4000
+      },
+      "limitations": {
+        "maxItems": 20,
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        }
+      },
+      "evidence": {
+        "default": {},
+        "type": "object",
+        "propertyNames": {
+          "type": "string"
+        },
+        "additionalProperties": {}
+      }
+    },
+    "required": [
+      "revision_id",
+      "purpose",
+      "audience",
+      "scope",
+      "standard",
+      "conclusion",
+      "rationale",
+      "limitations",
+      "evidence"
+    ],
+    "additionalProperties": false
+  },
+  "WorkbookQcCreate": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "revision_id",
+      "ruleset"
+    ],
+    "properties": {
+      "revision_id": {
+        "type": "string",
+        "format": "uuid"
+      },
+      "ruleset": {
+        "const": "analysis-workbook-qc-1.0.0"
+      }
+    }
+  },
+  "WorkbookAiReviewCreate": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "task_definition",
+      "packet_version_id",
+      "work_objective_id"
+    ],
+    "properties": {
+      "task_definition": {
+        "enum": [
+          "workbook_commentary_draft",
+          "deliverable_semantic_qc",
+          "native_reader_semantic_parity_review"
+        ]
+      },
+      "packet_version_id": {
+        "type": "string",
+        "format": "uuid"
+      },
+      "work_objective_id": {
+        "type": "string",
+        "format": "uuid"
+      }
+    }
+  },
+  "QcFindingDispositionCreate": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "disposition",
+      "purpose",
+      "rationale"
+    ],
+    "properties": {
+      "disposition": {
+        "enum": [
+          "confirmed",
+          "remediation_required",
+          "accepted_limitation",
+          "rejected"
+        ]
+      },
+      "purpose": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 240
+      },
+      "rationale": {
+        "type": "string",
+        "minLength": 20,
+        "maxLength": 4000
+      }
+    }
+  },
+  "ArtifactPreviewGrantCreate": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "purpose"
+    ],
+    "properties": {
+      "purpose": {
+        "const": "artifact_inspection"
+      }
+    }
+  },
       "CalculationCreate": { "type": "object", "required": ["calculation_code", "label"], "additionalProperties": false, "properties": { "calculation_code": { "type": "string" }, "label": { "type": "string" } } },
       "CalculationVersionCreate": { "type": "object", "required": ["method_code", "formula_text", "method_version", "unit", "currency", "period", "input_digest", "definition"], "additionalProperties": false, "properties": { "method_code": { "const": "ev_to_equity_tie_out" }, "formula_text": { "type": "string" }, "method_version": { "type": "string" }, "unit": { "type": "string" }, "currency": { "type": "string" }, "period": { "type": "string" }, "input_digest": { "type": "string" }, "definition": { "type": "object", "required": ["measures"], "properties": { "measures": { "type": "array" } } } } },
       "CalculationRunCreate": { "type": "object", "required": ["calculation_version_id", "enterprise_value", "cash", "debt", "expected_equity_value"], "additionalProperties": false, "properties": { "calculation_version_id": { "type": "string", "format": "uuid" }, "enterprise_value": { "type": "string" }, "cash": { "type": "string" }, "debt": { "type": "string" }, "expected_equity_value": { "type": "string" } } },

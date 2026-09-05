@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import { spawn, type ChildProcess } from "node:child_process";
 import test, { after, before } from "node:test";
 
-const origin = "http://127.0.0.1:3101";
+const testPort = "33101";
+const origin = `http://127.0.0.1:${testPort}`;
 const northstarDealId = "00000000-0000-4000-8000-000000000101";
 const otherAccountDealId = "00000000-0000-4000-8000-000000000202";
 let server: ChildProcess;
@@ -10,11 +11,12 @@ let server: ChildProcess;
 before(async () => {
   server = spawn(process.execPath, ["node_modules/tsx/dist/cli.mjs", "apps/api/src/server.ts"], {
     cwd: process.cwd(),
-    env: { ...process.env, APP_ENV: "test", AUTH_ADAPTER: "local", PORT: "3101", HOST: "127.0.0.1" },
+    env: { ...process.env, APP_ENV: "test", AUTH_ADAPTER: "local", PORT: testPort, HOST: "127.0.0.1" },
     stdio: ["ignore", "pipe", "pipe"],
   });
   const deadline = Date.now() + 10_000;
   while (Date.now() < deadline) {
+    if (server.exitCode !== null) throw new Error("Test API exited before accepting requests");
     try {
       const response = await fetch(`${origin}/api/v1/session`);
       if (response.status === 401) return;
