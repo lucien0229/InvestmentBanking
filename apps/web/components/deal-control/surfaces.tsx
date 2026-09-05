@@ -1,4 +1,5 @@
 "use client";
+import { SourceWorkspace } from "./source-workspace";
 import { JobWorkspace } from "./job-workspace";
 import { TemplateWorkspace } from "./template-workspace";
 
@@ -141,6 +142,7 @@ function AnalysisDetailSurface({ dealId }: { dealId: string }) {
 
 export default function DealSurfacePage({ dealId, slug }: { dealId: string; slug: string[] }) {
   const path = slug.join("/");
+  if (/^[0-9a-f-]{36}$/i.test(dealId) && ["source-records", "source-packets"].includes(slug[0])) return <SourceWorkspace key={`${dealId}:${path}`} dealId={dealId} sourceRecordId={slug[0] === "source-records" ? slug[1] : undefined} packetId={slug[0] === "source-packets" ? slug[1] : undefined} />;
   if (/^[0-9a-f-]{36}$/i.test(dealId) && dealId !== "00000000-0000-0000-0000-000000000000" && (path === "execution-package" || path === "review-readiness" || slug[0] === "deliverables")) return <WorkbookSurface dealId={dealId} slug={slug} />;
   if (/^[0-9a-f-]{36}$/i.test(dealId) && ["evidence-decisions", "claims", "human-decisions"].includes(slug[0])) return <EvidenceWorkspace key={`${dealId}:${path}`} dealId={dealId} slug={slug} />;
   if (/^[0-9a-f-]{36}$/i.test(dealId) && ["analysis", "analyses", "calculations", "models", "scenarios", "deterministic-validation-records"].includes(slug[0])) return <AnalysisWorkspace key={`${dealId}:${path}`} dealId={dealId} slug={slug[0] === "analysis" && slug.length > 1 ? slug.slice(1) : slug} />;

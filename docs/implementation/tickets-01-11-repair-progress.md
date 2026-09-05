@@ -154,3 +154,36 @@ or write global task configuration. Four real native file families (XLSX, DOCX,
 PPTX and PDF) yielded the expected text, unchanged original digests and truthful
 partial coverage. The remaining negative safety probes are being repeated after
 the Source supervisor's release switch interrupted one in-flight test.
+
+2026-09-05 11:14 UTC — bounded review corrections:
+
+- Standards axis reported 2 findings: missing native keyboard tab semantics,
+  and a persistent Docker public-fetch process inconsistent with ADR 0028.
+  Shared tabs now provide tab/tablist/tabpanel associations, roving focus and
+  Arrow/Home/End navigation. Public retrieval now uses an unprivileged host
+  coordinator and one disposable, digest-pinned rootless Podman container per
+  URL. Real public HTTPS and five rejected private/unsafe URL probes passed;
+  no containers remained after the six requests.
+- Spec axis reported 4 findings: ambiguous same-wording Claim binding, lost
+  native Analysis provenance, placeholder Source/Packet deep links, and
+  exhausted Source transport tasks without recovery. Each is corrected. The
+  financial input preserves the exact selected native selector; Fact and
+  Decision identities retain its relationship/Evidence/Representation/Source
+  chain. Multiple supporting locations require an explicit selection. The
+  native selector stays compatible with downstream workbook lineage checks.
+- The Claim regression first failed (400 for the missing exact-ID contract),
+  then passed with the older selected Claim linked despite identical wording.
+  Cross-Account/unknown Claim and changed-proposition attempts are rejected.
+- **14/14 affected regressions passed on the development host**, including real
+  ClamAV/CSV parsing after an injected transport-exhaustion state. Safety failure
+  and revoked processing permission both reject recovery; idempotent recovery
+  preserves three previous attempts and completes on attempt four. A second
+  recovery is rejected. This is an explicit failure fixture plus real parser,
+  not a claim that three production outages happened.
+- Hosted Supabase now contains **77 canonical migrations**. The three newest
+  SQL identities were matched by exact MD5 before reconciling provider-assigned
+  timestamps to repository versions. No previously applied SQL was edited.
+- Root and Web TypeScript checks and generated contract checks pass. The first
+  new Web build exposed a generic inference difference in its stricter project
+  configuration; explicit tab union types corrected it. Refreshed build,
+  release switch and final browser checks are pending.

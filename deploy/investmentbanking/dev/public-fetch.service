@@ -1,0 +1,14 @@
+[Unit]
+Description=Investment Banking public URL fetch coordinator
+[Service]
+ExecStart=/usr/bin/python3 /opt/cells/investmentbanking/dev/public-fetch-runtime/services/public-fetch/supervisor.py
+Environment=PUBLIC_FETCH_SOCKET=/opt/cells/investmentbanking/dev/public-fetch/socket/fetch.sock
+Environment=PUBLIC_FETCH_IMAGE=sha256:6e6261159fd399ebe5a3d556b7d89da9c85c873f3f270918aad6c8107da8b411
+Environment=XDG_RUNTIME_DIR=/run/user/998
+Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/998/bus
+Restart=on-failure
+RestartSec=5
+Delegate=yes
+MemoryMax=512M
+TasksMax=128
+UMask=0007

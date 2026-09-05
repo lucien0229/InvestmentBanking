@@ -59,3 +59,23 @@ navigation is limited to the product's explicit internal route allowlist. No
 tool submits forms, changes authorization state, sends payment data, or exposes
 credentials. WebMCP is an optional browser-agent seam and is not a security
 boundary; normal UI/API authorization remains authoritative.
+
+## Public retrieval supervisor
+
+`public-fetch.service` runs as the dedicated `ib-fetch` user's systemd service,
+with a separate subordinate UID/GID allocation and rootless Podman image store.
+The fixed profile uses Node image
+`sha256:6e6261159fd399ebe5a3d556b7d89da9c85c873f3f270918aad6c8107da8b411`.
+Install that image and this unit before invoking the release helper. Point
+`$CELL_ROOT/public-fetch-runtime` at the immutable release, reload the user's
+systemd manager, and start `investmentbanking-public-fetch.service`.
+
+The API receives only `public-fetch/socket/fetch.sock`. The coordinator accepts
+one HTTPS URL, then launches one disposable container with only the fixed worker
+script mounted read-only. No application files, provider credentials, protected
+objects or runtime API socket are mounted. Each request is limited to 128 MiB,
+0.5 CPU, 32 processes, a 25-second container lifetime and 10 MiB of response data;
+at most two requests run concurrently. A rootless slirp network disables host
+loopback. The worker rejects every non-public resolved address, pins the chosen
+address while preserving TLS hostname verification, and never follows redirects.
+The supervisor force-removes the exact request container even after timeouts.

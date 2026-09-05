@@ -322,6 +322,19 @@ test("isolated Source processing retains original bytes and returns exact CSV fr
   assert.equal(queued.statusCode, 202, queued.body); const jobId = queued.json().data.id;
   const replay = await api.inject({ method: "POST", url: `/api/v1/deals/${dealId}/source-records/${recordId}/processing-jobs`, headers: { cookie, "idempotency-key": crypto.randomUUID() }, payload: {} });
   assert.equal(replay.json().data.id, jobId);
+  // Inject only the exhausted transport state; recovery still runs the real parser.
+  await database.ownerPool.query("UPDATE source.processing_task SET state='failed',attempts=3,problem_code='source_processing_failed' WHERE id=$1", [jobId]);
+  const recover = (key: string) => api.inject({ method: "POST", url: `/api/v1/deals/${dealId}/source-processing-jobs/${jobId}/retries`, headers: { cookie, "idempotency-key": key }, payload: {} });
+  assert.equal((await recover(crypto.randomUUID())).statusCode, 409, "Safety failures cannot be retried as transport");
+  await database.ownerPool.query("UPDATE source.processing_task SET problem_code='worker_lease_expired' WHERE id=$1", [jobId]);
+  await database.ownerPool.query("UPDATE app.deal_workspace SET processing_posture='preflight_restricted' WHERE deal_id=$1", [dealId]);
+  assert.equal((await recover(crypto.randomUUID())).statusCode, 409, "Current processing authority is required");
+  await database.ownerPool.query("UPDATE app.deal_workspace SET processing_posture='permitted' WHERE deal_id=$1", [dealId]);
+  const recoveryKey = crypto.randomUUID(); const recovered = await recover(recoveryKey);
+  assert.equal(recovered.statusCode, 202, recovered.body); assert.equal(recovered.json().data.attempts, 3);
+  assert.equal(recovered.json().data.recovery_count, 1);
+  assert.equal((await recover(recoveryKey)).statusCode, 202);
+  assert.equal((await recover(crypto.randomUUID())).statusCode, 409);
   const assumption = await api.inject({ method: "POST", url: `/api/v1/deals/${dealId}/assumptions`, headers: { cookie, "idempotency-key": crypto.randomUUID() }, payload: { proposition: "Use Cash only for this development reference checkpoint", value: "4.7", purpose: "internal_analysis", scope: "Development reference checkpoint", rationale: "Synthetic cash premise for exact dependency acceptance", bounds: { source: "development fixture" }, invalidation_triggers: ["Cash source changes"], origin: "human_authored" } });
   assert.equal(assumption.statusCode, 201, assumption.body);
   const reference = await api.inject({ method: "POST", url: `/api/v1/deals/${dealId}/reference-jobs`, headers: { cookie, "idempotency-key": crypto.randomUUID() }, payload: { purpose: "reference_workspace_build", inputs: { source_packet: "development-native-source", requested_scope: "synthetic_reference_fixture", source_record_id: recordId, assumption_id: assumption.json().data.id } } });
@@ -341,6 +354,7 @@ test("isolated Source processing retains original bytes and returns exact CSV fr
   }
   assert.ok(task);
   assert.equal(task.json().data.state, "completed", task.body);
+  assert.equal(task.json().data.attempts, 4, "Recovery preserves the three prior attempts");
   await dispatcher.query("SELECT jobs.dispatch_pending_reference_jobs()");
   assert.equal((await readReference()).json().state,"queued","The exact Source completion must republish the waiting Job");
   await api.referenceJobRuntime.run(referenceId);
@@ -365,5 +379,6 @@ test("isolated Source processing retains original bytes and returns exact CSV fr
   const original = await api.inject({ method: "GET", url: grant.json().stream_url, headers: { cookie, authorization: `ObjectGrant ${grant.json().token}` } });
   assert.equal(original.statusCode, 200); assert.deepEqual(original.rawPayload, bytes);
   const stranger = await createDeal(api, database, `source-native-other-${crypto.randomUUID()}@example.test`);
+  assert.equal((await api.inject({ method: "POST", url: `/api/v1/deals/${dealId}/source-processing-jobs/${jobId}/retries`, headers: { cookie: stranger.cookie, "idempotency-key": crypto.randomUUID() }, payload: {} })).statusCode, 404);
   for (const route of [`/api/v1/deals/${dealId}/source-fragments`, `/api/v1/deals/${dealId}/source-processing-jobs/${jobId}`]) assert.equal((await api.inject({ method: "GET", url: route, headers: { cookie: stranger.cookie } })).statusCode, 404);
 });

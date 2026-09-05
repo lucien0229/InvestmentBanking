@@ -1,12 +1,8 @@
 // This service receives a public URL only. It has no application or provider credentials.
-import http from 'node:http';
 import https from 'node:https';
 import dns from 'node:dns/promises';
 import net from 'node:net';
-import fs from 'node:fs';
 
-const socketPath = process.env.PUBLIC_FETCH_SOCKET;
-if (!socketPath) throw new Error('public_fetch_socket_required');
 const maxBytes = 10 * 1024 * 1024;
 const cidrs = [[0,8],[0x0a000000,8],[0x64400000,10],[0x7f000000,8],[0xa9fe0000,16],[0xac100000,12],[0xc0000000,24],[0xc0000200,24],[0xc0a80000,16],[0xc6120000,15],[0xc6336400,24],[0xcb007100,24],[0xe0000000,4],[0xf0000000,4]];
 function publicIpv4(address) {
@@ -34,18 +30,10 @@ async function retrieve(value) {
     request.on('error', reject);
   });
 }
-let active = 0;
-const server = http.createServer(async (request, response) => {
-  if (request.method !== 'POST' || request.url !== '/v1/public-observation') { response.writeHead(404).end(); return; }
-  if (active >= 2) { response.writeHead(429).end(); return; }
-  active += 1;
-  try {
-    let text = ''; for await (const chunk of request) { text += chunk.toString('utf8'); if (Buffer.byteLength(text) > 4096) throw new Error('input_limit'); }
-    const input = JSON.parse(text); if (Object.keys(input).length !== 1 || typeof input.url !== 'string' || input.url.length > 2048) throw new Error('input_contract');
-    const result = await retrieve(input.url); response.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify(result));
-  } catch { response.writeHead(502, { 'content-type': 'application/json' }).end(JSON.stringify({ code: 'public_retrieval_failed' })); }
-  finally { active -= 1; }
-});
-server.requestTimeout = 15000;
-if (fs.existsSync(socketPath)) fs.unlinkSync(socketPath);
-server.listen(socketPath, () => fs.chmodSync(socketPath, 0o660));
+// One request per disposable container. The supervisor supplies stdin only.
+try {
+  let text = ''; for await (const chunk of process.stdin) { text += chunk.toString('utf8'); if (Buffer.byteLength(text) > 4096) throw new Error('input_limit'); }
+  const input = JSON.parse(text);
+  if (Object.keys(input).length !== 1 || typeof input.url !== 'string' || input.url.length > 2048) throw new Error('input_contract');
+  process.stdout.write(JSON.stringify(await retrieve(input.url)));
+} catch { process.exitCode = 1; }

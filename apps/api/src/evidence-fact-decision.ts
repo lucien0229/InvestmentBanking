@@ -13,6 +13,7 @@ type RouteDeps = {
 
 const locator = z.record(z.string(), z.unknown());
 const evidenceAcceptance = z.object({
+  claim_id: uuid.optional(),
   source_record_id: uuid,
   representation_id: uuid,
   locator,
@@ -157,7 +158,7 @@ export function registerEvidenceFactDecisionRoutes(api: FastifyInstance, databas
     try {
       const dealId = uuid.parse(params.deal_id); const body = evidenceAcceptance.parse(request.body);
       const requestDigest = canonicalDigest({ method: "POST", route: "/api/v1/deals/{deal_id}/evidence-acceptances", api_version: "v1", deal_id: dealId, body });
-      const result = await database.withContext(session, dealId, async (client, context) => (await client.query<{ data: unknown }>("SELECT knowledge.accept_evidence($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) AS data", [context.accountId, context.actorId, dealId, Database.hashToken(key), requestDigest, body.source_record_id, body.representation_id, body.locator, body.proposition, body.relationship, body.supported_scope, body.qualification ?? null, body.limitation ?? null])).rows[0]?.data ?? null);
+      const result = await database.withContext(session, dealId, async (client, context) => (await client.query<{ data: unknown }>("SELECT knowledge.accept_evidence_for_claim($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) AS data", [context.accountId, context.actorId, dealId, Database.hashToken(key), requestDigest, body.source_record_id, body.representation_id, body.locator, body.proposition, body.relationship, body.supported_scope, body.qualification ?? null, body.limitation ?? null, body.claim_id ?? null])).rows[0]?.data ?? null);
       const response = contextResponse(result, reply, request, "Evidence"); if (response) return response; if (result.kind !== "ok") return;
       const replay = Boolean((result.value as { idempotent_replayed?: boolean }).idempotent_replayed); reply.header("Location", `/api/v1/deals/${dealId}/evidence/${(result.value as { id: string }).id}`).header("Cache-Control", "private, no-store"); return reply.code(replay ? 200 : 201).send({ data: result.value });
     } catch (error) { return mapError(error, request, reply); }

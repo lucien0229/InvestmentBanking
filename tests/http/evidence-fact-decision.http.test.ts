@@ -98,3 +98,27 @@ test("Claim correction is append-only and exposes every dependent candidate", as
   const original = await api.inject({ method: "GET", url: `/api/v1/deals/${database.dealId}/claims/${claimId}`, headers: { cookie: database.cookie } });
   assert.equal(original.json().data[0].value, "6.2");
 });
+
+
+test("Evidence binds the selected Claim even when proposition wording is identical", async (t) => {
+  const database = await fixture(); t.after(() => database.close());
+  const api = await buildApi({ database, authMode: "local" }); t.after(() => api.close());
+  const root = `/api/v1/deals/${database.dealId}`;
+  const post = (url: string, payload: Record<string, unknown>, key = crypto.randomUUID()) => api.inject({ method: "POST", url: root + url, headers: { cookie: database.cookie, "idempotency-key": key }, payload });
+  const base = { proposition: "Adjusted EBITDA was 17.8 million", definition: "adjusted EBITDA", unit: "USD million", currency: "USD", sign: "positive", value: "17.8", purpose: "valuation", scope: "internal analysis" };
+  const older = await post("/claims", { ...base, attribution: "Management", period: "FY2024" });
+  const newer = await post("/claims", { ...base, attribution: "Seller", period: "FY2025" });
+  assert.equal(older.statusCode, 201, older.body); assert.equal(newer.statusCode, 201, newer.body);
+  const payload = { claim_id: older.json().data.id, source_record_id: database.sourceRecordId, representation_id: database.representationId, locator: { kind: "sheet_cell", sheet: "Operating Case", cell: "F42" }, proposition: base.proposition, relationship: "supports", supported_scope: base.scope };
+  const key = crypto.randomUUID(); const accepted = await post("/evidence-acceptances", payload, key);
+  assert.equal(accepted.statusCode, 201, accepted.body);
+  assert.equal(accepted.json().data.relationship.claim_id, older.json().data.id);
+  assert.equal((await post("/evidence-acceptances", payload, key)).statusCode, 200);
+  const projection = await api.inject({ method: "GET", url: `${root}/evidence/${accepted.json().data.id}`, headers: { cookie: database.cookie } });
+  assert.deepEqual(projection.json().data[0].relationships.map((item: { claim_id: string }) => item.claim_id), [older.json().data.id]);
+  assert.equal((await post("/evidence-acceptances", { ...payload, claim_id: crypto.randomUUID() })).statusCode, 404);
+  assert.equal((await post("/evidence-acceptances", { ...payload, proposition: "Different proposition" })).statusCode, 404);
+  const foreign = await fixture(); t.after(() => foreign.close());
+  const denied = await api.inject({ method: "POST", url: `${root}/evidence-acceptances`, headers: { cookie: foreign.cookie, "idempotency-key": crypto.randomUUID() }, payload });
+  assert.equal(denied.statusCode, 404);
+});

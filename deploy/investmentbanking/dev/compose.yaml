@@ -140,21 +140,6 @@ services:
       resources:
         limits: { cpus: "1.00", memory: 768M, pids: 64 }
 
-  public_fetch:
-    <<: *worker
-    user: "${PUBLIC_FETCH_UID:?PUBLIC_FETCH_UID is required}:${PUBLIC_FETCH_GID}"
-    environment:
-      PUBLIC_FETCH_SOCKET: /socket/fetch.sock
-    command: [node, /service/server.mjs]
-    working_dir: /service
-    volumes:
-      - ${APP_RELEASE_PATH}/services/public-fetch:/service:ro
-      - ${PUBLIC_FETCH_SOCKET_DIRECTORY}:/socket
-    networks: [public_fetch]
-    deploy:
-      resources:
-        limits: { cpus: "0.50", memory: 128M, pids: 64 }
-
   web:
     image: ${NODE_RUNTIME_IMAGE:-node:22-bookworm-slim}
     environment:
@@ -197,7 +182,5 @@ services:
           memory: 512M
 
 networks:
-  public_fetch:
-    name: investmentbanking-dev-public-fetch
   private:
     name: investmentbanking-dev-private

@@ -167,7 +167,7 @@ function scanUpload(bytes: Buffer, mediaType: string, displayName: string) {
 function parseError(error: unknown) {
   const message = error && typeof error === "object" && "message" in error ? String(error.message) : String(error);
   const known = new Set([
-    "upload_scope_mismatch", "upload_limit_exceeded", "upload_session_expired", "upload_offset_mismatch", "file_digest_mismatch", "source_material_scope_mismatch", "processing_not_permitted", "source_scope_mismatch", "source_acceptance_not_permitted", "object_grant_scope_mismatch", "object_grant_invalid", "idempotency_key_reused", "source_record_immutable",
+    "upload_scope_mismatch", "upload_limit_exceeded", "upload_session_expired", "upload_offset_mismatch", "file_digest_mismatch", "source_material_scope_mismatch", "processing_not_permitted", "processing_recovery_not_available", "source_scope_mismatch", "source_acceptance_not_permitted", "object_grant_scope_mismatch", "object_grant_invalid", "idempotency_key_reused", "source_record_immutable",
   ]);
   return known.has(message) ? message : null;
 }
@@ -182,6 +182,7 @@ function sourceError(error: unknown, request: FastifyRequest, reply: FastifyRepl
     upload_offset_mismatch: [409, "upload_offset_mismatch", "resume_from_server_offset"],
     file_digest_mismatch: [409, "file_digest_mismatch", "reupload_source"],
     source_material_scope_mismatch: [409, "source_condition_blocked", "select_valid_source_material"],
+    processing_recovery_not_available: [409, "processing_recovery_not_available", "inspect_source_processing_failure"],
     processing_not_permitted: [409, "processing_not_permitted", "run_paid_preflight"],
     source_scope_mismatch: [404, "resource_not_found", "return_to_safe_parent"],
     source_acceptance_not_permitted: [409, "source_condition_blocked", "complete_safety_quarantine"],
@@ -237,7 +238,7 @@ export function registerSourceRoutes(api: FastifyInstance, database: Database, d
         ra.id AS rights_assessment_id,ra.rights_code AS rights,ra.permitted_operations,ra.conditions,
         rel.reliance_state,ca.freshness_code AS freshness,ca.conflict_code AS conflict,ca.disposition_code AS disposition,
         pc.coverage_code,pc.coverage_payload AS coverage,pc.parser_identity,
-        task.id AS processing_job_id,task.state AS processing_state,
+        task.id AS processing_job_id,task.state AS processing_state,task.problem_code AS processing_problem_code,task.recovery_count,
         (SELECT count(*) FROM source.source_fragment f WHERE f.source_record_id=r.id) AS fragment_count
       FROM source.source_record r JOIN source.source_material m ON m.id=r.source_material_id
       LEFT JOIN source.source_rights_current_selection rs ON rs.source_record_id=r.id AND rs.purpose_code=$2
@@ -266,10 +267,24 @@ export function registerSourceRoutes(api: FastifyInstance, database: Database, d
       return reply.code(202).header("Location", `/api/v1/deals/${dealId}/source-processing-jobs/${result.value.id}`).send({ data: result.value });
     } catch (error) { return sourceError(error, request, reply); }
   });
+  api.post<{ Params: { deal_id: string; job_id: string } }>("/api/v1/deals/:deal_id/source-processing-jobs/:job_id/retries", async (request, reply) => {
+    const session = await deps.requireBanker(request, reply); if (!session) return;
+    const key = deps.commandKey(request, reply); if (!key) return;
+    try {
+      const dealId = uuid.parse(request.params.deal_id); const jobId = uuid.parse(request.params.job_id);
+      z.object({}).strict().parse(request.body ?? {});
+      const result = await database.withContext(session, dealId, async (client) => {
+        await client.query("SELECT source.retry_processing_transport($1,$2)", [jobId, Database.hashToken(key)]);
+        return (await client.query("SELECT id,state,attempts,recovery_count,recovery_requested_at FROM source.processing_task WHERE id=$1", [jobId])).rows[0];
+      });
+      if (result.kind !== "ok") return sourceProblem(reply, result.kind === "invalid" ? 401 : result.kind === "passkey_required" ? 403 : 404, result.kind === "invalid" ? "session_expired" : result.kind === "passkey_required" ? "passkey_required" : "resource_not_found", "The Source task is not available.", "return_to_safe_parent", request.url);
+      return reply.code(202).header("Cache-Control", "private, no-store").send({ data: result.value });
+    } catch (error) { return sourceError(error, request, reply); }
+  });
   api.get<{ Params: { deal_id: string; job_id: string } }>("/api/v1/deals/:deal_id/source-processing-jobs/:job_id", async (request, reply) => {
     const dealId = uuid.parse(request.params.deal_id); const jobId = uuid.parse(request.params.job_id);
     const session = await deps.requireBanker(request, reply); if (!session) return;
-    const result = await database.withContext(session, dealId, async (client) => (await client.query("SELECT id,source_record_id,state,attempts,heartbeat_at,problem_code,representation_id,created_at,completed_at FROM source.processing_task WHERE id=$1", [jobId])).rows[0] ?? null);
+    const result = await database.withContext(session, dealId, async (client) => (await client.query("SELECT id,source_record_id,state,attempts,recovery_count,recovery_requested_at,recovery_actor_id,heartbeat_at,problem_code,representation_id,created_at,completed_at FROM source.processing_task WHERE id=$1", [jobId])).rows[0] ?? null);
     if (result.kind !== "ok" || !result.value) return sourceProblem(reply, result.kind === "invalid" ? 401 : 404, "resource_not_found", "The Source processing task is not available.", "return_to_safe_parent", request.url);
     return reply.header("Cache-Control", "private, no-store").send({ data: result.value });
   });

@@ -11,6 +11,55 @@ export const openApiContract = {
     }
   ],
   "paths": {
+    "/api/v1/deals/{deal_id}/source-processing-jobs/{job_id}/retries": {
+      "post": {
+        "operationId": "retry_source_processing_transport",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Durable task identity and current state; repeated requests retain one task per Source."
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "summary": "Request one bounded transport recovery while preserving prior attempts"
+      }
+    },
     "/api/v1/session/logouts": {
       "post": {
         "operationId": "revoke_current_session",
@@ -10356,6 +10405,11 @@ export const openApiContract = {
         ],
         "additionalProperties": false,
         "properties": {
+          "claim_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Exact selected Claim identity"
+          },
           "source_record_id": {
             "type": "string",
             "format": "uuid"
