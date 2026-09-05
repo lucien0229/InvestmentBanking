@@ -1,0 +1,221 @@
+{
+  "owners": [
+    {
+      "role": "app_ai_owner",
+      "bypassrls": false
+    },
+    {
+      "role": "app_source_owner",
+      "bypassrls": false
+    },
+    {
+      "role": "app_knowledge_owner",
+      "bypassrls": false
+    },
+    {
+      "role": "app_analysis_owner",
+      "bypassrls": false
+    },
+    {
+      "role": "app_commerce_owner",
+      "bypassrls": false
+    }
+  ],
+  "receipt": [
+    {
+      "id": "13fcdb99-42fb-4301-b48c-7361914d40d0",
+      "status": "paid",
+      "currency": "usd",
+      "created_at": "2026-09-05T12:09:13.134349+00:00",
+      "amount_minor": 99500,
+      "checkout_order_id": "ce4c1837-a8a0-4619-b355-d2842b096df9"
+    }
+  ],
+  "capacity": [
+    {
+      "slot": 1,
+      "state": "active",
+      "deal_id": "e3d4606c-0092-4b97-9cfd-fbda5f0747d3"
+    },
+    {
+      "slot": 2,
+      "state": "active",
+      "deal_id": "1a366f94-8235-4d03-9304-ec4a852575f4"
+    }
+  ],
+  "normalized": [
+    {
+      "id": "10c4d851-2dbf-4943-a419-c1d9a781bfc1",
+      "sign": "positive",
+      "unit": "million",
+      "period": "FY2025E",
+      "deal_id": "e3d4606c-0092-4b97-9cfd-fbda5f0747d3",
+      "currency": "USD",
+      "account_id": "485be1b0-a703-47d4-80a7-51568929c0ad",
+      "created_at": "2026-09-05T12:50:06.656249+00:00",
+      "definition": "Cash and cash equivalents",
+      "value_text": "4.7",
+      "decision_id": "f816d4e0-75f8-4b01-840b-365d119fdf4e",
+      "source_basis": {
+        "fact_id": "d89a0fda-580b-40ef-b383-daaeb26cc4af",
+        "evidence_id": "143613e0-3028-4279-a96a-f66f6d3544cd",
+        "source_record_id": "d05d1401-318e-4344-b65c-ae358b4bb157",
+        "representation_id": "6ab33657-9524-430b-af4f-398576104f6e"
+      },
+      "assumption_id": null,
+      "source_locator": {
+        "row": 3,
+        "kind": "csv_cell",
+        "column": 3
+      },
+      "actual_forecast": "forecast",
+      "precision_digits": 1,
+      "source_fragment_id": null
+    }
+  ],
+  "validation": {
+    "id": "086cd20f-5dc0-4de0-b115-c54854ea102c",
+    "rules": {
+      "rule_set": "EV-EQ-TIE-004",
+      "rule_version": "2"
+    },
+    "engine": {
+      "engine": "investmentbanking.decimal.v1",
+      "engine_version": "1.0.0"
+    },
+    "inputs": {
+      "cash": "4.7",
+      "debt": "10",
+      "enterprise_value": "100",
+      "expected_equity_value": "94.7"
+    },
+    "result": {
+      "cash": "4.7",
+      "debt": "10",
+      "passed": true,
+      "difference": "0.0",
+      "enterprise_value": "100",
+      "derived_equity_value": "94.7",
+      "expected_equity_value": "94.7"
+    },
+    "deal_id": "e3d4606c-0092-4b97-9cfd-fbda5f0747d3",
+    "outcome": "passed",
+    "coverage": "complete",
+    "versions": {
+      "engine_version": "1.0.0"
+    },
+    "account_id": "485be1b0-a703-47d4-80a7-51568929c0ad",
+    "created_at": "2026-09-05T13:57:41.932058+00:00",
+    "exceptions": [],
+    "validation_code": "EV-EQ-TIE-004",
+    "downstream_effect": [],
+    "calculation_run_id": "85af4df6-35ba-4bd7-baf8-06ee1810a6d3"
+  },
+  "calculation": {
+    "id": "85af4df6-35ba-4bd7-baf8-06ee1810a6d3",
+    "checks": [
+      {
+        "code": "arithmetic",
+        "detail": "EV + cash - debt evaluated with exact decimal numeric arithmetic",
+        "outcome": "passed"
+      },
+      {
+        "code": "formula",
+        "detail": "EV + Cash - Debt = Equity",
+        "outcome": "passed"
+      },
+      {
+        "code": "unit",
+        "detail": "USD million",
+        "outcome": "passed"
+      },
+      {
+        "code": "period",
+        "detail": "FY2025E",
+        "outcome": "passed"
+      },
+      {
+        "code": "currency",
+        "detail": "USD",
+        "outcome": "passed"
+      },
+      {
+        "code": "sign",
+        "detail": "Input measure signs match normalized values",
+        "outcome": "passed"
+      },
+      {
+        "code": "tie_out",
+        "detail": "0.0",
+        "outcome": "passed"
+      }
+    ],
+    "engine": "investmentbanking.decimal.v1",
+    "inputs": {
+      "cash": "4.7",
+      "debt": "10",
+      "enterprise_value": "100",
+      "expected_equity_value": "94.7"
+    },
+    "result": {
+      "cash": "4.7",
+      "debt": "10",
+      "passed": true,
+      "difference": "0.0",
+      "enterprise_value": "100",
+      "derived_equity_value": "94.7",
+      "expected_equity_value": "94.7"
+    },
+    "deal_id": "e3d4606c-0092-4b97-9cfd-fbda5f0747d3",
+    "coverage": "complete",
+    "account_id": "485be1b0-a703-47d4-80a7-51568929c0ad",
+    "created_at": "2026-09-05T13:57:41.575559+00:00",
+    "exceptions": [],
+    "input_digest": "sha256:b2d99ada0fe67e17bc4feadfab23d4ea781a3f329200acd15335367f2b7e4b88",
+    "replay_of_id": null,
+    "engine_version": "1.0.0",
+    "downstream_effect": [],
+    "calculation_version_id": "cae62110-1986-414b-844c-c5b22cca9a25"
+  },
+  "observed_at": "2026-09-05T14:01:11.428396+00:00",
+  "migration_count": 82,
+  "analysis_versions": [
+    {
+      "id": "46e78432-98c6-46e1-a4ea-80e0ed05627c",
+      "draft": {
+        "method": "Exact decimal arithmetic: EV + cash - debt, using the pinned Calculation, cash Fact and approved synthetic premises.",
+        "question": "Does the synthetic EV-to-equity bridge reconcile?",
+        "conclusion": "The synthetic case derives equity of 94.7 USD million and a difference of 0.0 against the independent expected benchmark. This is a mechanical result; professional review remains separate.",
+        "limitations": [
+          "Synthetic development acceptance only",
+          "No external-use authorization",
+          "Three model premises remain Assumptions"
+        ]
+      },
+      "status": "draft",
+      "deal_id": "e3d4606c-0092-4b97-9cfd-fbda5f0747d3",
+      "fact_ids": [
+        "d89a0fda-580b-40ef-b383-daaeb26cc4af"
+      ],
+      "account_id": "485be1b0-a703-47d4-80a7-51568929c0ad",
+      "created_at": "2026-09-05T13:18:45.984985+00:00",
+      "analysis_id": "50333ac7-f765-417c-8163-a57c68edea86",
+      "evidence_ids": [],
+      "assumption_ids": [
+        "8916b2df-fd22-40e3-b4d3-51b90a6040a9",
+        "6d056177-a764-4fd3-9e2c-3c9dee9254bd",
+        "fc021056-4cae-4376-b8ce-82f882b16646"
+      ],
+      "version_ordinal": 1,
+      "model_version_ids": [
+        "dbf04aa6-b27f-410e-acbd-a54c4b08ae19"
+      ],
+      "calculation_run_ids": [
+        "2e7b28ae-c55e-4e23-a2ad-046e6693caaf"
+      ],
+      "scenario_version_ids": [
+        "c354f6c0-9897-4762-9178-f45799cbc9f8"
+      ]
+    }
+  ]
+}

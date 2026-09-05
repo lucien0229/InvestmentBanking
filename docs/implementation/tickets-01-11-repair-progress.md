@@ -1,6 +1,6 @@
 # Tickets 01–11 development repairs
 
-Status: repairs implemented and deployed; final interactive acceptance pending. Authorized on 2026-09-05 against
+Status: authorized audit repairs are development verified. Final interactive acceptance completed; see [current acceptance](tickets-01-11-repair-acceptance-2026-09-05.md). Authorized on 2026-09-05 against
 [the bounded audit](tickets-01-11-development-audit-2026-09-05.md).
 Development branch: `develop`; starting commit: `6e02576`.
 
@@ -10,35 +10,35 @@ renewal-lifecycle evidence limit does not authorize implementing Ticket 29.
 
 ## Acceptance checklist
 
-- [ ] Account: Deal listing, usable prototype-based access, direct Passkey
+- [x] Account: Deal listing, usable prototype-based access, direct Passkey
   return, durable logout, and authenticated development/browser regression.
-- [ ] Public proof: repeat the existing complete synthetic loop after shared
+- [x] Public proof: repeat the existing complete synthetic loop after shared
   UI changes; preserve its synthetic evidence boundary.
-- [ ] Commerce: current checkout projections, automatic sandbox webhook
+- [x] Commerce: current checkout projections, automatic sandbox webhook
   delivery and idempotent durable reconciliation/recovery.
-- [ ] Jobs: independent dispatcher/worker, durable queue, bounded heartbeat,
+- [x] Jobs: independent dispatcher/worker, durable queue, bounded heartbeat,
   process-kill/watchdog recovery, duplicate delivery, dependency resume,
   continuous authorized SSE and AC-071 measurements.
-- [ ] Setup/Guide: current Deal identity, exact Preflight/capacity/checkpoints,
+- [x] Setup/Guide: current Deal identity, exact Preflight/capacity/checkpoints,
   explicit unavailable states and real canonical continuation links.
-- [ ] Source intake: substantive isolated processing of accepted bytes,
+- [x] Source intake: substantive isolated processing of accepted bytes,
   truthful coverage and native locators, safety/rights/scope fences.
-- [ ] Web/templates: real commands and receipts, permitted public retrieval,
+- [x] Web/templates: real commands and receipts, permitted public retrieval,
   account-only quarantine, compatibility and history.
-- [ ] Source Packet: exact source rights/coverage/status mapping and targeted
+- [x] Source Packet: exact source rights/coverage/status mapping and targeted
   re-preflight, expiry and version-conflict regression.
-- [ ] AI proposals: wrong-Deal denial, protected complete request evidence,
+- [x] AI proposals: wrong-Deal denial, protected complete request evidence,
   real source task-family/provider acceptance and negative contracts.
-- [ ] Evidence/Decisions: real typed collections, exact source inspection,
+- [x] Evidence/Decisions: real typed collections, exact source inspection,
   durable Fact/Assumption/conflict/correction Decisions and immutable receipts.
-- [ ] Analysis: controlled inputs, deterministic calculations, model/scenario
+- [x] Analysis: controlled inputs, deterministic calculations, model/scenario
   versions, real validation/result/Job/lineage and draft integration.
-- [ ] Permissions: remove reported owner BYPASSRLS through scoped policies;
+- [x] Permissions: remove reported owner BYPASSRLS through scoped policies;
   verify runtime/worker isolation without broad table access.
-- [ ] Final: focused tests per fix, one complete suite, development deployment,
+- [x] Final: focused tests per fix, one complete suite, development deployment,
   browser/visual acceptance, two-axis review, commit and final evidence.
 
-## Completed checks (not final acceptance)
+## Chronological checks (superseded where the final report differs)
 
 Latest acceptance, 2026-09-05 10:48 UTC:
 
@@ -210,3 +210,34 @@ result. The expected-equity benchmark remains in the Calculation; Workbook
 lineage consumes its three formula inputs.
 
 Final consolidated status: [repair acceptance report](tickets-01-11-repair-acceptance-2026-09-05.md). Release v4 includes the final prototype tab-panel spacing correction; deployment health is recorded in the consolidated report; all six bounded code-review findings are closed. Hosted HTTPS calculation completed with equity 94.7 and difference 0.0. Mac lock, physical Passkey and test Checkout interaction remain pending.
+
+
+## Final interactive acceptance — 2026-09-05 14:12 UTC
+
+All checklist items above are now satisfied for the bounded Tickets 01–11 repair.
+The current report supersedes earlier Mac-lock, Passkey, payment and UI-pending
+statements; the entries are retained as historical evidence.
+
+- User completed physical Passkey; authenticated browser used actual paid Account
+  and two explicitly synthetic Deals. Real Stripe test payment automatically
+  delivered a signature-verified event and reconciled exactly once.
+- Complete browser Source/Claim/Evidence/Fact/Decision/normalization/Calculation/
+  Model/Scenario/Analysis loop persisted, with exact native CSV identities.
+  Latest validation contains four inputs and gives equity 94.7, delta 0.0.
+- Web snapshot and separate clean Account template commands/history passed;
+  Packet permanent-link readback preserved its deliberately limited ceiling.
+- Paid Deal identity/explicit confirmation, pass/limited Preflight, stale Setup
+  replay denial and new-scope acceptance passed. Guide shows actual 4/5 object
+  receipts rather than misreporting its entry checkpoint as full completion.
+- Hosted early Analysis function drift required forward migrations 80–81;
+  full input/source and cross-Deal checks now match fresh canonical definitions.
+  Actual occupied capacity required aggregate migration 82; red 0!=1 became
+  green, and real UI displays 2 used / 2 included. No raw runtime RLS widening.
+- Public proof 9/9, desktop/1100/390 layouts, tab keyboard navigation and final
+  responsive error log passed. Real logout produced audit c1f15f87 and a fresh
+  protected Deals visit required authentication. Temporary viewports reset.
+- Final app commit 46cb49a on develop, release 20260905-predecessor-repairs-v12,
+  API/Web healthy, exact source hashes matched. No push. Final small fixes had
+  focused server regressions and two-axis bounded review; no further findings.
+- The three Ticket 12 configuration dependencies remain explicitly deferred;
+  no later ticket was implemented and Ticket 12 remains needs-info.

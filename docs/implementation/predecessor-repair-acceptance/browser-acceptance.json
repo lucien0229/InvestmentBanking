@@ -1,0 +1,128 @@
+{
+  "environment": "development",
+  "url": "https://dev-banking.aptoren.com",
+  "release": "20260905-predecessor-repairs-v12",
+  "application_commit": "46cb49a",
+  "branch": "develop",
+  "pushed": false,
+  "evidence_boundary": "Actual Passkey browser session; synthetic financial inputs and judgments; real test-mode Stripe automatic delivery; development only",
+  "account_id": "485be1b0-a703-47d4-80a7-51568929c0ad",
+  "passkey": {
+    "user_completed_physical_operation": true,
+    "registered": true,
+    "credential_id": "6f7efbc1-4aa2-4750-8e90-9335110b2c6e",
+    "registered_at_utc": "2026-09-05T11:49:27.677516Z"
+  },
+  "stripe": {
+    "mode": "test",
+    "automatic_delivery": true,
+    "order_id": "ce4c1837-a8a0-4619-b355-d2842b096df9",
+    "provider_event_id": "evt_1UCIPE2SUlTvcsKtMaaM8HCt",
+    "signature_verified": true,
+    "state": "reconciled",
+    "received_at": "2026-09-05T12:09:13.127668Z",
+    "acknowledged_at": "2026-09-05T12:09:13.151459Z",
+    "receipt_count": 1,
+    "mutation_count": 1,
+    "checkout_completed_count": 1,
+    "receipt_id": "13fcdb99-42fb-4301-b48c-7361914d40d0",
+    "amount_minor": 99500,
+    "currency": "usd",
+    "entitlement_id": "bc1590a6-9cfc-46a4-acdc-c4bcdd501acb",
+    "active_deal_capacity": 2,
+    "observed_used_active_deals": 2
+  },
+  "browser_deals": {
+    "main": "e3d4606c-0092-4b97-9cfd-fbda5f0747d3",
+    "limited": "1a366f94-8235-4d03-9304-ec4a852575f4",
+    "explicit_creation_confirmation": true,
+    "previous_step_did_not_submit": true,
+    "field_alert_aria_linkage_verified": true,
+    "limited_accept_refresh_restored": true,
+    "stale_setup_replay_denied_continuation": true,
+    "fresh_setup_preflight_and_acceptance_passed": true
+  },
+  "source": {
+    "record_id": "d05d1401-318e-4344-b65c-ae358b4bb157",
+    "representation_id": "6ab33657-9524-430b-af4f-398576104f6e",
+    "job_id": "9656daf6-735e-402c-a138-54f4292d5896",
+    "native_fragment_count": 25,
+    "native_locator": {
+      "kind": "csv_cell",
+      "row": 3,
+      "column": 3
+    },
+    "cash_value": "4.7",
+    "original_sha256": "f8449e07035f540623995f70810eec33831e3a978b1d3941f9630366205ae0eb"
+  },
+  "packet": {
+    "id": "26657bec-cef8-47fc-b9a3-c9a655d59950",
+    "version_id": "b2a32015-e6b4-418d-bc09-4df6739aadf8",
+    "permanent_link_refreshed": true,
+    "main_count": 1,
+    "output_ceiling": "anchor_inventory_only"
+  },
+  "alternative_intake": {
+    "web_url": "https://dev-banking.aptoren.com/project-northstar",
+    "web_mode": "snapshot",
+    "web_source_id": "57368311-7eb9-45d8-840e-43ec43d41f38",
+    "template_id": "e78970f1-cda2-492b-847d-96dbbc9cfe6a",
+    "template_version_id": "25083b6e-d1d7-4269-a58a-de2f1b79914c",
+    "template_sha256": "63619085a7818f3e2a078214c98356a4c5cd931dbdcaff80257d453c750a2541",
+    "template_compatibility": "eligible",
+    "production_readiness": "separate review required",
+    "history_refreshed": true
+  },
+  "ui": {
+    "prototype": "deal-control-high-fidelity / Confirmed Prototype Design v1.0",
+    "desktop_width": 1440,
+    "drawer_breakpoint_test_width": 1100,
+    "drawer_escape_and_focus_return": true,
+    "mobile_width": 390,
+    "mobile_scroll_width": 390,
+    "mobile_visible_material_buttons": 0,
+    "mobile_validation_readable": true,
+    "tab_keys_verified": [
+      "End",
+      "Home",
+      "ArrowLeft",
+      "ArrowRight"
+    ],
+    "selected_panel_count": 1,
+    "final_responsive_error_log": [],
+    "temporary_viewports_reset": true,
+    "guide_recorded_checkpoints": 4,
+    "guide_total_checkpoints": 5,
+    "artifact_checkpoint": "pending; separate Ticket12 gates remain"
+  },
+  "public_proof": {
+    "completed_checkpoints": 9,
+    "total_checkpoints": 9,
+    "evidence_class": "synthetic",
+    "deployment_at_completion": "20260905-predecessor-repairs-v8",
+    "persistence_across_deploy_restart_claimed": false
+  },
+  "logout": {
+    "audit_id": "c1f15f87-4555-43fb-974b-afe14077106d",
+    "code": "session.revoked",
+    "outcome": "completed",
+    "created_at": "2026-09-05T14:08:09.857676Z",
+    "protected_route": "/app/deals",
+    "visible_after_logout": "Authenticate to continue.",
+    "deal_data_exposed": false
+  },
+  "migrations": {
+    "count": 82,
+    "latest": "20260905134031_account_capacity_usage_projection",
+    "latest_sql_md5": "e219636913e165f5f0eee3625f8e4563"
+  },
+  "source_sha256": {
+    "apps/api/src/app.ts": "17753178a22e933ff5af024e614b4f05ec22047b850950110d632aa73364a63d",
+    "apps/web/app/app/deals/[deal_id]/guide/page.tsx": "f426e2b770791358b628e7c95a996a9dd536e52154a26a10e216a58ed3ac156f"
+  },
+  "deferred_ticket_12": [
+    "Aspose.Cells Python.NET license",
+    "Independent Google KMS Ed25519 SOFTWARE key version and short-lived identity broker",
+    "Licensed Windows Microsoft 365 Excel Current Channel acceptance host"
+  ]
+}

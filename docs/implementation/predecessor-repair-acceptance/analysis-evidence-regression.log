@@ -1,0 +1,58 @@
+TAP version 13
+# Subtest: Analysis API creates a pinned Calculation Version, deterministic Run, and validation receipt
+ok 1 - Analysis API creates a pinned Calculation Version, deterministic Run, and validation receipt
+  ---
+  duration_ms: 399.815378
+  type: 'test'
+  ...
+# Subtest: Evidence Inspector accepts exact source Evidence and exposes independent dimensions
+ok 2 - Evidence Inspector accepts exact source Evidence and exposes independent dimensions
+  ---
+  duration_ms: 306.495942
+  type: 'test'
+  ...
+# Subtest: Evidence acceptance rejects a locator that is not an eligible Source fragment
+ok 3 - Evidence acceptance rejects a locator that is not an eligible Source fragment
+  ---
+  duration_ms: 119.618634
+  type: 'test'
+  ...
+# Subtest: Claim promotion requires accepted Evidence and a typed Banker Decision; Assumption approval stays an Assumption
+ok 4 - Claim promotion requires accepted Evidence and a typed Banker Decision; Assumption approval stays an Assumption
+  ---
+  duration_ms: 185.343812
+  type: 'test'
+  ...
+# Subtest: Fact acceptance preserves conflicts and rejects stale concurrent control reviews
+ok 5 - Fact acceptance preserves conflicts and rejects stale concurrent control reviews
+  ---
+  duration_ms: 218.597875
+  type: 'test'
+  ...
+# Subtest: Knowledge projections do not enumerate another Deal
+ok 6 - Knowledge projections do not enumerate another Deal
+  ---
+  duration_ms: 86.481167
+  type: 'test'
+  ...
+# Subtest: Claim correction is append-only and exposes every dependent candidate
+ok 7 - Claim correction is append-only and exposes every dependent candidate
+  ---
+  duration_ms: 238.144023
+  type: 'test'
+  ...
+# Subtest: Evidence binds the selected Claim even when proposition wording is identical
+ok 8 - Evidence binds the selected Claim even when proposition wording is identical
+  ---
+  duration_ms: 451.514672
+  type: 'test'
+  ...
+1..8
+# tests 8
+# suites 0
+# pass 8
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2556.501117

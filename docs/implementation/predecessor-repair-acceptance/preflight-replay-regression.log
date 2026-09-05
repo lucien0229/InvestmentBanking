@@ -1,0 +1,40 @@
+TAP version 13
+# Subtest: product Deal lifecycle creates an identity-complete Deal atomically with a reserved slot and guide checkpoint
+ok 1 - product Deal lifecycle creates an identity-complete Deal atomically with a reserved slot and guide checkpoint
+  ---
+  duration_ms: 293.146469
+  type: 'test'
+  ...
+# Subtest: product Deal lifecycle preflight returns blocked and recovers after source replacement and narrowed use
+ok 2 - product Deal lifecycle preflight returns blocked and recovers after source replacement and narrowed use
+  ---
+  duration_ms: 164.698455
+  type: 'test'
+  ...
+# Subtest: product Deal lifecycle enforces two-slot capacity under concurrent creates and keeps cross-Deal reads non-enumerating
+ok 3 - product Deal lifecycle enforces two-slot capacity under concurrent creates and keeps cross-Deal reads non-enumerating
+  ---
+  duration_ms: 133.633807
+  type: 'test'
+  ...
+# Subtest: product Deal lifecycle exposes limited-proceed acceptance and blocks restricted AI before egress
+ok 4 - product Deal lifecycle exposes limited-proceed acceptance and blocks restricted AI before egress
+  ---
+  duration_ms: 206.019195
+  type: 'test'
+  ...
+# Subtest: product Deal lifecycle creates a linked Deal for identity change and preserves the original
+ok 5 - product Deal lifecycle creates a linked Deal for identity change and preserves the original
+  ---
+  duration_ms: 144.651157
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1743.521705

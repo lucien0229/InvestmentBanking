@@ -47,3 +47,14 @@ See [complete evidence](../../../docs/implementation/ticket-12-evidence.md),
 [separate review axes](../../../docs/implementation/ticket-12-review.md), and
 [requested Tickets 01–11 development audit](../../../docs/implementation/tickets-01-11-development-audit-2026-09-05.md).
 No Ticket 13 or later scope was started or unblocked.
+
+
+### 2026-09-05 authorized predecessor repairs completed
+
+The subsequent user-authorized Tickets 01–11 audit repairs are development
+verified on release `20260905-predecessor-repairs-v12` / app `46cb49a`.
+Real Passkey, automatic Stripe test delivery, native Source-to-Analysis browser
+loop, alternative intake, responsive/keyboard UI and durable logout are recorded
+in [final predecessor acceptance](../../../docs/implementation/tickets-01-11-repair-acceptance-2026-09-05.md).
+This closes the predecessor audit findings, not the three deferred exact Office/
+signer/Windows acceptance requirements above. Ticket 12 remains `needs-info`.

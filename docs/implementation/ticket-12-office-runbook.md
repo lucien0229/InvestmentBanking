@@ -1,5 +1,13 @@
 # Ticket 12 Office / artifact development runbook
 
+## Current runtime update
+
+The later authorized predecessor repairs are now deployed as
+`20260905-predecessor-repairs-v12` (app `46cb49a`), with 82 canonical migrations.
+See [current acceptance](tickets-01-11-repair-acceptance-2026-09-05.md). The older
+release identities below describe the original Ticket 12 acceptance; the three
+remaining configuration and exact-artifact rerun requirements are unchanged.
+
 ## Deployed boundary
 
 The application uses the existing Docker Cell at
