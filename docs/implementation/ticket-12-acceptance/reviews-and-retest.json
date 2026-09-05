@@ -1,0 +1,122 @@
+{
+  "retests": [
+    {
+      "deal_id": "290c3734-3b1a-442d-beab-89ce0f8b5e99",
+      "outcome": "failed",
+      "qc_run_id": "a25fcafe-d298-4d41-952e-5ca7065c2ebe",
+      "account_id": "d302b5df-3e2b-4c17-887e-b04d13167bd1",
+      "created_at": "2026-09-05T05:45:18.561065+00:00",
+      "finding_id": "e66d4f52-0d3c-4f8c-9a70-652d7641641c"
+    }
+  ],
+  "reviews": [
+    {
+      "id": "e691c050-3ff8-420f-b0a9-1cb3a9273ee9",
+      "scope": "Revision 03 synthetic EV-to-equity method: EV 100.0 + source-backed Cash 4.7 - approved Debt 10.0 = Equity 94.7 USD million, FY2025E.",
+      "deal_id": "290c3734-3b1a-442d-beab-89ce0f8b5e99",
+      "purpose": "Internal valuation review",
+      "audience": "Named Individual Banker",
+      "evidence": {},
+      "standard": "method_review",
+      "rationale": "Inspected the exact Cash CSV row, its accepted Fact and Decision, the two disclosed approved assumptions, pinned calculation/model/scenario and arithmetic. Method is suitable for this synthetic internal development exercise only.",
+      "account_id": "d302b5df-3e2b-4c17-887e-b04d13167bd1",
+      "conclusion": "passed",
+      "created_at": "2026-09-05T05:25:30.533887+00:00",
+      "limitations": [
+        "Synthetic controlled parser fixture; this does not attest production source intake.",
+        "No real transaction valuation conclusion, clean-copy, Office compatibility or external authorization."
+      ],
+      "reviewer_id": "2b44ac72-1f20-4b31-bf51-c12df44e3992",
+      "revision_id": "d1377418-fa68-4354-9545-f0d4172b3972"
+    },
+    {
+      "id": "b69156e9-4400-4d2c-ad3e-c7f334c17ed1",
+      "scope": "Exact Revision 03, Internal valuation review, Named Individual Banker; pinned Source Packet, model, calculation run and base scenario.",
+      "deal_id": "290c3734-3b1a-442d-beab-89ce0f8b5e99",
+      "purpose": "Internal valuation review",
+      "audience": "Named Individual Banker",
+      "evidence": {},
+      "standard": "review_scope",
+      "rationale": "The displayed scope and synthetic-data limitations match the accepted immutable generation request. Review does not carry to another Revision, purpose or audience.",
+      "account_id": "d302b5df-3e2b-4c17-887e-b04d13167bd1",
+      "conclusion": "passed",
+      "created_at": "2026-09-05T05:27:07.432822+00:00",
+      "limitations": [
+        "Development exercise only. Licensing, signature and supported Office round trip remain independent requirements."
+      ],
+      "reviewer_id": "2b44ac72-1f20-4b31-bf51-c12df44e3992",
+      "revision_id": "d1377418-fa68-4354-9545-f0d4172b3972"
+    },
+    {
+      "id": "0fb61bd3-ed3f-4599-8b25-095da9a9a3ba",
+      "scope": "Revision 03 synthetic internal material; the exact accepted Packet and rights assessments for deterministic analysis, native/reader generation and AI processing.",
+      "deal_id": "290c3734-3b1a-442d-beab-89ce0f8b5e99",
+      "purpose": "Internal valuation review",
+      "audience": "Named Individual Banker",
+      "evidence": {},
+      "standard": "rights_confidentiality",
+      "rationale": "Both selected sources are disclosed synthetic fixtures with allowed internal processing operations. The native and reader copies retain INTERNAL, SYNTHETIC and no-external-use markings.",
+      "account_id": "d302b5df-3e2b-4c17-887e-b04d13167bd1",
+      "conclusion": "passed",
+      "created_at": "2026-09-05T05:35:17.818278+00:00",
+      "limitations": [
+        "Applies only to this synthetic internal exercise; does not establish real transaction source rights or external distribution permission."
+      ],
+      "reviewer_id": "2b44ac72-1f20-4b31-bf51-c12df44e3992",
+      "revision_id": "d1377418-fa68-4354-9545-f0d4172b3972"
+    },
+    {
+      "id": "0a3be0f9-5e8d-4377-8ce2-7280dbc67b39",
+      "scope": "Revision 03 suitability for the stated synthetic internal valuation exercise and proposed circulation-candidate posture.",
+      "deal_id": "290c3734-3b1a-442d-beab-89ce0f8b5e99",
+      "purpose": "Internal valuation review",
+      "audience": "Named Individual Banker",
+      "evidence": {},
+      "standard": "professional_suitability",
+      "rationale": "Arithmetic, source lineage and stated synthetic limitations are inspectable. The evaluation-marked output, missing artifact signature and unverified supported Office round trip prevent circulation-candidate acceptance.",
+      "account_id": "d302b5df-3e2b-4c17-887e-b04d13167bd1",
+      "conclusion": "limited",
+      "created_at": "2026-09-05T05:37:11.173735+00:00",
+      "limitations": [
+        "Not suitable for real-transaction reliance or external circulation.",
+        "Requires licensed clean native/PDF output, independent KMS signing and declared Office compatibility evidence."
+      ],
+      "reviewer_id": "2b44ac72-1f20-4b31-bf51-c12df44e3992",
+      "revision_id": "d1377418-fa68-4354-9545-f0d4172b3972"
+    },
+    {
+      "id": "fe74094a-dd60-4e7e-b187-259f7081641a",
+      "scope": "Exact Revision 03 XLSX/PDF pair; representative Valuation and Scenarios previews plus independent ordered-page, number, table, chart, citation and font inspection.",
+      "deal_id": "290c3734-3b1a-442d-beab-89ce0f8b5e99",
+      "purpose": "Internal valuation review",
+      "audience": "Named Individual Banker",
+      "evidence": {
+        "build": "20260905-ticket12-workbook-v4",
+        "steps": [
+          "macOS browser inspection of exact protected Valuation/Scenarios previews and cell/formula tables; independent server observer Aspose.Cells 26.8.0 and PyMuPDF 1.28.2. Material comparisons pass; evaluation marks and font embedding fail. No Office edit/save/reopen acceptance is claimed."
+        ],
+        "channel": "other",
+        "platform": "macos",
+        "application": "Deal Control protected artifact preview",
+        "native_sha256": "72d895b53c139c70794ae4d04dbba49ea2c39fc7ac9229c9cb3270d7c39515d9",
+        "reader_sha256": "24aba2eec5fd3e3de77b0c92c434519e30600a61d5a2a6c4bff1ca20c506f48b",
+        "report_sha256": "5bc3a62fc2c80916752fa85efa06b2e23e736f498dc0848ab937fdca1027ca46"
+      },
+      "standard": "native_reader_parity",
+      "rationale": "Material values, sheet order, chart and source/Decision citations match. The real evaluation output retains vendor marks and unembedded vendor-warning fonts, so the required full native/reader acceptance does not pass.",
+      "account_id": "d302b5df-3e2b-4c17-887e-b04d13167bd1",
+      "conclusion": "failed",
+      "created_at": "2026-09-05T05:40:18.516367+00:00",
+      "limitations": [
+        "Repeat on a newly generated licensed Revision. This failed Review cannot waive either Critical clean-copy or parity Finding."
+      ],
+      "reviewer_id": "2b44ac72-1f20-4b31-bf51-c12df44e3992",
+      "revision_id": "d1377418-fa68-4354-9545-f0d4172b3972"
+    }
+  ],
+  "canceled_run": {
+    "id": "2603e004-b8ed-4c58-99aa-0c38ae4b8eeb",
+    "status": "failed",
+    "outcome": "policy_block"
+  }
+}

@@ -1,0 +1,88 @@
+{
+  "environment": "development",
+  "revision_id": "47733ae8-8297-4f67-b76b-980ae7f6cc76",
+  "input_provenance": "synthetic disclosed predecessor fixtures",
+  "provider": "HelloX",
+  "model": "gpt-5.6-sol",
+  "proposal_only": true,
+  "runs": [
+    {
+      "id": "af639474-94cb-42f3-b64d-1f55cc86c5b3",
+      "job_id": "3cb81adb-0ad9-4677-a27c-108890d96981",
+      "task_definition": "deliverable_semantic_qc",
+      "status_code": "completed",
+      "outcome_class": "succeeded",
+      "latency_ms": 253980,
+      "completed_at": "2026-09-05 05:20:14.495458+00",
+      "validations": [
+        {
+          "code": "passed",
+          "outcome": "passed",
+          "pointer": null
+        },
+        {
+          "code": "preissued_fragment_ids",
+          "outcome": "passed",
+          "pointer": null
+        },
+        {
+          "code": "proposal_only",
+          "outcome": "passed",
+          "pointer": null
+        }
+      ]
+    },
+    {
+      "id": "976706c2-3935-4106-8b16-97206fa6e4ec",
+      "job_id": "46f99da4-e60b-436b-a74a-6e0cb8292c21",
+      "task_definition": "native_reader_semantic_parity_review",
+      "status_code": "completed",
+      "outcome_class": "succeeded",
+      "latency_ms": 230766,
+      "completed_at": "2026-09-05 05:24:07.640134+00",
+      "validations": [
+        {
+          "code": "passed",
+          "outcome": "passed",
+          "pointer": null
+        },
+        {
+          "code": "preissued_fragment_ids",
+          "outcome": "passed",
+          "pointer": null
+        },
+        {
+          "code": "proposal_only",
+          "outcome": "passed",
+          "pointer": null
+        }
+      ]
+    },
+    {
+      "id": "a30199ad-2482-4299-9d64-2e4c6a4f9c4a",
+      "job_id": "9d2f83b8-56a9-4fb4-8825-7e1209741fa1",
+      "task_definition": "workbook_commentary_draft",
+      "status_code": "completed",
+      "outcome_class": "succeeded",
+      "latency_ms": 200273,
+      "completed_at": "2026-09-05 05:27:30.3021+00",
+      "validations": [
+        {
+          "code": "passed",
+          "outcome": "passed",
+          "pointer": null
+        },
+        {
+          "code": "preissued_fragment_ids",
+          "outcome": "passed",
+          "pointer": null
+        },
+        {
+          "code": "proposal_only",
+          "outcome": "passed",
+          "pointer": null
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,112 @@
+{
+  "files": [
+    {
+      "path": "analysis-valuation.pdf",
+      "sha256": "24aba2eec5fd3e3de77b0c92c434519e30600a61d5a2a6c4bff1ca20c506f48b"
+    },
+    {
+      "path": "analysis-valuation.xlsx",
+      "sha256": "72d895b53c139c70794ae4d04dbba49ea2c39fc7ac9229c9cb3270d7c39515d9"
+    },
+    {
+      "path": "render-report.json",
+      "sha256": "f20f2ba14a0f6dadae75e39ec9a866ccdb9cc7521beaa664fdce96ddcdab7e11"
+    }
+  ],
+  "build_input": {
+    "deal_id": "290c3734-3b1a-442d-beab-89ce0f8b5e99",
+    "purpose": "Internal valuation review",
+    "audience": "Named Individual Banker",
+    "deal_name": "Workbook development acceptance",
+    "provenance": "synthetic",
+    "limitations": [
+      "Synthetic development acceptance only; Cash Fact uses a controlled synthetic CSV fragment, not a production parser receipt.",
+      "No professional transaction conclusion or external-use authorization.",
+      "Aspose license, artifact KMS identity and supported Office edit/save/reopen acceptance remain required."
+    ],
+    "revision_id": "d1377418-fa68-4354-9545-f0d4172b3972",
+    "calculations": [
+      {
+        "method": "ev_to_equity_tie_out",
+        "run_id": "41dce42c-a128-4e40-a890-5ed27b199542",
+        "measures": [
+          {
+            "key": "cash",
+            "sign": "positive",
+            "unit": "USD million",
+            "value": "4.7",
+            "period": "FY2025E",
+            "fact_id": "24f92e29-3e46-475e-b91e-800890b8cdc4",
+            "locator": {
+              "row": 4,
+              "kind": "csv_row"
+            },
+            "currency": "USD",
+            "precision": 1,
+            "definition": "cash",
+            "decision_id": "f56cfa28-7ebf-4de7-a263-1598b9c46ca5",
+            "assumption_id": null,
+            "source_digest": "bf9c5f12dad07d99a76dea14ec41baa51b7baeb4861b07be3736316b0d2e1820",
+            "actual_forecast": "forecast",
+            "source_record_id": "48f0c306-3015-42b5-a6a0-41f7ef4c272d",
+            "representation_id": "749bc377-78f8-4a62-aaf6-5dac3bf9d46e"
+          },
+          {
+            "key": "debt",
+            "sign": "positive",
+            "unit": "USD million",
+            "value": "10.0",
+            "period": "FY2025E",
+            "fact_id": null,
+            "locator": {
+              "kind": "banker_assumption",
+              "decision_id": "5a815492-d031-47c9-aeab-42887a5d3add"
+            },
+            "currency": "USD",
+            "precision": 1,
+            "definition": "debt",
+            "decision_id": "5a815492-d031-47c9-aeab-42887a5d3add",
+            "assumption_id": "cc8fff15-3000-4b6d-928f-b232186baaea",
+            "source_digest": null,
+            "actual_forecast": "forecast",
+            "source_record_id": null,
+            "representation_id": null
+          },
+          {
+            "key": "enterprise_value",
+            "sign": "positive",
+            "unit": "USD million",
+            "value": "100.0",
+            "period": "FY2025E",
+            "fact_id": null,
+            "locator": {
+              "kind": "banker_assumption",
+              "decision_id": "fca51162-07f5-468e-b492-4e5b9b14c0d9"
+            },
+            "currency": "USD",
+            "precision": 1,
+            "definition": "enterprise_value",
+            "decision_id": "fca51162-07f5-468e-b492-4e5b9b14c0d9",
+            "assumption_id": "c27b535f-fb9f-4a9a-adda-8968098670cb",
+            "source_digest": null,
+            "actual_forecast": "forecast",
+            "source_record_id": null,
+            "representation_id": null
+          }
+        ],
+        "scenario": "Base case \u2014 synthetic",
+        "model_version_id": "3466775f-95dc-4ac8-a517-86e1170005b3",
+        "scenario_version_id": "a2237c8d-2f0b-46a7-87ac-7084a4b5118a",
+        "expected_equity_value": "94.7",
+        "calculation_version_id": "f8cde8e1-793d-42b6-9b28-96ae757d45de"
+      }
+    ],
+    "deliverable_id": "b266b056-8173-4d85-b367-4f3220b7fc44",
+    "schema_version": "1.0.0",
+    "confidentiality": "internal",
+    "evaluation_time": "2026-09-05T05:21:22Z",
+    "template_version": "analysis-valuation-1.0.0",
+    "packet_version_id": "3794a4b0-0711-4e94-b526-99393a134fc7",
+    "work_objective_id": "fc1cf4a0-a87b-43c3-9700-b11387a7eea7"
+  }
+}

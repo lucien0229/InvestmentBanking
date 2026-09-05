@@ -1,0 +1,250 @@
+{
+  "revision_id": "d1377418-fa68-4354-9545-f0d4172b3972",
+  "metadata_has_storage_keys": false,
+  "current": {
+    "posture": "blocked",
+    "purpose": "Internal valuation review",
+    "audience": "Named Individual Banker",
+    "blockers": [
+      {
+        "code": "native_reader_parity",
+        "gate": "senior_review_ready",
+        "outcome": "failed",
+        "recovery": "Compare native and reader content and layout"
+      },
+      {
+        "code": "clean_copy",
+        "gate": "circulation_candidate",
+        "outcome": "failed",
+        "recovery": "Provide licensed clean output"
+      },
+      {
+        "code": "office_roundtrip",
+        "gate": "circulation_candidate",
+        "outcome": "missing",
+        "recovery": "Verify declared Windows Microsoft 365 build and edit/save/reopen path"
+      },
+      {
+        "code": "signed_manifest",
+        "gate": "circulation_candidate",
+        "outcome": "missing",
+        "recovery": "Verify exact KMS signature and artifact hashes"
+      },
+      {
+        "code": "professional_suitability",
+        "gate": "circulation_candidate",
+        "outcome": "missing",
+        "recovery": "Record professional suitability for this use"
+      }
+    ],
+    "revision_id": "d1377418-fa68-4354-9545-f0d4172b3972",
+    "requirements": [
+      {
+        "code": "controlled_inputs",
+        "gate": "analysis_ready",
+        "outcome": "passed",
+        "recovery": "Complete controlled input authority"
+      },
+      {
+        "code": "native_structure",
+        "gate": "analysis_ready",
+        "outcome": "passed",
+        "recovery": "Inspect native formulas, names, scenarios and charts"
+      },
+      {
+        "code": "method_review",
+        "gate": "analysis_ready",
+        "outcome": "passed",
+        "recovery": "Record exact Banker method review"
+      },
+      {
+        "code": "recalculation",
+        "gate": "senior_review_ready",
+        "outcome": "passed",
+        "recovery": "Recalculate exact stored native bytes"
+      },
+      {
+        "code": "lineage",
+        "gate": "senior_review_ready",
+        "outcome": "passed",
+        "recovery": "Inspect exact source-cell lineage"
+      },
+      {
+        "code": "native_reader_parity",
+        "gate": "senior_review_ready",
+        "outcome": "failed",
+        "recovery": "Compare native and reader content and layout"
+      },
+      {
+        "code": "review_scope",
+        "gate": "senior_review_ready",
+        "outcome": "passed",
+        "recovery": "Confirm purpose, audience and scope"
+      },
+      {
+        "code": "clean_copy",
+        "gate": "circulation_candidate",
+        "outcome": "failed",
+        "recovery": "Provide licensed clean output"
+      },
+      {
+        "code": "office_roundtrip",
+        "gate": "circulation_candidate",
+        "outcome": "missing",
+        "recovery": "Verify declared Windows Microsoft 365 build and edit/save/reopen path"
+      },
+      {
+        "code": "rights_confidentiality",
+        "gate": "circulation_candidate",
+        "outcome": "passed",
+        "recovery": "Review exact rights and confidentiality"
+      },
+      {
+        "code": "signed_manifest",
+        "gate": "circulation_candidate",
+        "outcome": "missing",
+        "recovery": "Verify exact KMS signature and artifact hashes"
+      },
+      {
+        "code": "professional_suitability",
+        "gate": "circulation_candidate",
+        "outcome": "missing",
+        "recovery": "Record professional suitability for this use"
+      }
+    ],
+    "external_use_authorized": false
+  },
+  "other_purpose_and_audience": {
+    "posture": "blocked",
+    "purpose": "Other acceptance purpose",
+    "audience": "Different audience",
+    "blockers": [
+      {
+        "code": "method_review",
+        "gate": "analysis_ready",
+        "outcome": "missing",
+        "recovery": "Record exact Banker method review"
+      },
+      {
+        "code": "native_reader_parity",
+        "gate": "senior_review_ready",
+        "outcome": "failed",
+        "recovery": "Compare native and reader content and layout"
+      },
+      {
+        "code": "review_scope",
+        "gate": "senior_review_ready",
+        "outcome": "missing",
+        "recovery": "Confirm purpose, audience and scope"
+      },
+      {
+        "code": "clean_copy",
+        "gate": "circulation_candidate",
+        "outcome": "failed",
+        "recovery": "Provide licensed clean output"
+      },
+      {
+        "code": "office_roundtrip",
+        "gate": "circulation_candidate",
+        "outcome": "missing",
+        "recovery": "Verify declared Windows Microsoft 365 build and edit/save/reopen path"
+      },
+      {
+        "code": "rights_confidentiality",
+        "gate": "circulation_candidate",
+        "outcome": "missing",
+        "recovery": "Review exact rights and confidentiality"
+      },
+      {
+        "code": "signed_manifest",
+        "gate": "circulation_candidate",
+        "outcome": "missing",
+        "recovery": "Verify exact KMS signature and artifact hashes"
+      },
+      {
+        "code": "professional_suitability",
+        "gate": "circulation_candidate",
+        "outcome": "missing",
+        "recovery": "Record professional suitability for this use"
+      }
+    ],
+    "revision_id": "d1377418-fa68-4354-9545-f0d4172b3972",
+    "requirements": [
+      {
+        "code": "controlled_inputs",
+        "gate": "analysis_ready",
+        "outcome": "passed",
+        "recovery": "Complete controlled input authority"
+      },
+      {
+        "code": "native_structure",
+        "gate": "analysis_ready",
+        "outcome": "passed",
+        "recovery": "Inspect native formulas, names, scenarios and charts"
+      },
+      {
+        "code": "method_review",
+        "gate": "analysis_ready",
+        "outcome": "missing",
+        "recovery": "Record exact Banker method review"
+      },
+      {
+        "code": "recalculation",
+        "gate": "senior_review_ready",
+        "outcome": "passed",
+        "recovery": "Recalculate exact stored native bytes"
+      },
+      {
+        "code": "lineage",
+        "gate": "senior_review_ready",
+        "outcome": "passed",
+        "recovery": "Inspect exact source-cell lineage"
+      },
+      {
+        "code": "native_reader_parity",
+        "gate": "senior_review_ready",
+        "outcome": "failed",
+        "recovery": "Compare native and reader content and layout"
+      },
+      {
+        "code": "review_scope",
+        "gate": "senior_review_ready",
+        "outcome": "missing",
+        "recovery": "Confirm purpose, audience and scope"
+      },
+      {
+        "code": "clean_copy",
+        "gate": "circulation_candidate",
+        "outcome": "failed",
+        "recovery": "Provide licensed clean output"
+      },
+      {
+        "code": "office_roundtrip",
+        "gate": "circulation_candidate",
+        "outcome": "missing",
+        "recovery": "Verify declared Windows Microsoft 365 build and edit/save/reopen path"
+      },
+      {
+        "code": "rights_confidentiality",
+        "gate": "circulation_candidate",
+        "outcome": "missing",
+        "recovery": "Review exact rights and confidentiality"
+      },
+      {
+        "code": "signed_manifest",
+        "gate": "circulation_candidate",
+        "outcome": "missing",
+        "recovery": "Verify exact KMS signature and artifact hashes"
+      },
+      {
+        "code": "professional_suitability",
+        "gate": "circulation_candidate",
+        "outcome": "missing",
+        "recovery": "Record professional suitability for this use"
+      }
+    ],
+    "external_use_authorized": false
+  },
+  "source_region_count": 2,
+  "observed_at": "2026-09-05T05:46:00.176Z"
+}

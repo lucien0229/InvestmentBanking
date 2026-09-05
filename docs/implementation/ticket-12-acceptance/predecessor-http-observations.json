@@ -1,0 +1,644 @@
+{
+  "scope": "Synthetic authenticated development Account; real HTTPS routes. Login provider and payments are not re-certified.",
+  "results": [
+    {
+      "ticket": "01",
+      "path": "/api/v1/session",
+      "authenticated": false,
+      "status": 401,
+      "cache_control": null,
+      "code": "authentication_required",
+      "count": null
+    },
+    {
+      "ticket": "01",
+      "path": "/api/v1/session",
+      "authenticated": true,
+      "status": 200,
+      "cache_control": null,
+      "code": null,
+      "count": null
+    },
+    {
+      "ticket": "01",
+      "path": "/api/v1/account/audit-events?deal_id=290c3734-3b1a-442d-beab-89ce0f8b5e99",
+      "authenticated": false,
+      "status": 401,
+      "cache_control": null,
+      "code": "authentication_required",
+      "count": null
+    },
+    {
+      "ticket": "01",
+      "path": "/api/v1/account/audit-events?deal_id=290c3734-3b1a-442d-beab-89ce0f8b5e99",
+      "authenticated": true,
+      "status": 200,
+      "cache_control": null,
+      "code": null,
+      "count": null
+    },
+    {
+      "ticket": "03",
+      "path": "/api/v1/account/entitlements",
+      "authenticated": false,
+      "status": 401,
+      "cache_control": null,
+      "code": "authentication_required",
+      "count": null
+    },
+    {
+      "ticket": "03",
+      "path": "/api/v1/account/entitlements",
+      "authenticated": true,
+      "status": 200,
+      "cache_control": null,
+      "code": null,
+      "count": null
+    },
+    {
+      "ticket": "03",
+      "path": "/api/v1/account/commercial-receipts",
+      "authenticated": false,
+      "status": 401,
+      "cache_control": null,
+      "code": "authentication_required",
+      "count": null
+    },
+    {
+      "ticket": "03",
+      "path": "/api/v1/account/commercial-receipts",
+      "authenticated": true,
+      "status": 200,
+      "cache_control": null,
+      "code": null,
+      "count": null
+    },
+    {
+      "ticket": "03",
+      "path": "/api/v1/account/usage",
+      "authenticated": false,
+      "status": 401,
+      "cache_control": null,
+      "code": "authentication_required",
+      "count": null
+    },
+    {
+      "ticket": "03",
+      "path": "/api/v1/account/subscription",
+      "authenticated": false,
+      "status": 401,
+      "cache_control": null,
+      "code": "authentication_required",
+      "count": null
+    },
+    {
+      "ticket": "03",
+      "path": "/api/v1/account/commerce-state",
+      "authenticated": false,
+      "status": 401,
+      "cache_control": null,
+      "code": "authentication_required",
+      "count": null
+    },
+    {
+      "ticket": "01",
+      "path": "/api/v1/deals",
+      "authenticated": true,
+      "status": 503,
+      "cache_control": null,
+      "code": "service_unavailable",
+      "count": null
+    },
+    {
+      "ticket": "03",
+      "path": "/api/v1/account/subscription",
+      "authenticated": true,
+      "status": 200,
+      "cache_control": null,
+      "code": null,
+      "count": null
+    },
+    {
+      "ticket": "03",
+      "path": "/api/v1/account/usage",
+      "authenticated": true,
+      "status": 200,
+      "cache_control": null,
+      "code": null,
+      "count": null
+    },
+    {
+      "ticket": "03",
+      "path": "/api/v1/account/commerce-state",
+      "authenticated": true,
+      "status": 200,
+      "cache_control": null,
+      "code": null,
+      "count": null
+    },
+    {
+      "ticket": "01",
+      "path": "/api/v1/deals",
+      "authenticated": false,
+      "status": 401,
+      "cache_control": null,
+      "code": "authentication_required",
+      "count": null
+    },
+    {
+      "ticket": "01-11",
+      "path": "/api/v1/deals/290c3734-3b1a-442d-beab-89ce0f8b5e99/setup",
+      "authenticated": false,
+      "status": 401,
+      "cache_control": null,
+      "code": "authentication_required",
+      "count": null
+    },
+    {
+      "ticket": "01-11",
+      "path": "/api/v1/deals/290c3734-3b1a-442d-beab-89ce0f8b5e99/preflights",
+      "authenticated": false,
+      "status": 401,
+      "cache_control": null,
+      "code": "authentication_required",
+      "count": null
+    },
+    {
+      "ticket": "01-11",
+      "path": "/api/v1/deals/290c3734-3b1a-442d-beab-89ce0f8b5e99/guide",
+      "authenticated": false,
+      "status": 401,
+      "cache_control": null,
+      "code": "authentication_required",
+      "count": null
+    },
+    {
+      "ticket": "01-11",
+      "path": "/api/v1/deals/290c3734-3b1a-442d-beab-89ce0f8b5e99/overview",
+      "authenticated": false,
+      "status": 401,
+      "cache_control": null,
+      "code": "authentication_required",
+      "count": null
+    },
+    {
+      "ticket": "01-11",
+      "path": "/api/v1/deals/290c3734-3b1a-442d-beab-89ce0f8b5e99/setup",
+      "authenticated": true,
+      "status": 200,
+      "cache_control": "private, no-store",
+      "code": null,
+      "count": null
+    },
+    {
+      "ticket": "01-11",
+      "path": "/api/v1/deals/290c3734-3b1a-442d-beab-89ce0f8b5e99/preflights",
+      "authenticated": true,
+      "status": 200,
+      "cache_control": null,
+      "code": null,
+      "count": 0
+    },
+    {
+      "ticket": "01-11",
+      "path": "/api/v1/deals/290c3734-3b1a-442d-beab-89ce0f8b5e99/guide",
+      "authenticated": true,
+      "status": 200,
+      "cache_control": null,
+      "code": null,
+      "count": null
+    },
+    {
+      "ticket": "01-11",
+      "path": "/api/v1/deals/290c3734-3b1a-442d-beab-89ce0f8b5e99/overview",
+      "authenticated": true,
+      "status": 200,
+      "cache_control": null,
+      "code": null,
+      "count": null
+    },
+    {
+      "ticket": "01-11",
+      "path": "/api/v1/deals/290c3734-3b1a-442d-beab-89ce0f8b5e99/web-evidence-observations",
+      "authenticated": false,
+      "status": 401,
+      "cache_control": null,
+      "code": "authentication_required",
+      "count": null
+    },
+    {
+      "ticket": "01-11",
+      "path": "/api/v1/deals/290c3734-3b1a-442d-beab-89ce0f8b5e99/source-materials",
+      "authenticated": false,
+      "status": 401,
+      "cache_control": null,
+      "code": "authentication_required",
+      "count": null
+    },
+    {
+      "ticket": "01-11",
+      "path": "/api/v1/deals/290c3734-3b1a-442d-beab-89ce0f8b5e99/source-packets",
+      "authenticated": false,
+      "status": 401,
+      "cache_control": null,
+      "code": "authentication_required",
+      "count": null
+    },
+    {
+      "ticket": "01-11",
+      "path": "/api/v1/deals/290c3734-3b1a-442d-beab-89ce0f8b5e99/work-objectives",
+      "authenticated": false,
+      "status": 401,
+      "cache_control": null,
+      "code": "authentication_required",
+      "count": null
+    },
+    {
+      "ticket": "01-11",
+      "path": "/api/v1/deals/290c3734-3b1a-442d-beab-89ce0f8b5e99/source-materials",
+      "authenticated": true,
+      "status": 200,
+      "cache_control": null,
+      "code": null,
+      "count": 2
+    },
+    {
+      "ticket": "01-11",
+      "path": "/api/v1/deals/290c3734-3b1a-442d-beab-89ce0f8b5e99/source-packets",
+      "authenticated": true,
+      "status": 200,
+      "cache_control": "private, no-store",
+      "code": null,
+      "count": 1
+    },
+    {
+      "ticket": "01-11",
+      "path": "/api/v1/deals/290c3734-3b1a-442d-beab-89ce0f8b5e99/work-objectives",
+      "authenticated": true,
+      "status": 200,
+      "cache_control": "private, no-store",
+      "code": null,
+      "count": 1
+    },
+    {
+      "ticket": "01-11",
+      "path": "/api/v1/deals/290c3734-3b1a-442d-beab-89ce0f8b5e99/web-evidence-observations",
+      "authenticated": true,
+      "status": 200,
+      "cache_control": null,
+      "code": null,
+      "count": 0
+    },
+    {
+      "ticket": "01-11",
+      "path": "/api/v1/deals/290c3734-3b1a-442d-beab-89ce0f8b5e99/ai-runs",
+      "authenticated": false,
+      "status": 401,
+      "cache_control": null,
+      "code": "authentication_required",
+      "count": null
+    },
+    {
+      "ticket": "01-11",
+      "path": "/api/v1/deals/290c3734-3b1a-442d-beab-89ce0f8b5e99/evidence",
+      "authenticated": false,
+      "status": 401,
+      "cache_control": null,
+      "code": "authentication_required",
+      "count": null
+    },
+    {
+      "ticket": "01-11",
+      "path": "/api/v1/deals/290c3734-3b1a-442d-beab-89ce0f8b5e99/condition-assessments",
+      "authenticated": false,
+      "status": 401,
+      "cache_control": null,
+      "code": "authentication_required",
+      "count": null
+    },
+    {
+      "ticket": "01-11",
+      "path": "/api/v1/deals/290c3734-3b1a-442d-beab-89ce0f8b5e99/rights-assessments",
+      "authenticated": false,
+      "status": 401,
+      "cache_control": null,
+      "code": "authentication_required",
+      "count": null
+    },
+    {
+      "ticket": "01-11",
+      "path": "/api/v1/deals/290c3734-3b1a-442d-beab-89ce0f8b5e99/evidence",
+      "authenticated": true,
+      "status": 200,
+      "cache_control": "private, no-store",
+      "code": null,
+      "count": 1
+    },
+    {
+      "ticket": "01-11",
+      "path": "/api/v1/deals/290c3734-3b1a-442d-beab-89ce0f8b5e99/rights-assessments",
+      "authenticated": true,
+      "status": 200,
+      "cache_control": "private, no-store",
+      "code": null,
+      "count": 2
+    },
+    {
+      "ticket": "01-11",
+      "path": "/api/v1/deals/290c3734-3b1a-442d-beab-89ce0f8b5e99/ai-runs",
+      "authenticated": true,
+      "status": 200,
+      "cache_control": "private, no-store",
+      "code": null,
+      "count": 8
+    },
+    {
+      "ticket": "01-11",
+      "path": "/api/v1/deals/290c3734-3b1a-442d-beab-89ce0f8b5e99/condition-assessments",
+      "authenticated": true,
+      "status": 200,
+      "cache_control": "private, no-store",
+      "code": null,
+      "count": 0
+    },
+    {
+      "ticket": "01-11",
+      "path": "/api/v1/deals/290c3734-3b1a-442d-beab-89ce0f8b5e99/claims",
+      "authenticated": false,
+      "status": 401,
+      "cache_control": null,
+      "code": "authentication_required",
+      "count": null
+    },
+    {
+      "ticket": "01-11",
+      "path": "/api/v1/deals/290c3734-3b1a-442d-beab-89ce0f8b5e99/facts",
+      "authenticated": false,
+      "status": 401,
+      "cache_control": null,
+      "code": "authentication_required",
+      "count": null
+    },
+    {
+      "ticket": "01-11",
+      "path": "/api/v1/deals/290c3734-3b1a-442d-beab-89ce0f8b5e99/assumptions",
+      "authenticated": false,
+      "status": 401,
+      "cache_control": null,
+      "code": "authentication_required",
+      "count": null
+    },
+    {
+      "ticket": "01-11",
+      "path": "/api/v1/deals/290c3734-3b1a-442d-beab-89ce0f8b5e99/conflicts",
+      "authenticated": false,
+      "status": 401,
+      "cache_control": null,
+      "code": "authentication_required",
+      "count": null
+    },
+    {
+      "ticket": "01-11",
+      "path": "/api/v1/deals/290c3734-3b1a-442d-beab-89ce0f8b5e99/conflicts",
+      "authenticated": true,
+      "status": 200,
+      "cache_control": "private, no-store",
+      "code": null,
+      "count": 0
+    },
+    {
+      "ticket": "01-11",
+      "path": "/api/v1/deals/290c3734-3b1a-442d-beab-89ce0f8b5e99/assumptions",
+      "authenticated": true,
+      "status": 200,
+      "cache_control": "private, no-store",
+      "code": null,
+      "count": 5
+    },
+    {
+      "ticket": "01-11",
+      "path": "/api/v1/deals/290c3734-3b1a-442d-beab-89ce0f8b5e99/claims",
+      "authenticated": true,
+      "status": 200,
+      "cache_control": "private, no-store",
+      "code": null,
+      "count": 1
+    },
+    {
+      "ticket": "01-11",
+      "path": "/api/v1/deals/290c3734-3b1a-442d-beab-89ce0f8b5e99/facts",
+      "authenticated": true,
+      "status": 200,
+      "cache_control": "private, no-store",
+      "code": null,
+      "count": 1
+    },
+    {
+      "ticket": "01-11",
+      "path": "/api/v1/deals/290c3734-3b1a-442d-beab-89ce0f8b5e99/calculations",
+      "authenticated": false,
+      "status": 401,
+      "cache_control": null,
+      "code": "authentication_required",
+      "count": null
+    },
+    {
+      "ticket": "01-11",
+      "path": "/api/v1/deals/290c3734-3b1a-442d-beab-89ce0f8b5e99/human-decisions",
+      "authenticated": false,
+      "status": 401,
+      "cache_control": null,
+      "code": "authentication_required",
+      "count": null
+    },
+    {
+      "ticket": "01-11",
+      "path": "/api/v1/deals/290c3734-3b1a-442d-beab-89ce0f8b5e99/normalized-financial-values",
+      "authenticated": false,
+      "status": 401,
+      "cache_control": null,
+      "code": "authentication_required",
+      "count": null
+    },
+    {
+      "ticket": "01-11",
+      "path": "/api/v1/deals/290c3734-3b1a-442d-beab-89ce0f8b5e99/models",
+      "authenticated": false,
+      "status": 401,
+      "cache_control": null,
+      "code": "authentication_required",
+      "count": null
+    },
+    {
+      "ticket": "01-11",
+      "path": "/api/v1/deals/290c3734-3b1a-442d-beab-89ce0f8b5e99/human-decisions",
+      "authenticated": true,
+      "status": 200,
+      "cache_control": "private, no-store",
+      "code": null,
+      "count": 6
+    },
+    {
+      "ticket": "01-11",
+      "path": "/api/v1/deals/290c3734-3b1a-442d-beab-89ce0f8b5e99/calculations",
+      "authenticated": true,
+      "status": 200,
+      "cache_control": "private, no-store",
+      "code": null,
+      "count": 2
+    },
+    {
+      "ticket": "01-11",
+      "path": "/api/v1/deals/290c3734-3b1a-442d-beab-89ce0f8b5e99/models",
+      "authenticated": true,
+      "status": 200,
+      "cache_control": "private, no-store",
+      "code": null,
+      "count": 2
+    },
+    {
+      "ticket": "01-11",
+      "path": "/api/v1/deals/290c3734-3b1a-442d-beab-89ce0f8b5e99/normalized-financial-values",
+      "authenticated": true,
+      "status": 200,
+      "cache_control": "private, no-store",
+      "code": null,
+      "count": 0
+    },
+    {
+      "ticket": "01-11",
+      "path": "/api/v1/deals/290c3734-3b1a-442d-beab-89ce0f8b5e99/deterministic-validation-records",
+      "authenticated": false,
+      "status": 401,
+      "cache_control": null,
+      "code": "authentication_required",
+      "count": null
+    },
+    {
+      "ticket": "01-11",
+      "path": "/api/v1/deals/290c3734-3b1a-442d-beab-89ce0f8b5e99/scenarios",
+      "authenticated": false,
+      "status": 401,
+      "cache_control": null,
+      "code": "authentication_required",
+      "count": null
+    },
+    {
+      "ticket": "01-11",
+      "path": "/api/v1/deals/290c3734-3b1a-442d-beab-89ce0f8b5e99/analyses",
+      "authenticated": false,
+      "status": 401,
+      "cache_control": null,
+      "code": "authentication_required",
+      "count": null
+    },
+    {
+      "ticket": "01-11",
+      "path": "/api/v1/deals/290c3734-3b1a-442d-beab-89ce0f8b5e99/analyses",
+      "authenticated": true,
+      "status": 200,
+      "cache_control": "private, no-store",
+      "code": null,
+      "count": 0
+    },
+    {
+      "ticket": "01-11",
+      "path": "/api/v1/deals/290c3734-3b1a-442d-beab-89ce0f8b5e99/scenarios",
+      "authenticated": true,
+      "status": 200,
+      "cache_control": "private, no-store",
+      "code": null,
+      "count": 2
+    },
+    {
+      "ticket": "01-11",
+      "path": "/api/v1/deals/290c3734-3b1a-442d-beab-89ce0f8b5e99/deterministic-validation-records",
+      "authenticated": true,
+      "status": 200,
+      "cache_control": null,
+      "code": null,
+      "count": 0
+    },
+    {
+      "ticket": "02-03",
+      "path": "/api/v1/public/offer",
+      "authenticated": false,
+      "status": 200,
+      "cache_control": null,
+      "code": null,
+      "count": null
+    },
+    {
+      "ticket": "02-03",
+      "path": "/api/v1/public/project-northstar",
+      "authenticated": false,
+      "status": 200,
+      "cache_control": null,
+      "code": null,
+      "count": null
+    },
+    {
+      "ticket": "02-03",
+      "path": "/api/v1/public/project-northstar/recorded",
+      "authenticated": false,
+      "status": 200,
+      "cache_control": null,
+      "code": null,
+      "count": null
+    },
+    {
+      "ticket": "isolation",
+      "path": "/api/v1/deals/2c04475e-21b6-46b5-86bb-d4f563bc93f8/source-materials",
+      "authenticated": true,
+      "status": 404,
+      "cache_control": null,
+      "code": "resource_not_found",
+      "count": null
+    },
+    {
+      "ticket": "isolation",
+      "path": "/api/v1/deals/7ec4ead9-1c26-4c3c-9e81-7f4fa0ab5fbf/source-packets",
+      "authenticated": true,
+      "status": 404,
+      "cache_control": null,
+      "code": "resource_not_found",
+      "count": null
+    },
+    {
+      "ticket": "isolation",
+      "path": "/api/v1/deals/a398f3a0-9cde-4823-b478-53187e1f206e/ai-runs",
+      "authenticated": true,
+      "status": 200,
+      "cache_control": "private, no-store",
+      "code": null,
+      "count": 0
+    },
+    {
+      "ticket": "isolation",
+      "path": "/api/v1/deals/a6d854b1-b026-4aa6-b5d5-cb37b178168a/evidence",
+      "authenticated": true,
+      "status": 404,
+      "cache_control": null,
+      "code": "resource_not_found",
+      "count": null
+    },
+    {
+      "ticket": "isolation",
+      "path": "/api/v1/deals/b915e07a-9910-4fd2-a358-1ddd1592b650/calculations",
+      "authenticated": true,
+      "status": 404,
+      "cache_control": null,
+      "code": "resource_not_found",
+      "count": null
+    },
+    {
+      "ticket": "isolation",
+      "path": "/api/v1/deals/636aff76-66c5-44b5-b7eb-52b4a2e871c3/deliverables",
+      "authenticated": true,
+      "status": 404,
+      "cache_control": null,
+      "code": "resource_not_found",
+      "count": null
+    }
+  ]
+}
