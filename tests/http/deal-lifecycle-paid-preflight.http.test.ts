@@ -167,9 +167,18 @@ test("product Deal lifecycle exposes limited-proceed acceptance and blocks restr
   assert.equal(limitedPreflight.statusCode, 201);
   const limited = limitedPreflight.json().data;
   assert.equal(limited.result, "limited-proceed");
+  const beforeAcceptance = await api.inject({ method: "GET", url: `/api/v1/deals/${limitedDealId}/setup`, headers: { cookie: limitedCookie } });
+  assert.equal(beforeAcceptance.json().data.workspace.processing_posture, "preflight_restricted", "limited result alone must not permit Source admission");
+  assert.equal(beforeAcceptance.json().data.first_deal_guide.status, "waiting");
   const accepted = await api.inject({ method: "POST", url: `/api/v1/deals/${limitedDealId}/preflights/${limited.id}/limited-proceed-acceptances`, headers: { cookie: limitedCookie, "idempotency-key": `accept-${crypto.randomUUID()}` }, payload: { accepted_scope: limited.permitted_scope, excluded_scope: limited.excluded_scope, output_ceiling: limited.output_ceiling } });
   assert.equal(accepted.statusCode, 201);
   assert.equal(accepted.json().data.accepted, true);
+  const acceptedSetup = await api.inject({ method: "GET", url: `/api/v1/deals/${limitedDealId}/setup`, headers: { cookie: limitedCookie } });
+  assert.equal(acceptedSetup.json().data.workspace.processing_posture, "limited");
+  const changedSetup = await api.inject({ method: "PATCH", url: `/api/v1/deals/${limitedDealId}/setup`, headers: { cookie: limitedCookie, "if-match": acceptedSetup.headers.etag }, payload: { source_reference: "source:revised-limited-packet" } });
+  assert.equal(changedSetup.statusCode, 200);
+  const staleAcceptance = await api.inject({ method: "POST", url: `/api/v1/deals/${limitedDealId}/preflights/${limited.id}/limited-proceed-acceptances`, headers: { cookie: limitedCookie, "idempotency-key": `accept-stale-${crypto.randomUUID()}` }, payload: { accepted_scope: limited.permitted_scope, excluded_scope: limited.excluded_scope, output_ceiling: limited.output_ceiling } });
+  assert.equal(staleAcceptance.statusCode, 409, "old limited scope cannot authorize a changed Setup");
 
   const restrictedEmail = `deal-lifecycle-restricted-${crypto.randomUUID()}@example.test`;
   const restrictedCookie = await database.seedAuthenticatedSession(restrictedEmail);
