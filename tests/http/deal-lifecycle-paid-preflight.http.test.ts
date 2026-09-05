@@ -97,10 +97,18 @@ test("product Deal lifecycle creates an identity-complete Deal atomically with a
     [body.deal.id],
   );
   assert.deepEqual(persisted.rows[0], { deal_class: "paid_customer", slot_ordinal: 1, state_code: "reserved_preflight" });
+  const usage = await api.inject({ method: "GET", url: "/api/v1/account/usage", headers: { cookie } });
+  assert.equal(usage.statusCode, 200, usage.body);
+  assert.equal(usage.json().used_active_deals, 1, "a preflight reservation already occupies capacity");
+  const commerce = await api.inject({ method: "GET", url: "/api/v1/account/commerce-state", headers: { cookie } });
+  assert.equal(commerce.json().usage.used_active_deals, 1);
   const waiting = await api.inject({ method: "POST", url: `/api/v1/deals/${body.deal.id}/preflights`, headers: { cookie, "idempotency-key": `preflight-${crypto.randomUUID()}` }, payload: {} });
   assert.equal(waiting.statusCode, 201);
   assert.equal(waiting.json().data.result, "waiting-for-user");
   assert.equal(waiting.json().data.reason_code, "source_rights_missing");
+  await database.ownerPool.query("UPDATE app.active_deal_capacity_reservation SET state_code='released',released_at=now() WHERE deal_id=$1", [body.deal.id]);
+  const releasedUsage = await api.inject({ method: "GET", url: "/api/v1/account/usage", headers: { cookie } });
+  assert.equal(releasedUsage.json().used_active_deals, 0, "released slots do not count as used");
 });
 
 test("product Deal lifecycle preflight returns blocked and recovers after source replacement and narrowed use", async (t) => {
