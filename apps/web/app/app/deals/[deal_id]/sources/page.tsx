@@ -24,7 +24,7 @@ function asPacket(value: unknown): PacketProjection | null { if (!value || typeo
 
 export default function SourcesPage() {
   const { deal_id: dealId } = useParams<{ deal_id: string }>();
-  return /^[0-9a-f-]{36}$/i.test(dealId) ? <SourceWorkspace key={dealId} dealId={dealId} /> : <SyntheticSourcesPage />;
+  return /^[0-9a-f-]{36}$/i.test(dealId) ? <main className="dc-page"><SourceWorkspace key={dealId} dealId={dealId} /></main> : <SyntheticSourcesPage />;
 }
 
 function SyntheticSourcesPage() {
