@@ -1,5 +1,7 @@
 # Tickets 01–11 — development audit, 2026-09-05
 
+Follow-up: [authorized repair disposition and current acceptance](tickets-01-11-repair-acceptance-2026-09-05.md). The findings below remain the original audit snapshot.
+
 The existing `resolved` labels do not establish that every user-facing flow is
 complete. This bounded audit found working server contracts and material UI
 integration gaps. It does not reopen product discovery or implement later

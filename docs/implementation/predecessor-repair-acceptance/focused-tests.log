@@ -1,0 +1,94 @@
+TAP version 13
+# Subtest: Analysis API creates a pinned Calculation Version, deterministic Run, and validation receipt
+ok 1 - Analysis API creates a pinned Calculation Version, deterministic Run, and validation receipt
+  ---
+  duration_ms: 269.461931
+  type: 'test'
+  ...
+# Subtest: Evidence Inspector accepts exact source Evidence and exposes independent dimensions
+ok 2 - Evidence Inspector accepts exact source Evidence and exposes independent dimensions
+  ---
+  duration_ms: 262.513853
+  type: 'test'
+  ...
+# Subtest: Evidence acceptance rejects a locator that is not an eligible Source fragment
+ok 3 - Evidence acceptance rejects a locator that is not an eligible Source fragment
+  ---
+  duration_ms: 112.88634
+  type: 'test'
+  ...
+# Subtest: Claim promotion requires accepted Evidence and a typed Banker Decision; Assumption approval stays an Assumption
+ok 4 - Claim promotion requires accepted Evidence and a typed Banker Decision; Assumption approval stays an Assumption
+  ---
+  duration_ms: 203.61084
+  type: 'test'
+  ...
+# Subtest: Fact acceptance preserves conflicts and rejects stale concurrent control reviews
+ok 5 - Fact acceptance preserves conflicts and rejects stale concurrent control reviews
+  ---
+  duration_ms: 174.979402
+  type: 'test'
+  ...
+# Subtest: Knowledge projections do not enumerate another Deal
+ok 6 - Knowledge projections do not enumerate another Deal
+  ---
+  duration_ms: 114.392175
+  type: 'test'
+  ...
+# Subtest: Claim correction is append-only and exposes every dependent candidate
+ok 7 - Claim correction is append-only and exposes every dependent candidate
+  ---
+  duration_ms: 150.688628
+  type: 'test'
+  ...
+# Subtest: Evidence binds the selected Claim even when proposition wording is identical
+ok 8 - Evidence binds the selected Claim even when proposition wording is identical
+  ---
+  duration_ms: 327.766493
+  type: 'test'
+  ...
+# Subtest: source intake binds resumable upload to exact Deal scope and keeps TUS headers non-secret
+ok 9 - source intake binds resumable upload to exact Deal scope and keeps TUS headers non-secret
+  ---
+  duration_ms: 388.940823
+  type: 'test'
+  ...
+# Subtest: source intake binds uploads to the current operation preview and uses versioned cancellation
+ok 10 - source intake binds uploads to the current operation preview and uses versioned cancellation
+  ---
+  duration_ms: 181.088738
+  type: 'test'
+  ...
+# Subtest: source intake quarantines unsafe packages before acceptance and keeps accepted bytes encrypted
+ok 11 - source intake quarantines unsafe packages before acceptance and keeps accepted bytes encrypted
+  ---
+  duration_ms: 367.460166
+  type: 'test'
+  ...
+# Subtest: source intake preserves immutable source history and denies cross-account object or record access
+ok 12 - source intake preserves immutable source history and denies cross-account object or record access
+  ---
+  duration_ms: 313.258272
+  type: 'test'
+  ...
+# Subtest: isolated Source processing retains original bytes and returns exact CSV fragments after a durable task
+ok 13 - isolated Source processing retains original bytes and returns exact CSV fragments after a durable task
+  ---
+  duration_ms: 21414.746023
+  type: 'test'
+  ...
+# Subtest: financial inputs retain the selected accepted native Evidence location and reject missing or foreign relationships
+ok 14 - financial inputs retain the selected accepted native Evidence location and reject missing or foreign relationships
+  ---
+  duration_ms: 1.39671
+  type: 'test'
+  ...
+1..14
+# tests 14
+# suites 0
+# pass 14
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 26521.890271

@@ -1,0 +1,112 @@
+{
+  "evidence_boundary": "Real HTTPS, hosted development database and independent workers; synthetic acceptance Account with expiring authenticated session fixture. This does not prove Passkey enrolment.",
+  "deal": "290c3734-3b1a-442d-beab-89ce0f8b5e99",
+  "web": {
+    "rights": {
+      "source_terms": "no_archival_copy",
+      "reliance_state": "reliance_limited",
+      "robots_posture": "unknown",
+      "publisher_rights": "citation_only",
+      "snapshot_permitted": false,
+      "retention_limit_days": 0
+    },
+    "deal_id": "290c3734-3b1a-442d-beab-89ce0f8b5e99",
+    "version": 1,
+    "as_of_time": "2026-09-05T10:51:17.42+00:00",
+    "byte_length": 559,
+    "stale_after": null,
+    "capture_mode": "citation_only",
+    "retrieved_at": "2026-09-05T10:51:17.42+00:00",
+    "canonical_url": "https://example.com/",
+    "exact_locator": {
+      "url": "https://example.com/",
+      "etag": null
+    },
+    "requested_url": "https://example.com",
+    "supersedes_id": null,
+    "version_label": "retrieved-2026-09-05T10:51:17.420Z",
+    "content_sha256": "ff67a9d764d6a2367a187734e697f6a53217db9a21c101d410a113ca871a299d",
+    "reliance_state": "reliance_limited",
+    "source_record_id": "95cdb975-19b1-416d-be6d-cab28f9703c2",
+    "document_identity": {
+      "etag": null,
+      "content_type": "text/html",
+      "last_modified": "Wed, 02 Sep 2026 22:14:26 GMT"
+    },
+    "response_metadata": {
+      "status": 200,
+      "headers": {
+        "content-type": "text/html",
+        "last-modified": "Wed, 02 Sep 2026 22:14:26 GMT"
+      }
+    },
+    "source_material_id": "1416fe47-98b6-4ea6-8641-acb78b1dcc5e",
+    "retrieval_limitations": [
+      "snapshot_prohibited_by_rights",
+      "retention_limit_prevents_archival_copy"
+    ],
+    "permitted_representation": {
+      "mode": "citation_context",
+      "bytes_retained": false
+    }
+  },
+  "finalization": {
+    "upload_session_id": "3b62e211-b575-47af-90d2-1a65f49ef95c",
+    "file_ids": [
+      "dba3993f-ce06-4a37-8661-ea7998662a1f"
+    ],
+    "status": "quarantined",
+    "scan": {
+      "clean": true,
+      "code": null,
+      "family": "xlsx",
+      "limitations": [],
+      "parser_identity": "native-source-v1",
+      "coverage_code": "native_text_partial",
+      "substantive_parsing": false,
+      "original_sha256": "63619085a7818f3e2a078214c98356a4c5cd931dbdcaff80257d453c750a2541",
+      "container_digest": "sha256:118fee89a47b09c23c778707860b82b97da7529c675451fe20df81e08c4da9cd",
+      "scan": {
+        "engine": "ClamAV",
+        "signature_updated_at": 1788596433.8006191
+      },
+      "fragments": []
+    },
+    "content_sha256": "63619085a7818f3e2a078214c98356a4c5cd931dbdcaff80257d453c750a2541"
+  },
+  "template": {
+    "template_id": "14e39ff7-af19-483d-8de2-83a6795ad1b8",
+    "version_id": "586c1193-d149-41ec-8f46-8824cce3dc90",
+    "status": "quarantined",
+    "idempotent_replayed": false
+  },
+  "compatibility": {
+    "id": "962cfca9-f6c9-4bca-8d5a-74d317e6c6a1",
+    "version_id": "586c1193-d149-41ec-8f46-8824cce3dc90",
+    "template_id": "14e39ff7-af19-483d-8de2-83a6795ad1b8",
+    "compatibility": {
+      "status": "eligible",
+      "profile": "xlsx-v1",
+      "limitations": []
+    },
+    "production_ready": false
+  },
+  "history": [
+    {
+      "id": "586c1193-d149-41ec-8f46-8824cce3dc90",
+      "template_id": "14e39ff7-af19-483d-8de2-83a6795ad1b8",
+      "version": 1,
+      "version_label": "v1",
+      "display_name": "Separately supplied development template.xlsx",
+      "media_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "content_sha256": "63619085a7818f3e2a078214c98356a4c5cd931dbdcaff80257d453c750a2541",
+      "byte_length": "916",
+      "rights_attestation": {
+        "basis": "separately_supplied_outside_live_deal",
+        "actor_attests_rights": true
+      },
+      "clean_template_basis": "separately_supplied_outside_live_deal",
+      "created_at": "2026-09-05T10:51:28.219Z"
+    }
+  ]
+}

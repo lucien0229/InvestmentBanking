@@ -1,6 +1,6 @@
 # Tickets 01–11 development repairs
 
-Status: in progress. Authorized on 2026-09-05 against
+Status: repairs implemented and deployed; final interactive acceptance pending. Authorized on 2026-09-05 against
 [the bounded audit](tickets-01-11-development-audit-2026-09-05.md).
 Development branch: `develop`; starting commit: `6e02576`.
 
@@ -208,3 +208,5 @@ aligned to the existing supported V1 engine (`EV + Cash - Debt = Equity`, method
 2, FY2025E / USD million), and displayed delta now reads the real `difference`
 result. The expected-equity benchmark remains in the Calculation; Workbook
 lineage consumes its three formula inputs.
+
+Final consolidated status: [repair acceptance report](tickets-01-11-repair-acceptance-2026-09-05.md). Release v4 includes the final prototype tab-panel spacing correction; deployment health is recorded in the consolidated report; all six bounded code-review findings are closed. Hosted HTTPS calculation completed with equity 94.7 and difference 0.0. Mac lock, physical Passkey and test Checkout interaction remain pending.
