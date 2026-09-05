@@ -134,8 +134,8 @@ export class StripeCheckoutAdapter implements CheckoutProviderAdapter {
       // deferred, so disable the account default for this development flow.
       managed_payments: { enabled: false },
       line_items: [{ price: basePrice, quantity: 1 }, ...(addOnPrice ? [{ price: addOnPrice, quantity: 1 }] : [])],
-      success_url: `${this.webOrigin}/checkout/confirmation?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${this.webOrigin}/checkout/payment?checkout_order_id=${encodeURIComponent(input.checkoutOrderId)}`,
+      success_url: `${this.webOrigin}/checkout/confirmation?order=${encodeURIComponent(input.checkoutOrderId)}&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${this.webOrigin}/checkout/payment?order=${encodeURIComponent(input.checkoutOrderId)}`,
       client_reference_id: input.checkoutOrderId,
       metadata: { checkout_order_id: input.checkoutOrderId, billing_term: input.billingTerm, add_on: input.addOn },
     };

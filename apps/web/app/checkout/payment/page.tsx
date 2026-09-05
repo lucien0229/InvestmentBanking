@@ -1,13 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { CheckoutStepper } from "../../../components/deal-control/ui";
 
 type Order = { id: string; billing_term: string; amount_due_now: { amount_minor: number; currency: string }; tax: { posture: string; amount_minor: number }; renewal: { amount_minor: number; term: string }; current_step: string; payment_state: string };
 
 export default function CheckoutPaymentPage() {
-  const router = useRouter();
   const [order, setOrder] = useState<Order | null>(null);
   const [termsId, setTermsId] = useState("");
   const [hostedUrl, setHostedUrl] = useState("");
@@ -16,13 +14,13 @@ export default function CheckoutPaymentPage() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const orderId = params.get("order");
-    const acceptanceId = params.get("terms");
-    if (!orderId || !acceptanceId) return setMessage("Return to Terms to continue with the saved Checkout Order.");
-    setTermsId(acceptanceId);
+    const orderId = params.get("order") ?? params.get("checkout_order_id");
+    if (!orderId) return setMessage("Return to Terms to continue with the saved Checkout Order.");
     fetch(`/api/v1/checkout-orders/${encodeURIComponent(orderId)}`).then(async (response) => {
       const body = await response.json().catch(() => ({}));
       if (!response.ok) return setMessage(body.detail ?? "The Checkout Order is unavailable.");
+      if (!body.terms_acceptance?.id) return setMessage("Accept the saved Checkout Order terms before payment.");
+      setTermsId(body.terms_acceptance.id);
       setOrder(body); setMessage("");
     }).catch(() => setMessage("The API could not be reached. Retry without creating a duplicate payment."));
   }, []);
@@ -51,7 +49,7 @@ export default function CheckoutPaymentPage() {
     {order && <section style={{ display: "grid", gap: 16, background: "white", border: "1px solid #ccd5d8", padding: 24 }}>
       <dl><dt>Billing name</dt><dd>Named Individual Banker account</dd><dt>Billing address</dt><dd>Collected by the payment provider at hosted checkout</dd><dt>Country / tax</dt><dd>Tax is calculated before payment confirmation ({order.tax.posture})</dd><dt>Amount due now</dt><dd>${(order.amount_due_now.amount_minor / 100).toLocaleString("en-US")} {order.amount_due_now.currency.toUpperCase()}</dd><dt>Renewal</dt><dd>${(order.renewal.amount_minor / 100).toLocaleString("en-US")} {order.renewal.term}{order.billing_term === "annual" ? " · $912.50/month equivalent · save $990 (8.29%)" : ""}</dd></dl>
       <p>Card details are collected only by the provider-hosted payment page; this product does not accept or store card numbers. Returning here is safe and does not create a second charge.</p>
-      {hostedUrl ? <p><a href={hostedUrl} target="_blank" rel="noreferrer">Open provider payment page</a> · <a href={`/checkout/confirmation?order=${encodeURIComponent(order.id)}`}>Check product confirmation</a></p> : <button type="button" onClick={startPayment}>Create provider payment session</button>}
+      {order.payment_state === "succeeded" ? <a href={`/checkout/confirmation?order=${encodeURIComponent(order.id)}`}>View payment confirmation</a> : hostedUrl ? <p><a href={hostedUrl} target="_blank" rel="noreferrer">Open provider payment page</a> · <a href={`/checkout/confirmation?order=${encodeURIComponent(order.id)}`}>Check product confirmation</a></p> : <button type="button" onClick={startPayment}>Create provider payment session</button>}
     </section>}
   </main>;
 }

@@ -57,8 +57,8 @@ test("StripeCheckoutAdapter creates a subscription Checkout Session with the con
     mode: "subscription",
     managed_payments: { enabled: false },
     line_items: [{ price: "price_annual", quantity: 1 }, { price: "price_addon_annual", quantity: 1 }],
-    success_url: "https://dev.example.test/checkout/confirmation?session_id={CHECKOUT_SESSION_ID}",
-    cancel_url: "https://dev.example.test/checkout/payment?checkout_order_id=order-123",
+    success_url: "https://dev.example.test/checkout/confirmation?order=order-123&session_id={CHECKOUT_SESSION_ID}",
+    cancel_url: "https://dev.example.test/checkout/payment?order=order-123",
     client_reference_id: "order-123",
     metadata: { checkout_order_id: "order-123", billing_term: "annual", add_on: "additional_active_deal" },
   });
