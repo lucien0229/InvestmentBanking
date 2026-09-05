@@ -22,16 +22,21 @@ class Handler(BaseHTTPRequestHandler):
         pass
 
     def do_POST(self):
-        if self.path != '/v1/workbook':
+        if self.path not in ('/v1/workbook', '/v1/source'):
             self.send_error(404)
             return
         try:
             size = int(self.headers.get('content-length', '0'))
-            if not 0 < size <= 64*1024*1024:
+            if not 0 < size <= (140 if self.path == '/v1/source' else 64)*1024*1024:
                 raise ValueError('input_limit')
             request = json.loads(self.rfile.read(size))
+            if not isinstance(request, dict):
+                raise ValueError('input_contract')
             operation=request.get('operation')
-            if operation == 'build_analysis_workbook':
+            if self.path == '/v1/source':
+                if operation != 'inspect_source' or set(request) != {'operation','input','source'} or set(request['input']) != {'mode','family'} or request['input']['mode'] not in ('scan','parse') or request['input']['family'] not in ('xlsx','pptx','docx','pdf','csv'):
+                    raise ValueError('input_contract')
+            elif operation == 'build_analysis_workbook':
                 if set(request) != {'operation','input'} or size > 250000:
                     raise ValueError('input_limit')
             elif operation == 'inspect_analysis_workbook':
@@ -39,7 +44,7 @@ class Handler(BaseHTTPRequestHandler):
                     raise ValueError('input_contract')
             else:
                 raise ValueError('unsupported_operation')
-        except (ValueError, TypeError):
+        except (ValueError, TypeError, KeyError):
             self.send_error(400)
             return
         if not GATE.acquire(blocking=False):
@@ -51,6 +56,11 @@ class Handler(BaseHTTPRequestHandler):
                 (root/'input').mkdir(mode=0o700)
                 (root/'output').mkdir(mode=0o700)
                 (root/'input'/'input.json').write_text(json.dumps(request['input']))
+                if operation == 'inspect_source':
+                    content = base64.b64decode(request['source'],validate=True)
+                    if len(content) > 100*1024*1024:
+                        raise ValueError('source_byte_limit')
+                    (root/'input'/'source.bin').write_bytes(content)
                 if operation == 'inspect_analysis_workbook':
                     for kind,suffix in [('native','xlsx'),('reader','pdf')]:
                         content=base64.b64decode(request[kind],validate=True)
@@ -59,13 +69,19 @@ class Handler(BaseHTTPRequestHandler):
                         (root/'input'/f'artifact.{suffix}').write_bytes(content)
                 container_name = 'ib-office-' + root.name
                 command = ['podman','run','--name',container_name,'--timeout=175','--rm','--network=none','--read-only','--cap-drop=ALL','--security-opt=no-new-privileges',
-                    '--memory=1g','--cpus=1','--pids-limit=128','--userns=keep-id:uid=1000,gid=1000','--user=1000:1000',
+                    '--memory=' + ('2g' if operation == 'inspect_source' else '1g'),'--cpus=1','--pids-limit=128','--userns=keep-id:uid=1000,gid=1000','--user=1000:1000',
                     '--tmpfs=/tmp:rw,size=256m','-e','XDG_CACHE_HOME=/tmp/fontcache',
                     '-v',f'{root}/input:/input:ro','-v',f'{root}/output:/output:rw']
                 license_path = os.environ.get('ASPOSE_LICENSE_PATH')
                 if license_path and Path(license_path).is_file():
                     command += ['-v',f'{license_path}:/run/secrets/aspose-license:ro']
-                if operation == 'build_analysis_workbook':
+                if operation == 'inspect_source':
+                    signatures = os.environ.get('SOURCE_SIGNATURE_ROOT')
+                    if not signatures or not Path(signatures).is_dir():
+                        raise ValueError('malware_signatures_unavailable')
+                    command += ['-v',f'{signatures}:/signatures:ro']
+                    arguments=['/app/services/office/process_source.py']
+                elif operation == 'build_analysis_workbook':
                     arguments=['/app/services/office/run_workbook.py','/input/input.json','/output']
                 else:
                     arguments=['/app/services/office/inspect_workbook.py','/input/input.json','/input/artifact.xlsx','/input/artifact.pdf','/output/inspection-report.json']
@@ -77,6 +93,18 @@ class Handler(BaseHTTPRequestHandler):
                     subprocess.run(['podman','rm','--force','--ignore',container_name], capture_output=True, timeout=15)
                 if result.returncode:
                     self.send_error(502, 'Office renderer failed')
+                    return
+                if operation == 'inspect_source':
+                    report = json.loads((root/'output'/'source-report.json').read_text())
+                    report['container_digest'] = IMAGE
+                    payload = json.dumps(report).encode()
+                    if len(payload) > 16*1024*1024:
+                        raise ValueError('source_output_limit')
+                    self.send_response(200)
+                    self.send_header('Content-Type','application/json')
+                    self.send_header('Content-Length',str(len(payload)))
+                    self.end_headers()
+                    self.wfile.write(payload)
                     return
                 report = json.loads((root/'output'/'render-report.json').read_text()) if operation == 'build_analysis_workbook' else {'revision_id':request['input']['revision_id']}
                 inspection = json.loads((root/'output'/'inspection-report.json').read_text())

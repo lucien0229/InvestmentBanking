@@ -36,5 +36,5 @@ test("product account-template migration declares immutable public observations 
     [["create_web_evidence_observation", "create_account_template_upload_session", "create_account_reusable_template", "create_account_template_preflight"]],
   );
   assert.equal(owner.rows.length, 4);
-  assert.ok(owner.rows.every((row) => row.owner_name === "app_source_owner" && !row.can_login && row.bypass));
+  assert.ok(owner.rows.every((row) => row.owner_name === "app_source_owner" && !row.can_login && !row.bypass));
 });

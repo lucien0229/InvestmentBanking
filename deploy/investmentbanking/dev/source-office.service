@@ -1,0 +1,16 @@
+[Unit]
+Description=Investment Banking native Source inspection
+[Service]
+ExecStart=/usr/bin/python3 /opt/cells/investmentbanking/dev/source-runtime/services/office/supervisor.py
+Environment=OFFICE_RENDERER_SOCKET=/opt/cells/investmentbanking/dev/office/socket/source-repair.sock
+Environment=OFFICE_RENDERER_IMAGE=sha256:118fee89a47b09c23c778707860b82b97da7529c675451fe20df81e08c4da9cd
+Environment=OFFICE_WORK_ROOT=/opt/cells/investmentbanking/dev/office/work
+Environment=SOURCE_SIGNATURE_ROOT=/var/lib/clamav
+Environment=XDG_RUNTIME_DIR=/run/user/1001
+Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1001/bus
+Restart=on-failure
+RestartSec=5
+Delegate=yes
+MemoryMax=3G
+TasksMax=192
+UMask=0007

@@ -1,7 +1,11 @@
 "use client";
+import { JobWorkspace } from "./job-workspace";
+import { TemplateWorkspace } from "./template-workspace";
 
 import { useEffect, useMemo, useState } from "react";
 import { PageHeader, StatePanel, StatusBadge } from "./ui";
+import { AnalysisWorkspace } from "./analysis-workspace";
+import { EvidenceWorkspace } from "./evidence-workspace";
 import { WorkbookSurface } from "./workbooks";
 
 type Tone = "neutral" | "info" | "warning" | "critical" | "success";
@@ -138,6 +142,9 @@ function AnalysisDetailSurface({ dealId }: { dealId: string }) {
 export default function DealSurfacePage({ dealId, slug }: { dealId: string; slug: string[] }) {
   const path = slug.join("/");
   if (/^[0-9a-f-]{36}$/i.test(dealId) && dealId !== "00000000-0000-0000-0000-000000000000" && (path === "execution-package" || path === "review-readiness" || slug[0] === "deliverables")) return <WorkbookSurface dealId={dealId} slug={slug} />;
+  if (/^[0-9a-f-]{36}$/i.test(dealId) && ["evidence-decisions", "claims", "human-decisions"].includes(slug[0])) return <EvidenceWorkspace key={`${dealId}:${path}`} dealId={dealId} slug={slug} />;
+  if (/^[0-9a-f-]{36}$/i.test(dealId) && ["analysis", "analyses", "calculations", "models", "scenarios", "deterministic-validation-records"].includes(slug[0])) return <AnalysisWorkspace key={`${dealId}:${path}`} dealId={dealId} slug={slug[0] === "analysis" && slug.length > 1 ? slug.slice(1) : slug} />;
+  if (/^[0-9a-f-]{36}$/i.test(dealId) && slug[0] === "actions") return <JobWorkspace dealId={dealId} jobId={slug[1] === "jobs" ? slug[2] : undefined} />;
   const commonRows = [
     { id: "ACT-0042", name: "EBITDA basis conflict", state: "Decision required", detail: "CLM-018 retains both source values; scoped disposition required.", tone: "warning" as Tone },
     { id: "SRC-002", name: "Northstar financial model", state: "Accepted", detail: "Native workbook with exact sheet and cell locators.", tone: "success" as Tone },
@@ -177,6 +184,11 @@ export default function DealSurfacePage({ dealId, slug }: { dealId: string; slug
 }
 
 export function AccountSurfacePage({ slug }: { slug: string[] }) {
+  if (slug[0] === "artifact-templates") return <TemplateWorkspace templateId={slug[1]} />;
+  return <LegacyAccountSurfacePage slug={slug} />;
+}
+
+function LegacyAccountSurfacePage({ slug }: { slug: string[] }) {
   const path = slug.join("/");
   const config: Record<string, { title: string; eyebrow: string; description: string }> = {
     billing: { title: "Billing & Invoices", eyebrow: "Banker account · billing", description: "Payment, Invoice and Receipt records reflect commercial Account state only." },

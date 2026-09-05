@@ -13,21 +13,27 @@ export default function DealSetupPage() {
   const [saved, setSaved] = useState("");
 
   async function load() {
+    setError("");
+    try {
     const response = await fetch(`/api/v1/deals/${dealId}/setup`, { cache: "no-store" });
     const body = await response.json().catch(() => ({}));
     if (!response.ok) return setError(body.detail ?? "Deal Setup is unavailable.");
     setProjection(body);
     setSource(body.data.setup.source_reference.reference ?? "");
     setRights(body.data.setup.source_rights);
+    } catch { setError("Deal Setup could not be reached. Retry to load the saved state."); }
   }
   useEffect(() => { void load(); }, [dealId]);
 
   async function save(event: React.FormEvent) {
     event.preventDefault();
+    setError(""); setSaved("");
+    try {
     const response = await fetch(`/api/v1/deals/${dealId}/setup`, { method: "PATCH", headers: { "content-type": "application/json", "if-match": `"deal-setup-${projection?.data.setup.version}"` }, body: JSON.stringify({ source_reference: source || null, source_rights: rights }) });
     const body = await response.json().catch(() => ({}));
     if (!response.ok) return setError(body.detail ?? "Setup save failed.");
-    setProjection(body); setSaved("Setup saved. Run Paid Preflight to unlock the next controlled action.");
+    setProjection(body); setSaved("Setup saved. Run Paid Preflight to evaluate the changed scope.");
+    } catch { setError("Setup save could not be confirmed. Reload before retrying."); }
   }
 
   if (!projection) return <main className="dc-page"><p className="dc-eyebrow">DEAL SETUP / LOADING</p><h1>Deal Setup</h1><DealSetupStepper active="Confirm setup" /><div className="dc-state-panel" data-tone={error ? "critical" : "info"}><span className="dc-state-label">Setup status</span><strong className="dc-state-title">{error ? "Deal Setup unavailable" : "Loading Deal Setup…"}</strong><span className="dc-state-detail">{error || "The saved setup is being loaded. Retry from this page without creating a duplicate Deal."}</span>{error ? <a href="/app/deals">Return to Deals →</a> : null}</div></main>;
@@ -36,9 +42,9 @@ export default function DealSetupPage() {
     <a href="/app/deals/new">← New Deal</a>
     <h1>{deal.identity.display_name}</h1>
     <p>{deal.identity.represented_party} · {deal.identity.transaction_subject}</p>
-    <p>Capacity: slot {deal.capacity.slot}, {deal.capacity.state}. Guide: {deal.first_deal_guide.status}.</p>
+    <p>Capacity: {deal.capacity.slot ? `slot ${deal.capacity.slot} · ${deal.capacity.state}` : "No capacity reservation recorded"}. Guide: {deal.first_deal_guide.status ?? "Not established"}.</p>
     <DealSetupStepper active="Confirm setup" />
-    <section className="dc-surface-card dc-setup-review" aria-label="Deal setup review"><span className="dc-status-badge" data-tone="warning">Paid Preflight pending</span><h2>Confirm default control boundaries</h2><p>Project Northstar is ready for the next controlled checkpoint. The API projection remains authoritative for the saved identity and rights posture.</p><dl><dt>Business stage</dt><dd>Preparation</dd><dt>Controlled purpose</dt><dd>Establish the first inspectable Source Packet</dd><dt>External use</dt><dd>Blocked by default</dd><dt>AI boundary</dt><dd>Proposals only; facts and Human Decisions require auditable controls</dd></dl></section>
+    <section className="dc-surface-card dc-setup-review" aria-label="Deal setup review"><span className="dc-status-badge" data-tone={deal.paid_preflight.result === "pass" ? "success" : "warning"}>Paid Preflight · {deal.paid_preflight.result}</span><h2>Confirm default control boundaries</h2><p>{deal.identity.display_name} · {deal.paid_preflight.reason_code?.replaceAll("_", " ") ?? "Review the saved control boundaries before processing."}</p><dl><dt>Business stage</dt><dd>{deal.identity.business_stage?.replaceAll("_", " ") ?? "Not recorded"}</dd><dt>Controlled purpose</dt><dd>{deal.setup.intended_use?.replaceAll("_", " ") ?? deal.identity.intended_purpose}</dd><dt>External use</dt><dd>Blocked by default</dd><dt>AI boundary</dt><dd>Proposals only; facts and Human Decisions require auditable controls</dd></dl></section>
     {error && <p role="alert" style={{ color: "#a22" }}>{error}</p>}
     {saved && <p role="status" style={{ color: "#16724b" }}>{saved}</p>}
     <form onSubmit={save} style={{ display: "grid", gap: 14, maxWidth: 560 }}>

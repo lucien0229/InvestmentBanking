@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
+import { supabaseBrowserClient } from "../../lib/supabase-browser";
 
 type Tone = "neutral" | "info" | "warning" | "critical" | "success";
 
@@ -79,7 +80,7 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
   useEffect(()=>{let disposed=false;setDealContext(null);if(!activeDealId||isSynthetic||!/^[-a-f0-9]{36}$/.test(activeDealId))return;
     fetch(`/api/v1/deals/${activeDealId}/overview`,{credentials:"same-origin",cache:"no-store"}).then(async response=>{if(!response.ok)return;const value=await response.json();if(!disposed)setDealContext({name:value.deal.name,stage:value.deal.business_stage??value.displayed_state.stage??"Not recorded",posture:value.workspace.posture});}).catch(()=>undefined);return()=>{disposed=true;};
   },[activeDealId,isSynthetic]);
-  if(pathname.startsWith("/app/account"))return <AccountShell>{children}</AccountShell>;
+  if(pathname.startsWith("/app/account") || pathname === "/app" || pathname === "/app/deals" || pathname === "/app/deals/new")return <AccountShell>{children}</AccountShell>;
 
   return <div className="dc-workspace-root" data-workbook={isWorkbook||undefined}>
     <a className="dc-skip-link" href="#main-content">Skip to main content</a>
@@ -120,10 +121,25 @@ const accountNav = [["Deals", "/app/deals"], ["Usage & plan", "/app/account/usag
 
 function AccountShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const [signingOut, setSigningOut] = useState(false);
+  const [logoutError, setLogoutError] = useState("");
+  async function signOut() {
+    setSigningOut(true); setLogoutError("");
+    try {
+      const response = await fetch("/api/v1/session/logouts", { method: "POST" });
+      if (!response.ok) throw new Error("Sign out could not be completed. Please retry.");
+      if (process.env.NEXT_PUBLIC_AUTH_MODE === "supabase") {
+        const { error } = await supabaseBrowserClient().auth.signOut();
+        if (error) throw new Error("Workspace access has ended. Retry to finish signing out of your identity session.");
+      }
+      window.location.replace("/account-access/session-expired");
+    } catch (error) { setLogoutError(error instanceof Error ? error.message : "Sign out could not be completed."); }
+    finally { setSigningOut(false); }
+  }
   return <div className="dc-account-root">
     <a className="dc-skip-link" href="#account-content">Skip to main content</a>
-    <header className="dc-account-header"><a className="dc-brand" href="/app/deals"><span className="dc-brand-mark" aria-hidden="true">DC</span><span>Deal Control</span></a><div className="dc-account-identity"><strong>W. Banker</strong><small>Individual account · Synthetic demo</small></div></header>
-    <div className="dc-account-grid"><aside className="dc-account-sidebar" aria-label="Account navigation"><nav className="dc-workspace-nav">{accountNav.map(([label, href]) => <a key={href} className="dc-nav-link" href={href} aria-current={pathname === href || pathname.startsWith(`${href}/`) ? "page" : undefined}>{label}</a>)}</nav><div className="dc-sidebar-foot"><a className="dc-nav-link" href="/">Public product overview</a><a className="dc-nav-link" href="/account-access">Sign out securely</a></div></aside><div id="account-content" className="dc-account-content">{children}</div></div>
+    <header className="dc-account-header"><a className="dc-brand" href="/app/deals"><span className="dc-brand-mark" aria-hidden="true">DC</span><span>Deal Control</span></a><div className="dc-account-identity"><strong>Individual Banker</strong><small>Account workspace</small></div></header>
+    <div className="dc-account-grid"><aside className="dc-account-sidebar" aria-label="Account navigation"><nav className="dc-workspace-nav">{accountNav.map(([label, href]) => <a key={href} className="dc-nav-link" href={href} aria-current={pathname === href || pathname.startsWith(`${href}/`) ? "page" : undefined}>{label}</a>)}</nav><div className="dc-sidebar-foot"><a className="dc-nav-link" href="/">Public product overview</a><button type="button" className="dc-nav-link" disabled={signingOut} onClick={signOut}>{signingOut ? "Signing out…" : "Sign out securely"}</button>{logoutError && <p role="alert">{logoutError}</p>}</div></aside><div id="account-content" className="dc-account-content">{children}</div></div>
   </div>;
 }
 

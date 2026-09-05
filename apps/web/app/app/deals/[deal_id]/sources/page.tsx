@@ -1,5 +1,6 @@
 "use client";
 
+import { SourceWorkspace } from "../../../../../components/deal-control/source-workspace";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
@@ -22,6 +23,11 @@ const fallbackPacket: PacketProjection = {
 function asPacket(value: unknown): PacketProjection | null { if (!value || typeof value !== "object") return null; const candidate = value as Partial<PacketProjection>; return typeof candidate.id === "string" && typeof candidate.packet_name === "string" ? candidate as PacketProjection : null; }
 
 export default function SourcesPage() {
+  const { deal_id: dealId } = useParams<{ deal_id: string }>();
+  return /^[0-9a-f-]{36}$/i.test(dealId) ? <SourceWorkspace key={dealId} dealId={dealId} /> : <SyntheticSourcesPage />;
+}
+
+function SyntheticSourcesPage() {
   const { deal_id: dealId } = useParams<{ deal_id: string }>();
   const [packet, setPacket] = useState<PacketProjection | null>(null); const [loading, setLoading] = useState(true); const [error, setError] = useState("");
   const [materials, setMaterials] = useState<Array<{ id: string; stable_name: string; origin_code: string }>>([]); const [observations, setObservations] = useState<Array<{ source_record_id: string; canonical_url: string; version: number; reliance_state: string }>>([]); const [templates, setTemplates] = useState<Array<{ id: string; template_class: string; status: string }>>([]); const [actionNotice, setActionNotice] = useState(""); const [commandKey, setCommandKey] = useState(() => `source-command-${Date.now()}-${Math.random().toString(36).slice(2)}`);

@@ -329,7 +329,7 @@ const taskPayloads: Record<TaskDefinition, z.ZodType<Record<string, unknown>>> =
 };
 
 /** Use the same structural contract for provider instructions and deterministic validation. */
-export function workbookProviderSchema(task: typeof workbookAiTasks[number], scopeDigest: string) {
+export function aiProviderOutputSchema(task: TaskDefinition, scopeDigest: string) {
   return z.toJSONSchema(z.object({
     status:z.enum(["complete","partial","abstained"]),schema_version:z.literal(AI_OUTPUT_SCHEMA_VERSION),task_definition:z.literal(task),scope_digest_echo:z.literal(scopeDigest),
     results:z.array(commonResult.extend({payload:taskPayloads[task]})).max(200),abstentions:z.array(abstention).max(200),omissions:z.array(omission).max(200),

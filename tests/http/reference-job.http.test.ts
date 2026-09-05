@@ -274,3 +274,27 @@ test("stale Job Scope cannot commit after the Workspace posture version advances
     await worker.end();
   }
 });
+
+test("live SSE delivers new durable events and closes when its session is revoked", async (t) => {
+  const database = await createTestDatabase(); t.after(() => database.close());
+  const api = await buildApi({ database, authMode: "local", referenceJobRuntime: { autoRun: false } }); t.after(() => api.close());
+  const cookie = await database.seedAuthenticatedSession("banker-a@example.test");
+  const started = await startJob(api, cookie, `continuous-sse-${crypto.randomUUID()}`);
+  const jobId = started.json().id as string;
+  const address = await api.listen({ host: "127.0.0.1", port: 0 });
+  const response = await fetch(`${address}/api/v1/jobs/${jobId}/events`, { headers: { cookie }, signal: AbortSignal.timeout(10_000) });
+  assert.equal(response.status, 200);
+  const reader = response.body!.getReader(); const decoder = new TextDecoder();
+  let received = decoder.decode((await reader.read()).value);
+  assert.match(received, /job_snapshot/);
+  const worker = new pg.Pool({ connectionString: process.env.JOB_WORKER_DATABASE_URL }); t.after(() => worker.end());
+  const lease = crypto.randomBytes(32).toString("hex");
+  await worker.query("SELECT * FROM jobs.claim_reference_step($1,'reference_worker','reference-worker-credential-v1',$2)", [jobId, lease]);
+  while (!received.includes('"state":"running"')) received += decoder.decode((await reader.read()).value);
+  const ids = [...received.matchAll(/^id: (\d+)/gm)].map((match) => Number(match[1]));
+  assert.deepEqual(ids, [...new Set(ids)].sort((a, b) => a - b));
+  const token = cookie.split("=")[1]!.split(";")[0]!;
+  await database.withPendingSession(token, async (client) => client.query("SELECT app.revoke_current_session($1)", [Database.hashToken(token)]));
+  while (true) { const chunk = await reader.read(); if (chunk.done) break; received += decoder.decode(chunk.value); }
+  assert.match(received, /authorization_changed/);
+});

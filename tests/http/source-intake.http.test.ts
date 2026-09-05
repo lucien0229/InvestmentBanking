@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import crypto from "node:crypto";
 import test from "node:test";
+import pg from "pg";
 import { buildApi } from "../../apps/api/src/app.js";
 import { createTestDatabase } from "../../apps/api/src/test-database.js";
 import { hashToken } from "../../apps/api/src/database.js";
@@ -294,4 +295,75 @@ test("source intake preserves immutable source history and denies cross-account 
   const second = await createDeal(api, database, `source-intake-history-b-${crypto.randomUUID()}@example.test`);
   const hidden = await api.inject({ method: "GET", url: `/api/v1/deals/${first.dealId}/source-materials/${materialId}/records/${accepted1.json().data.source_record_id}`, headers: { cookie: second.cookie } });
   assert.equal(hidden.statusCode, 404);
+});
+
+test("isolated Source processing retains original bytes and returns exact CSV fragments after a durable task", { skip: !process.env.SOURCE_INSPECTOR_REAL }, async (t) => {
+  const { inspectSource } = await import("../../apps/api/src/source-inspector.js");
+  const { SourceProcessingRuntime } = await import("../../apps/api/src/source-processing-runtime.js");
+  const database = await createTestDatabase(); t.after(() => database.close());
+  const api = await buildApi({ database, authMode: "local", sourceInspector: inspectSource, referenceJobRuntime: { autoRun: false } }); t.after(() => api.close());
+  const dispatcher=new pg.Pool({connectionString:process.env.JOB_DISPATCHER_DATABASE_URL});t.after(()=>dispatcher.end());
+  const { cookie, dealId } = await createDeal(api, database, `source-native-${crypto.randomUUID()}@example.test`);
+  const bytes = Buffer.from('Measure,USD millions\nCash,4.7\nDebt,10.0\n');
+  const upload = await createUpload(api, cookie, dealId, bytes, { files: [{
+    client_file_id: "native-csv", display_name: "Cash basis.csv", byte_length: String(bytes.length), media_type: "text/csv", sha256: crypto.createHash("sha256").update(bytes).digest("hex"),
+    source_declaration: { source_material_id: null, new_source_material_name: "Native cash basis", origin: "client_supplied", authority_basis: "provided_under_mandate", intended_purpose: "financial_analysis" },
+    rights_posture_inputs: { receipt_permitted: true, processing_operations: ["quarantine", "parse"], conditions: [] },
+    confidentiality_posture: { confidentiality_class: "confidential", de_identification_posture: "not_de_identified" }, processing_posture: { expected_file_family: "csv", special_structures: [] },
+  }] });
+  const file = upload.data.files[0];
+  assert.equal((await api.inject({ method: "PATCH", url: file.tus_url, headers: { cookie, "content-type": "application/offset+octet-stream", "upload-offset": "0", "tus-resumable": "1.0.0" }, payload: bytes })).statusCode, 204);
+  const finalized = await api.inject({ method: "POST", url: `/api/v1/upload-sessions/${upload.data.id}/finalizations`, headers: { cookie }, payload: { file_ids: [file.server_file_id] } });
+  assert.equal(finalized.json().items[0].outcome, "succeeded", finalized.body);
+  const materialId = finalized.json().items[0].source_material_id;
+  const accepted = await api.inject({ method: "POST", url: `/api/v1/deals/${dealId}/source-materials/${materialId}/record-acceptances`, headers: { cookie, "idempotency-key": crypto.randomUUID() }, payload: { server_file_id: file.server_file_id, authority_basis: "provided_under_mandate", record_date: "2026-09-05", version_label: "v1", rights_posture: "internal_use_only", confidentiality_class: "confidential" } });
+  assert.equal(accepted.statusCode, 202, accepted.body); const recordId = accepted.json().data.source_record_id;
+  const queued = await api.inject({ method: "POST", url: `/api/v1/deals/${dealId}/source-records/${recordId}/processing-jobs`, headers: { cookie, "idempotency-key": crypto.randomUUID() }, payload: {} });
+  assert.equal(queued.statusCode, 202, queued.body); const jobId = queued.json().data.id;
+  const replay = await api.inject({ method: "POST", url: `/api/v1/deals/${dealId}/source-records/${recordId}/processing-jobs`, headers: { cookie, "idempotency-key": crypto.randomUUID() }, payload: {} });
+  assert.equal(replay.json().data.id, jobId);
+  const assumption = await api.inject({ method: "POST", url: `/api/v1/deals/${dealId}/assumptions`, headers: { cookie, "idempotency-key": crypto.randomUUID() }, payload: { proposition: "Use Cash only for this development reference checkpoint", value: "4.7", purpose: "internal_analysis", scope: "Development reference checkpoint", rationale: "Synthetic cash premise for exact dependency acceptance", bounds: { source: "development fixture" }, invalidation_triggers: ["Cash source changes"], origin: "human_authored" } });
+  assert.equal(assumption.statusCode, 201, assumption.body);
+  const reference = await api.inject({ method: "POST", url: `/api/v1/deals/${dealId}/reference-jobs`, headers: { cookie, "idempotency-key": crypto.randomUUID() }, payload: { purpose: "reference_workspace_build", inputs: { source_packet: "development-native-source", requested_scope: "synthetic_reference_fixture", source_record_id: recordId, assumption_id: assumption.json().data.id } } });
+  assert.equal(reference.statusCode, 202, reference.body); const referenceId=reference.json().id;
+  const readReference=async()=>api.inject({method:"GET",url:`/api/v1/jobs/${referenceId}`,headers:{cookie}});
+  await api.referenceJobRuntime.run(referenceId);
+  assert.equal((await readReference()).json().state,"waiting_for_source");
+  assert.equal((await database.ownerPool.query("SELECT count(*) AS active FROM jobs.job_lease l JOIN jobs.job_step s ON s.id=l.step_id WHERE s.job_id=$1 AND l.released_at IS NULL",[referenceId])).rows[0].active,"0");
+  assert.equal((await api.inject({method:"POST",url:`/api/v1/jobs/${referenceId}/resumptions`,headers:{cookie},payload:{}})).statusCode,404,"No generic resume command may bypass an exact dependency");
+  const worker = new SourceProcessingRuntime(); t.after(() => worker.close());
+  let task;
+  for(let attempt=0;attempt<10;attempt++){
+    await worker.runOnce();
+    task=await api.inject({ method: "GET", url: `/api/v1/deals/${dealId}/source-processing-jobs/${jobId}`, headers: { cookie } });
+    if(task.json().data.state!=="queued")break;
+    await new Promise(resolve=>setTimeout(resolve,1000));
+  }
+  assert.ok(task);
+  assert.equal(task.json().data.state, "completed", task.body);
+  await dispatcher.query("SELECT jobs.dispatch_pending_reference_jobs()");
+  assert.equal((await readReference()).json().state,"queued","The exact Source completion must republish the waiting Job");
+  await api.referenceJobRuntime.run(referenceId);
+  assert.equal((await readReference()).json().state,"waiting_for_user");
+  const approved=await api.inject({method:"POST",url:`/api/v1/deals/${dealId}/assumptions/${assumption.json().data.id}/approvals`,headers:{cookie,"idempotency-key":crypto.randomUUID()},payload:{purpose:"internal_analysis",scope:"Development reference checkpoint",rationale:"Approve this bounded synthetic premise for the development dependency check",evidence_relationship_ids:[],alternatives:["Do not use this premise"],allowed_uses:["Development reference checkpoint"],conditions:[],invalidation_triggers:["Cash source changes"]}});
+  assert.equal(approved.statusCode,201,approved.body);
+  await dispatcher.query("SELECT jobs.dispatch_pending_reference_jobs()");
+  assert.equal((await readReference()).json().state,"queued");
+  await api.referenceJobRuntime.run(referenceId);
+  assert.equal((await readReference()).json().state,"completed");
+  assert.equal((await database.ownerPool.query("SELECT count(*) AS attempts FROM jobs.job_attempt a JOIN jobs.job_step s ON s.id=a.step_id WHERE s.job_id=$1 AND s.ordinal=1",[referenceId])).rows[0].attempts,"1");
+  const fragments = await api.inject({ method: "GET", url: `/api/v1/deals/${dealId}/source-fragments`, headers: { cookie } });
+  const inventory = await api.inject({ method: "GET", url: `/api/v1/deals/${dealId}/source-records?purpose=internal_deal_execution`, headers: { cookie } });
+  assert.equal(inventory.statusCode, 200, inventory.body);
+  assert.equal(inventory.json().data.find((item: { id: string }) => item.id === recordId).coverage_code, "complete");
+  const cash = fragments.json().data.find((item: { content_text: string }) => item.content_text === "4.7");
+  assert.ok(cash); assert.deepEqual(cash.locator, { kind: "csv_cell", row: 2, column: 2 }); assert.equal(cash.coverage_code, "complete");
+  const record = await api.inject({ method: "GET", url: `/api/v1/deals/${dealId}/source-materials/${materialId}/records/${recordId}`, headers: { cookie } });
+  assert.equal(record.json().data.coverage.payload.substantive_parsing, true); assert.equal(record.json().data.representation.original_bytes_preserved, true);
+  const grant = await api.inject({ method: "POST", url: `/api/v1/deals/${dealId}/source-records/${recordId}/object-grants`, headers: { cookie }, payload: { purpose: "source_inspection" } });
+  assert.equal(grant.statusCode, 201, grant.body);
+  const original = await api.inject({ method: "GET", url: grant.json().stream_url, headers: { cookie, authorization: `ObjectGrant ${grant.json().token}` } });
+  assert.equal(original.statusCode, 200); assert.deepEqual(original.rawPayload, bytes);
+  const stranger = await createDeal(api, database, `source-native-other-${crypto.randomUUID()}@example.test`);
+  for (const route of [`/api/v1/deals/${dealId}/source-fragments`, `/api/v1/deals/${dealId}/source-processing-jobs/${jobId}`]) assert.equal((await api.inject({ method: "GET", url: route, headers: { cookie: stranger.cookie } })).statusCode, 404);
 });

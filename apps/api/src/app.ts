@@ -1,5 +1,7 @@
 import { registerDeliverableRoutes } from "./deliverables.js";
 import crypto from "node:crypto";
+import { Readable } from "node:stream";
+import { setTimeout as pause } from "node:timers/promises";
 import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from "fastify";
 import cookie from "@fastify/cookie";
 import { z } from "zod";
@@ -13,6 +15,7 @@ import {
   SyntheticProofStore,
 } from "./synthetic-proof.js";
 import { ReferenceJobRuntime, type ReferenceJobRuntimeOptions } from "./jobs.js";
+import type { inspectSource } from "./source-inspector.js";
 import { registerSourceRoutes } from "./sources.js";
 import { registerAccountTemplateWebEvidenceRoutes, type PublicWebFetcher } from "./account-template-web-evidence.js";
 import { registerSourcePacketRoutes } from "./source-packet-routes.js";
@@ -75,6 +78,7 @@ export interface BuildApiOptions {
   checkoutAdapter?: CheckoutProviderAdapter;
   referenceJobRuntime?: ReferenceJobRuntime | ReferenceJobRuntimeOptions;
   publicWebFetcher?: PublicWebFetcher;
+  sourceInspector?: typeof inspectSource;
   aiProvider?: AiProvider;
 }
 
@@ -188,6 +192,8 @@ export async function buildApi(options: BuildApiOptions = {}): Promise<FastifyIn
   for (const mediaType of ["application/octet-stream", "application/offset+octet-stream"]) {
     api.addContentTypeParser(mediaType, { parseAs: "buffer" }, (_request, body, done) => done(null, body));
   }
+  const eventStreams = new Set<AbortController>();
+  api.addHook("preClose", async () => { for (const controller of eventStreams) controller.abort(); });
   const ownsReferenceJobRuntime = !(options.referenceJobRuntime instanceof ReferenceJobRuntime);
   api.referenceJobRuntime = options.referenceJobRuntime instanceof ReferenceJobRuntime
     ? options.referenceJobRuntime
@@ -241,9 +247,13 @@ export async function buildApi(options: BuildApiOptions = {}): Promise<FastifyIn
   });
 
   api.post("/api/v1/session/passkey/authenticate", async (request, reply) => {
-    const pending = cookieValue(request, "__Host-pending_passkey");
-    if (!pending) return problem(reply, 401, "authentication_required", "Complete the Magic Link bootstrap first.", "authenticate", request.url);
     try {
+      // A returning Banker authenticates directly with their registered Passkey.
+      // The provider token is verified again by the adapter before promotion.
+      const providerToken = bearerToken(request);
+      const pending = cookieValue(request, "__Host-pending_passkey") ??
+        (authMode === "supabase" && providerToken ? (await auth.verifyMagicLink(providerToken)).sessionToken : undefined);
+      if (!pending) return problem(reply, 401, "authentication_required", "Authenticate with your Passkey to continue.", "authenticate", request.url);
       await auth.authenticatePasskey(pending, bearerToken(request));
       setSessionCookie(reply, "__Host-banker_session", pending);
       reply.clearCookie("__Host-pending_passkey", { path: "/" });
@@ -261,6 +271,16 @@ export async function buildApi(options: BuildApiOptions = {}): Promise<FastifyIn
     if (result.kind === "invalid") return problem(reply, 401, "session_expired", "The session is no longer valid.", "reauthenticate", request.url);
     if (result.kind === "passkey_required") return reply.code(200).send({ status: "authenticated", posture: "passkey_required" });
     return reply.code(200).send({ status: "authenticated", posture: "passkey_backed_session" });
+  });
+
+  api.post("/api/v1/session/logouts", async (request, reply) => {
+    if (!allowPublicMutation(request, reply)) return;
+    const session = cookieValue(request, "__Host-banker_session") ?? cookieValue(request, "__Host-pending_passkey");
+    if (session) await database.withPendingSession(session, async (client) => {
+      await client.query("SELECT app.revoke_current_session($1)", [Database.hashToken(session)]);
+    });
+    for (const name of ["__Host-banker_session", "__Host-pending_passkey"]) reply.clearCookie(name, { path: "/", httpOnly: true, secure: true, sameSite: "lax" });
+    return reply.header("cache-control", "private, no-store").code(201).send({ status: "signed_out" });
   });
 
   api.get("/api/v1/public/offer", async (_request, reply) => reply.code(200).send(publicOffer));
@@ -321,7 +341,7 @@ export async function buildApi(options: BuildApiOptions = {}): Promise<FastifyIn
     return key;
   }
 
-  registerSourceRoutes(api, database, { requireBanker, commandKey });
+  registerSourceRoutes(api, database, { requireBanker, commandKey, sourceInspector: options.sourceInspector });
   registerAccountTemplateWebEvidenceRoutes(api, database, { requireBanker, commandKey, publicWebFetcher: options.publicWebFetcher });
   registerSourcePacketRoutes(api, database, { requireBanker, commandKey });
   registerEvidenceFactDecisionRoutes(api, database, { requireBanker, commandKey });
@@ -804,7 +824,7 @@ export async function buildApi(options: BuildApiOptions = {}): Promise<FastifyIn
     const dealId = dealIdSchema.parse(request.params.deal_id);
     const body = z.object({
       purpose: z.literal("reference_workspace_build"),
-      inputs: z.object({ source_packet: z.string().min(1).max(160), requested_scope: z.literal("synthetic_reference_fixture") }).strict(),
+      inputs: z.object({ source_packet: z.string().min(1).max(160), requested_scope: z.literal("synthetic_reference_fixture"), source_record_id: z.string().uuid().optional(), assumption_id: z.string().uuid().optional() }).strict(),
     }).strict().parse(request.body);
     const idempotencyKey = headerValue(request, "idempotency-key");
     if (!idempotencyKey || idempotencyKey.length < 16 || idempotencyKey.length > 128) {
@@ -814,6 +834,8 @@ export async function buildApi(options: BuildApiOptions = {}): Promise<FastifyIn
     if (!session) return problem(reply, 401, "authentication_required", "Authenticate to continue.", "authenticate", request.url);
     const requestDigest = canonicalDigest({ method: "POST", route: "/api/v1/deals/{deal_id}/reference-jobs", api_version: "v1", deal_id: dealId, purpose: body.purpose, inputs: body.inputs });
     const result = await database.withContext(session, dealId, async (client) => {
+      if (body.inputs.source_record_id && !(await client.query("SELECT 1 FROM source.source_record WHERE id=$1 AND deal_id=$2",[body.inputs.source_record_id,dealId])).rowCount) return {kind:"not_found" as const};
+      if (body.inputs.assumption_id && !(await client.query("SELECT 1 FROM knowledge.assumption WHERE id=$1 AND deal_id=$2",[body.inputs.assumption_id,dealId])).rowCount) return {kind:"not_found" as const};
       const created = await client.query<{ job_id: string; created: boolean; conflict: boolean }>(
         "SELECT * FROM jobs.start_reference_job($1, $2, $3, $4)",
         [dealId, Database.hashToken(idempotencyKey), requestDigest, body.inputs],
@@ -827,12 +849,24 @@ export async function buildApi(options: BuildApiOptions = {}): Promise<FastifyIn
     if (result.kind === "invalid") return problem(reply, 401, "session_expired", "The session is no longer valid.", "reauthenticate", request.url);
     if (result.kind === "passkey_required") return problem(reply, 403, "passkey_required", "A Passkey-backed session is required for Job access.", "register_passkey", request.url);
     if (result.kind === "not_found") return problem(reply, 404, "resource_not_found", "The requested resource is not available.", "return_to_safe_parent", request.url);
+    if (result.value.kind === "not_found") return problem(reply,404,"resource_not_found","The exact dependency is not available in this Deal.","inspect_source_or_assumption",request.url);
     if (result.value.kind === "conflict") return problem(reply, 409, "idempotency_key_reused", "The Idempotency-Key was already used for a different request.", "use_new_idempotency_key", request.url);
     api.referenceJobRuntime.schedule(result.value.job.id);
     reply.header("Location", `/api/v1/jobs/${result.value.job.id}`);
     reply.header("ETag", etag(Number(result.value.job.row_version)));
     if (!result.value.created) reply.header("Idempotent-Replayed", "true");
     return reply.code(202).send({ id: result.value.job.id, job_type: "reference_workspace_build", state: result.value.job.state, accepted_at: result.value.job.requested_at });
+  });
+
+  api.get<{ Params: { deal_id: string } }>("/api/v1/deals/:deal_id/jobs", async (request, reply) => {
+    const dealId = dealIdSchema.parse(request.params.deal_id);
+    const session = cookieValue(request, "__Host-banker_session") ?? cookieValue(request, "__Host-pending_passkey");
+    if (!session) return problem(reply, 401, "authentication_required", "Authenticate to continue.", "authenticate", request.url);
+    const result = await database.withContext(session, dealId, async (client) => (await client.query("SELECT id,command_type AS job_type,state,progress,problem,worker_heartbeat_at,row_version,requested_at FROM jobs.job WHERE deal_id=$1 ORDER BY requested_at DESC LIMIT 100", [dealId])).rows);
+    if (result.kind === "invalid") return problem(reply, 401, "session_expired", "The session is no longer valid.", "reauthenticate", request.url);
+    if (result.kind === "passkey_required") return problem(reply, 403, "passkey_required", "A Passkey-backed session is required.", "register_passkey", request.url);
+    if (result.kind !== "ok") return problem(reply, 404, "resource_not_found", "The Deal is not available.", "return_to_safe_parent", request.url);
+    return reply.header("cache-control", "private, no-store").send({ data: result.value });
   });
 
   api.get<{ Params: { job_id: string } }>("/api/v1/jobs/:job_id", async (request, reply) => {
@@ -885,6 +919,7 @@ export async function buildApi(options: BuildApiOptions = {}): Promise<FastifyIn
         result: row.result,
         problem: row.problem,
         accepted_inputs: row.accepted_inputs,
+        dependencies: (await client.query("SELECT step_id,prior_step_id,source_record_id,assumption_id FROM jobs.job_dependency WHERE job_id=$1",[jobId])).rows,
         created_at: row.requested_at,
         updated_at: row.updated_at,
         worker_heartbeat_at: row.worker_heartbeat_at,
@@ -907,28 +942,55 @@ export async function buildApi(options: BuildApiOptions = {}): Promise<FastifyIn
     const session = cookieValue(request, "__Host-banker_session") ?? cookieValue(request, "__Host-pending_passkey");
     if (!session) return problem(reply, 401, "authentication_required", "Authenticate to continue.", "authenticate", request.url);
     const lastEventId = Number(headerValue(request, "last-event-id") ?? "0");
-    if (!Number.isInteger(lastEventId) || lastEventId < 0) return problem(reply, 400, "invalid_event_cursor", "The event cursor is invalid.", "reconnect_without_cursor", request.url);
-    const result = await database.withJobContext(session, jobId, async (client) => {
+    if (!Number.isSafeInteger(lastEventId) || lastEventId < 0) return problem(reply, 400, "invalid_event_cursor", "The event cursor is invalid.", "reconnect_without_cursor", request.url);
+    const readEvents = (cursor: number) => database.withJobContext(session, jobId, async (client) => {
       const rows = await client.query<{ sequence: string; event_type: string; state: string; stage_code: string | null; progress: Record<string, unknown>; safe_message_code: string; recovery_action: string | null; occurred_at: string }>(
-        "SELECT sequence, event_type, state, stage_code, progress, safe_message_code, recovery_action, occurred_at FROM jobs.job_event WHERE job_id = $1 AND sequence > $2 ORDER BY sequence ASC",
-        [jobId, lastEventId],
-      );
-      const snapshot = await client.query<{ state: string; progress: Record<string, unknown>; row_version: string; worker_heartbeat_at: string | null; sequence: string | null }>("SELECT j.state, j.progress, j.row_version, j.worker_heartbeat_at, (SELECT max(sequence) FROM jobs.job_event WHERE job_id = j.id) AS sequence FROM jobs.job j WHERE j.id = $1", [jobId]);
-      const bounds = await client.query<{ first_sequence: string | null }>("SELECT min(sequence) AS first_sequence FROM jobs.job_event WHERE job_id = $1", [jobId]);
-      return { rows: rows.rows, snapshot: snapshot.rows[0], firstSequence: bounds.rows[0]?.first_sequence ? Number(bounds.rows[0].first_sequence) : null };
+        "SELECT sequence,event_type,state,stage_code,progress,safe_message_code,recovery_action,occurred_at FROM jobs.job_event WHERE job_id=$1 AND sequence>$2 ORDER BY sequence LIMIT 1000", [jobId, cursor]);
+      const snapshot = await client.query<{ state: string; progress: Record<string, unknown>; row_version: string; worker_heartbeat_at: string | null; sequence: string | null; first_sequence: string | null }>(
+        "SELECT j.state,j.progress,j.row_version,j.worker_heartbeat_at,(SELECT max(sequence) FROM jobs.job_event WHERE job_id=j.id) AS sequence,(SELECT min(sequence) FROM jobs.job_event WHERE job_id=j.id) AS first_sequence FROM jobs.job j WHERE j.id=$1", [jobId]);
+      return { rows: rows.rows, snapshot: snapshot.rows[0] };
     });
-    if (result.kind === "invalid") return problem(reply, 401, "session_expired", "The session is no longer valid.", "reauthenticate", request.url);
-    if (result.kind === "passkey_required") return problem(reply, 403, "passkey_required", "A Passkey-backed session is required for Job access.", "register_passkey", request.url);
-    if (result.kind === "not_found") return problem(reply, 404, "resource_not_found", "The requested resource is not available.", "return_to_safe_parent", request.url);
-    if (result.value.firstSequence !== null && lastEventId > 0 && lastEventId < result.value.firstSequence - 1) return problem(reply, 409, "event_cursor_expired", "The event cursor is no longer retained.", "reconnect_without_cursor", request.url);
-    const lines = ["retry: 3000", ": heartbeat"];
-    const snapshotData = result.value.snapshot ? JSON.stringify({ state: result.value.snapshot.state, progress: result.value.snapshot.progress, row_version: Number(result.value.snapshot.row_version), worker_heartbeat_at: result.value.snapshot.worker_heartbeat_at }) : null;
-    const snapshotLine = snapshotData ? `event: job_snapshot\ndata: ${snapshotData}` : null;
-    if (lastEventId === 0 && snapshotLine) lines.push(snapshotLine);
-    for (const event of result.value.rows) lines.push(`id: ${event.sequence}\nevent: ${event.event_type}\ndata: ${JSON.stringify({ state: event.state, stage_code: event.stage_code, progress: event.progress, message_code: event.safe_message_code, recovery_action: event.recovery_action, occurred_at: event.occurred_at })}`);
-    if (lastEventId > 0 && snapshotData) lines.push(`id: ${Number(result.value.snapshot?.sequence ?? lastEventId)}\nevent: job_snapshot\ndata: ${snapshotData}`);
-    if (result.value.snapshot && ["completed", "failed_terminal", "canceled"].includes(result.value.snapshot.state)) lines.push("event: stream_closed\ndata: {\"reason\":\"terminal\"}");
-    return reply.code(200).type("text/event-stream").header("cache-control", "no-cache").send(`${lines.join("\n\n")}\n\n`);
+    const initial = await readEvents(lastEventId);
+    if (initial.kind === "invalid") return problem(reply, 401, "session_expired", "The session is no longer valid.", "reauthenticate", request.url);
+    if (initial.kind === "passkey_required") return problem(reply, 403, "passkey_required", "A Passkey-backed session is required for Job access.", "register_passkey", request.url);
+    if (initial.kind === "not_found" || !initial.value.snapshot) return problem(reply, 404, "resource_not_found", "The requested resource is not available.", "return_to_safe_parent", request.url);
+    const first = Number(initial.value.snapshot.first_sequence ?? 0);
+    if (lastEventId > Number(initial.value.snapshot.sequence ?? 0) || (lastEventId > 0 && lastEventId < first - 1)) return problem(reply, 409, "event_cursor_expired", "The event cursor is no longer retained.", "reconnect_without_cursor", request.url);
+    const controller = new AbortController();
+    eventStreams.add(controller);
+    async function* events() {
+      let current = initial;
+      let cursor = lastEventId;
+      let heartbeatAt = Date.now();
+      try {
+        yield "retry: 3000\n\n: heartbeat\n\n";
+        const snapshot = initial.kind === "ok" ? initial.value.snapshot : null;
+        if (snapshot) yield `event: job_snapshot\ndata: ${JSON.stringify({ state: snapshot.state, progress: snapshot.progress, row_version: Number(snapshot.row_version), worker_heartbeat_at: snapshot.worker_heartbeat_at })}\n\n`;
+        while (!controller.signal.aborted) {
+          if (current.kind !== "ok" || !current.value.snapshot) {
+            yield 'event: stream_closed\ndata: {"reason":"authorization_changed"}\n\n';
+            return;
+          }
+          for (const event of current.value.rows) {
+            cursor = Number(event.sequence);
+            yield `id: ${event.sequence}\nevent: ${event.event_type}\ndata: ${JSON.stringify({ state: event.state, stage_code: event.stage_code, progress: event.progress, message_code: event.safe_message_code, recovery_action: event.recovery_action, occurred_at: event.occurred_at })}\n\n`;
+          }
+          if (cursor >= Number(current.value.snapshot.sequence ?? 0) && ["completed", "failed_terminal", "canceled"].includes(current.value.snapshot.state)) {
+            yield 'event: stream_closed\ndata: {"reason":"terminal"}\n\n';
+            return;
+          }
+          if (Date.now() - heartbeatAt >= 20_000) { yield ": heartbeat\n\n"; heartbeatAt = Date.now(); }
+          await pause(1000, undefined, { signal: controller.signal });
+          // Re-enter the authenticated Account and exact Deal for every replay.
+          current = await readEvents(cursor);
+        }
+      } catch {
+        if (!controller.signal.aborted) yield 'event: stream_closed\ndata: {"reason":"reconnect_required"}\n\n';
+      } finally { eventStreams.delete(controller); }
+    }
+    const stream = Readable.from(events());
+    reply.raw.once("close", () => controller.abort());
+    return reply.code(200).type("text/event-stream").header("cache-control", "private, no-store").header("x-accel-buffering", "no").send(stream);
   });
 
   api.post<{ Params: { job_id: string } }>("/api/v1/jobs/:job_id/cancellations", async (request, reply) => {

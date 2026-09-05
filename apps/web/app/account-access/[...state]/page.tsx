@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import AccountAccessPage from "../page";
 
 const states: Record<string, { title: string; detail: string; tone: "info" | "warning" | "critical" | "success" }> = {
   "email-sent": { title: "Magic Link sent", detail: "Open the message in this same browser. The link is single-use and does not grant ordinary Banker access until Passkey registration is complete.", tone: "success" },
@@ -13,6 +14,9 @@ const states: Record<string, { title: string; detail: string; tone: "info" | "wa
 export default async function AccountAccessStatePage({ params }: { params: Promise<{ state: string[] }> }) {
   const { state } = await params;
   const key = state.join("/");
+  if (key === "passkey/register") return <AccountAccessPage initialStep="register" />;
+  if (key === "passkey/sign-in") return <AccountAccessPage initialStep="signin" />;
+  if (key === "email-sent") return <AccountAccessPage initialStep="sent" />;
   const passkey = key === "passkey/register" ? { title: "Register mandatory Passkey", detail: "Mailbox verification is complete. Register a Passkey before ordinary Banker access can be created.", tone: "info" as const } : key === "passkey/sign-in" ? { title: "Sign in with Passkey", detail: "Use the registered Passkey to create the ordinary Banker session and return to the saved task.", tone: "info" as const } : undefined;
   const content = states[key] ?? passkey;
   if (!content) notFound();

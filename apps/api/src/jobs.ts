@@ -17,24 +17,25 @@ export interface ReferenceJobRuntimeOptions {
  * deterministic Project Northstar fixture worker for the acceptance seam.
  */
 export class ReferenceJobRuntime {
-  private readonly workerPool: pg.Pool;
-  private readonly dispatcherPool: pg.Pool;
+  private readonly workerPool: pg.Pool | undefined;
+  private readonly dispatcherPool: pg.Pool | undefined;
   private readonly options: Required<ReferenceJobRuntimeOptions>;
   private readonly scheduled = new Set<string>();
 
-  constructor(_database: Database, options: ReferenceJobRuntimeOptions = {}) {
-    this.options = { autoRun: options.autoRun ?? true, failureStage: options.failureStage ?? "" };
-    if (process.env.APP_ENV === "production" && (!process.env.JOB_WORKER_DATABASE_URL || !process.env.JOB_DISPATCHER_DATABASE_URL)) throw new Error("JOB_WORKER_DATABASE_URL and JOB_DISPATCHER_DATABASE_URL are required in production");
+  constructor(_database?: Database, options: ReferenceJobRuntimeOptions = {}) {
+    this.options = { autoRun: options.autoRun ?? process.env.JOB_EXECUTION_MODE !== "external", failureStage: options.failureStage ?? "" };
     const sslCaFile = process.env.DATABASE_SSL_CA_FILE;
     const ssl = sslCaFile ? { ca: fs.readFileSync(sslCaFile, "utf8") } : undefined;
-    this.workerPool = new pg.Pool({
+    this.workerPool = process.env.JOB_WORKER_DATABASE_URL || process.env.JOB_EXECUTION_MODE !== "external" ? new pg.Pool({
       connectionString: process.env.JOB_WORKER_DATABASE_URL ?? "postgres://job_worker:job_worker_dev@localhost:55432/investment_banking",
       ...(ssl ? { ssl } : {}),
-    });
-    this.dispatcherPool = new pg.Pool({
+      max: 2,
+    }) : undefined;
+    this.dispatcherPool = process.env.JOB_DISPATCHER_DATABASE_URL || process.env.JOB_EXECUTION_MODE !== "external" ? new pg.Pool({
       connectionString: process.env.JOB_DISPATCHER_DATABASE_URL ?? "postgres://job_dispatcher:job_dispatcher_dev@localhost:55432/investment_banking",
       ...(ssl ? { ssl } : {}),
-    });
+      max: 2,
+    }) : undefined;
   }
 
   schedule(jobId: string) {
@@ -49,8 +50,9 @@ export class ReferenceJobRuntime {
     this.options.failureStage = stage;
   }
 
-  async run(jobId: string): Promise<void> {
-    await this.dispatch(jobId);
+  async run(jobId: string, dispatch = true): Promise<void> {
+    if (dispatch) await this.dispatch(jobId);
+    if (!this.workerPool) throw new Error("worker_credentials_unavailable");
     const client = await this.workerPool.connect();
     try {
       for (let i = 0; i < 8; i += 1) {
@@ -90,6 +92,7 @@ export class ReferenceJobRuntime {
   }
 
   async dispatch(jobId: string): Promise<void> {
+    if (!this.dispatcherPool) throw new Error("dispatcher_credentials_unavailable");
     const client = await this.dispatcherPool.connect();
     try {
       await client.query("SELECT jobs.dispatch_reference_outbox($1)", [jobId]);
@@ -99,6 +102,7 @@ export class ReferenceJobRuntime {
   }
 
   async recover(jobId: string): Promise<boolean> {
+    if (!this.dispatcherPool) throw new Error("dispatcher_credentials_unavailable");
     const client = await this.dispatcherPool.connect();
     try {
       const result = await client.query<{ recover_expired_reference_job: boolean }>("SELECT jobs.recover_expired_reference_job($1)", [jobId]);
@@ -109,7 +113,7 @@ export class ReferenceJobRuntime {
   }
 
   async close() {
-    await this.workerPool.end();
-    await this.dispatcherPool.end();
+    await this.workerPool?.end();
+    await this.dispatcherPool?.end();
   }
 }

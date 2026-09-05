@@ -5,6 +5,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { canonicalDigest } from "./commerce.js";
 import { Database } from "./database.js";
+import { inspectSource } from "./source-inspector.js";
 
 const uuid = z.string().uuid();
 const problemType = "https://investment-banking.local/problems";
@@ -23,6 +24,7 @@ const MAX_UPLOAD_FILE_BYTES = 100 * 1024 * 1024;
 
 type SourceRouteDeps = {
   requireBanker: (request: FastifyRequest, reply: FastifyReply) => Promise<string | null>;
+  sourceInspector?: typeof inspectSource;
   commandKey: (request: FastifyRequest, reply: FastifyReply) => string | null;
 };
 
@@ -226,6 +228,62 @@ function expectedUploadVersion(value: string | undefined) {
 }
 
 export function registerSourceRoutes(api: FastifyInstance, database: Database, deps: SourceRouteDeps) {
+  api.get<{ Params: { deal_id: string }; Querystring: { purpose?: string } }>("/api/v1/deals/:deal_id/source-records", async (request, reply) => {
+    const dealId = uuid.parse(request.params.deal_id); const purpose = z.string().min(1).max(120).parse(request.query.purpose ?? "internal_analysis");
+    const session = await deps.requireBanker(request, reply); if (!session) return;
+    const result = await database.withContext(session, dealId, async (client) => (await client.query(`
+      SELECT r.id,r.source_material_id,m.stable_name,r.version_ordinal AS version,r.version_label,r.authority_basis,r.media_type,r.record_date,r.content_sha256,
+        r.confidentiality_class,r.rights_posture AS declared_rights,$2::text AS assessment_purpose,
+        ra.id AS rights_assessment_id,ra.rights_code AS rights,ra.permitted_operations,ra.conditions,
+        rel.reliance_state,ca.freshness_code AS freshness,ca.conflict_code AS conflict,ca.disposition_code AS disposition,
+        pc.coverage_code,pc.coverage_payload AS coverage,pc.parser_identity,
+        task.id AS processing_job_id,task.state AS processing_state,
+        (SELECT count(*) FROM source.source_fragment f WHERE f.source_record_id=r.id) AS fragment_count
+      FROM source.source_record r JOIN source.source_material m ON m.id=r.source_material_id
+      LEFT JOIN source.source_rights_current_selection rs ON rs.source_record_id=r.id AND rs.purpose_code=$2
+      LEFT JOIN source.source_rights_posture_assessment ra ON ra.id=rs.assessment_id
+      LEFT JOIN source.reliance_current_selection rcs ON rcs.source_record_id=r.id AND rcs.purpose_code=$2
+      LEFT JOIN source.source_reliance_assessment rel ON rel.id=rcs.assessment_id
+      LEFT JOIN source.source_condition_current_selection cs ON cs.source_record_id=r.id AND cs.purpose_code=$2
+      LEFT JOIN source.source_condition_assessment ca ON ca.id=cs.assessment_id
+      LEFT JOIN LATERAL(SELECT c.* FROM source.processing_coverage c WHERE c.source_record_id=r.id ORDER BY c.created_at DESC,c.id DESC LIMIT 1) pc ON true
+      LEFT JOIN source.processing_task task ON task.source_record_id=r.id
+      WHERE r.deal_id=$1 ORDER BY m.created_at,r.version_ordinal`, [dealId, purpose])).rows);
+    if (result.kind !== "ok") return sourceProblem(reply, result.kind === "invalid" ? 401 : result.kind === "passkey_required" ? 403 : 404, result.kind === "invalid" ? "session_expired" : result.kind === "passkey_required" ? "passkey_required" : "resource_not_found", "The Source records are not available.", "return_to_safe_parent", request.url);
+    return reply.header("Cache-Control", "private, no-store").send({ data: result.value });
+  });
+  api.post<{ Params: { deal_id: string; source_record_id: string } }>("/api/v1/deals/:deal_id/source-records/:source_record_id/processing-jobs", async (request, reply) => {
+    const dealId = uuid.parse(request.params.deal_id); const recordId = uuid.parse(request.params.source_record_id);
+    z.object({}).strict().parse(request.body ?? {});
+    const session = await deps.requireBanker(request, reply); if (!session) return;
+    if (!deps.commandKey(request, reply)) return;
+    try {
+      const result = await database.withContext(session, dealId, async (client) => {
+        const id = (await client.query<{ id: string }>("SELECT source.enqueue_processing($1) AS id", [recordId])).rows[0]!.id;
+        return (await client.query<{ id: string; state: string }>("SELECT id,state FROM source.processing_task WHERE id=$1", [id])).rows[0]!;
+      });
+      if (result.kind !== "ok") return sourceProblem(reply, result.kind === "invalid" ? 401 : result.kind === "passkey_required" ? 403 : 404, result.kind === "invalid" ? "session_expired" : result.kind === "passkey_required" ? "passkey_required" : "resource_not_found", "The Source is not available.", "return_to_safe_parent", request.url);
+      return reply.code(202).header("Location", `/api/v1/deals/${dealId}/source-processing-jobs/${result.value.id}`).send({ data: result.value });
+    } catch (error) { return sourceError(error, request, reply); }
+  });
+  api.get<{ Params: { deal_id: string; job_id: string } }>("/api/v1/deals/:deal_id/source-processing-jobs/:job_id", async (request, reply) => {
+    const dealId = uuid.parse(request.params.deal_id); const jobId = uuid.parse(request.params.job_id);
+    const session = await deps.requireBanker(request, reply); if (!session) return;
+    const result = await database.withContext(session, dealId, async (client) => (await client.query("SELECT id,source_record_id,state,attempts,heartbeat_at,problem_code,representation_id,created_at,completed_at FROM source.processing_task WHERE id=$1", [jobId])).rows[0] ?? null);
+    if (result.kind !== "ok" || !result.value) return sourceProblem(reply, result.kind === "invalid" ? 401 : 404, "resource_not_found", "The Source processing task is not available.", "return_to_safe_parent", request.url);
+    return reply.header("Cache-Control", "private, no-store").send({ data: result.value });
+  });
+  api.get<{ Params: { deal_id: string } }>("/api/v1/deals/:deal_id/source-fragments", async (request, reply) => {
+    const dealId = uuid.parse(request.params.deal_id);
+    const session = await deps.requireBanker(request, reply); if (!session) return;
+    const result = await database.withContext(session, dealId, async (client) => (await client.query(
+      `SELECT f.id,f.source_record_id,f.representation_id,f.locator,f.content_text,f.content_sha256,f.coverage_code,m.stable_name AS source_name
+       FROM source.source_fragment f JOIN source.source_record r ON r.id=f.source_record_id
+       JOIN source.source_material m ON m.id=r.source_material_id
+       WHERE f.deal_id=$1 ORDER BY f.created_at,f.id`, [dealId])).rows);
+    if (result.kind !== "ok") return sourceProblem(reply, result.kind === "invalid" ? 401 : result.kind === "passkey_required" ? 403 : 404, result.kind === "invalid" ? "session_expired" : result.kind === "passkey_required" ? "passkey_required" : "resource_not_found", "The Source fragments are not available.", "return_to_safe_parent", request.url);
+    return reply.header("Cache-Control", "private, no-store").send({ data: result.value });
+  });
   api.post<{ Params: { deal_id: string } }>("/api/v1/deals/:deal_id/upload-sessions", async (request, reply) => {
     const dealId = uuid.parse(request.params.deal_id);
     const session = await deps.requireBanker(request, reply);
@@ -330,7 +388,7 @@ export function registerSourceRoutes(api: FastifyInstance, database: Database, d
         let bytes: Buffer;
         try { bytes = await fs.readFile(filePath); } catch { bytes = Buffer.alloc(0); }
         const digest = crypto.createHash("sha256").update(bytes).digest("hex");
-        const scan = bytes.length === 0 ? { clean: false, code: "scan_incomplete", limitations: [] as string[], family: "unknown" } : scanUpload(bytes, row.declared_media_type, row.display_name);
+        const scan = bytes.length === 0 ? { clean: false, code: "scan_incomplete", limitations: [] as string[], family: "unknown" } : deps.sourceInspector ? await deps.sourceInspector(bytes, fileFamily(row.declared_media_type, row.display_name), "scan") : process.env.NODE_ENV === "test" ? scanUpload(bytes, row.declared_media_type, row.display_name) : (process.env.SOURCE_INSPECTOR_SOCKET || process.env.OFFICE_RENDERER_SOCKET) ? await inspectSource(bytes, fileFamily(row.declared_media_type, row.display_name), "scan") : { clean: false, code: "scan_incomplete", limitations: [], family: "unknown" };
         const marked = await database.withContext(session, row.deal_id, async (client, context) => (await client.query<{ outcome: string; source_material_id: string | null; problem_code: string | null }>("SELECT * FROM source.mark_upload_finalized($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)", [context.accountId, context.actorId, uploadSessionId, fileId, bytes.length, digest, row.declared_media_type, scan, row.source_material_id, row.new_source_material_name])).rows[0] ?? null);
         if (marked.kind !== "ok" || marked.value === null || marked.value.outcome !== "succeeded") {
           items.push({ item_id: fileId, outcome: "failed", problem: { code: marked.kind === "ok" ? marked.value?.problem_code ?? scan.code ?? "scan_incomplete" : "resource_not_found", detail: "The file remains outside accepted Source Material." } });

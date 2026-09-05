@@ -21,7 +21,7 @@ test("AI source proposal tables are forced RLS and runtime cannot write them", a
   const result = await database.ownerPool.query<{ relname: string; relforcerowsecurity: boolean }>("SELECT c.relname,c.relforcerowsecurity FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='ai' AND c.relname=ANY($1)", [tables]);
   assert.deepEqual(result.rows.filter((row) => row.relforcerowsecurity).map((row) => row.relname).sort(), [...tables].sort());
   const role = await database.ownerPool.query<{ rolbypassrls: boolean; rolsuper: boolean }>("SELECT rolbypassrls,rolsuper FROM pg_roles WHERE rolname='app_ai_owner'");
-  assert.equal(role.rows[0]?.rolbypassrls, true);
+  assert.equal(role.rows[0]?.rolbypassrls, false);
   assert.equal(role.rows[0]?.rolsuper, false);
   const rawAcl = await database.ownerPool.query<{ allowed: boolean }>("SELECT has_column_privilege('app_runtime','ai.run','raw_request_ciphertext','SELECT') AS allowed");
   assert.equal(rawAcl.rows[0]?.allowed, false);
@@ -29,4 +29,21 @@ test("AI source proposal tables are forced RLS and runtime cannot write them", a
   assert.equal(writeAcl.rows[0]?.allowed, false);
   const releaseDigests = await database.ownerPool.query<{ zero_count: string; zero_output_count: string }>("SELECT (SELECT count(*) FILTER (WHERE manifest_digest LIKE 'sha256:000%') FROM ai.task_definition)::text AS zero_count, (SELECT count(*) FILTER (WHERE output_schema_digest LIKE 'sha256:000%') FROM ai.prompt_package)::text AS zero_output_count");
   assert.deepEqual(releaseDigests.rows[0], { zero_count: "0", zero_output_count: "0" });
+});
+
+test("deployment controls can suspend and restore AI policy without runtime configuration writes", async (t) => {
+  const database = await createTestDatabase(); t.after(() => database.close());
+  const client = await database.ownerPool.connect();
+  try {
+    await client.query("BEGIN");
+    const row = (await client.query("SELECT id,prompt_package_id FROM ai.task_enablement WHERE status_code='enabled' ORDER BY id LIMIT 1")).rows[0];
+    assert.ok(row);
+    await client.query("SET LOCAL ROLE app_ai_owner");
+    assert.equal((await client.query("SELECT ai.suspend_task($1,'bounded repair verification') AS changed", [row.id])).rows[0].changed, true);
+    assert.equal((await client.query("SELECT ai.enable_task($1,'restore bounded verification') AS changed", [row.id])).rows[0].changed, true);
+    assert.equal((await client.query("SELECT ai.rollback_task($1,$2,'same approved package verification') AS changed", [row.id, row.prompt_package_id])).rows[0].changed, true);
+    await client.query("RESET ROLE");
+    const acl = (await client.query("SELECT has_column_privilege('app_ai_owner','ai.task_enablement','status_code','UPDATE') AS direct_write,has_function_privilege('app_runtime','ai.suspend_task(uuid,text)','EXECUTE') AS runtime_control")).rows[0];
+    assert.deepEqual(acl, { direct_write: false, runtime_control: false });
+  } finally { await client.query("ROLLBACK"); client.release(); }
 });

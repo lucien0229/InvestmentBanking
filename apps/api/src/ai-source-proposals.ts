@@ -6,7 +6,7 @@ import { canonicalDigest } from "./commerce.js";
 import { Database } from "./database.js";
 import {
   AI_OUTPUT_SCHEMA_VERSION,
-  taskDefinitions, workbookAiTasks, workbookCommentaryPayload, deliverableQcPayload, nativeReaderParityPayload, workbookProviderSchema,
+  taskDefinitions, workbookAiTasks, aiProviderOutputSchema,
   AI_ORIGIN,
   buildAiInputEnvelope,
   canRouteMaterial,
@@ -41,7 +41,7 @@ export type AiSourceFragment = {
 
 export interface AiProvider {
   readonly providerCode: "hellox";
-  invoke(input: { taskDefinition: TaskDefinition; envelope: AiInputEnvelope; fragments: AiSourceFragment[] }): Promise<{ response: unknown; providerRequestId: string; model: string; usage: Record<string, unknown>; costMinorUnits: number }>;
+  invoke(input: { taskDefinition: TaskDefinition; envelope: AiInputEnvelope; fragments: AiSourceFragment[]; onRequest?: (request: unknown) => void | Promise<void> }): Promise<{ response: unknown; providerRequestId: string; model: string; usage: Record<string, unknown>; costMinorUnits: number }>;
 }
 
 /** OpenAI-compatible HelloX provider used only when an API key is configured. */
@@ -94,7 +94,7 @@ export class HelloXAiProvider implements AiProvider {
     this.reasoningEffort = process.env.HELLOX_REASONING_EFFORT ?? "xhigh";
   }
 
-  async invoke(input: { taskDefinition: TaskDefinition; envelope: AiInputEnvelope; fragments: AiSourceFragment[] }) {
+  async invoke(input: { taskDefinition: TaskDefinition; envelope: AiInputEnvelope; fragments: AiSourceFragment[]; onRequest?: (request: unknown) => void | Promise<void> }) {
     if (!this.apiKey) throw new Error("ai_provider_unconfigured");
     const system = [
       "You are a proposal-only source-analysis worker.",
@@ -103,7 +103,7 @@ export class HelloXAiProvider implements AiProvider {
       "Every result must include origin=ai_generated and only cite the supplied run_fragment_id values.",
       `The task is ${input.taskDefinition}. Follow the task contract exactly. The required top-level shape is {status, schema_version, task_definition, scope_digest_echo, results, abstentions, omissions}. Use schema_version=1.0.0, task_definition=${input.taskDefinition}, and scope_digest_echo=${input.envelope.scope.scope_digest}.`,
       "For source_claim_extraction payload use proposition, attribution, definition, period, unit, currency, sign, value, text, source_fragment_id, qualification.",
-      "For claim_evidence_linking payload use proposition_key, fragment_id, relationship, supported_scope, qualification, relationship_limitation.",
+      "For claim_evidence_linking payload use proposition_key, fragment_id, relationship, supported_scope, qualification, relationship_limitation. proposition_key is the supplied run_fragment_id containing the proposition, not a newly invented Claim key. fragment_id is the supplied run_fragment_id of the supporting or challenging evidence.",
       "For material_source_conflict_analysis payload use conflict_key, dimension, competing_refs, affected_scope, unresolved_alternatives, affected_uses.",
       "For financial_semantic_extraction payload use proposition, definition, period, unit, currency, sign, precision, value_text, actual_forecast, source_fragment_id, source_locator, qualification.",
       "For financial_normalization_mapping payload use mapping_key, source_fragment_id, source_definition, canonical_definition, canonical_taxonomy_version, period, unit, currency, sign, precision, value_text, actual_forecast, decision_id, assumption_id, mapping_notes.",
@@ -114,7 +114,7 @@ export class HelloXAiProvider implements AiProvider {
       "For valuation_commentary_draft payload use valuation_question, commentary, model_version_id, calculation_run_ids, assumption_ids, evidence_ids, scenario_version_ids, limitations.",
       "Each result also requires candidate_key, origin, evidence_links, support_status, conflicts, uncertainty_flags, limitations, required_human_decision.",
       "If the contract cannot be satisfied, return status=abstained with a typed abstentions entry instead of inventing fields.",
-      ...(workbookAiTasks.includes(input.taskDefinition as typeof workbookAiTasks[number]) ? [`Required JSON Schema: ${JSON.stringify(providerOutputSchema(input.taskDefinition,input.envelope.scope.scope_digest))}`] : []),
+      `Required JSON Schema: ${JSON.stringify(aiProviderOutputSchema(input.taskDefinition,input.envelope.scope.scope_digest))}`,
     ].join(" ");
     const user = JSON.stringify({ envelope: input.envelope, fragments: input.fragments.map((fragment) => ({ run_fragment_id: fragment.run_fragment_id, locator: fragment.locator, content_text: fragment.content_text })) });
     // Keep the provider request bounded even when the upstream ignores the
@@ -122,16 +122,16 @@ export class HelloXAiProvider implements AiProvider {
     // completion from exhausting the provider/gateway timeout while leaving
     // the model and reasoning posture unchanged.
     const providerMaxOutputTokens = 8000;
-    const streaming = workbookAiTasks.includes(input.taskDefinition as typeof workbookAiTasks[number]);
-    const requestBody = { model: this.model, reasoning_effort: this.reasoningEffort, temperature: 0, max_tokens: Math.min(input.envelope.limits.max_output_tokens, providerMaxOutputTokens), response_format: { type: "json_object" }, messages: [{ role: "system", content: system }, { role: "user", content: user }], ...(streaming ? {stream:true,stream_options:{include_usage:true}} : {}) };
-    let response = await fetch(`${this.baseUrl}/v1/chat/completions`, {
+    const requestBody = { model: this.model, reasoning_effort: this.reasoningEffort, temperature: 0, max_tokens: Math.min(input.envelope.limits.max_output_tokens, providerMaxOutputTokens), response_format: { type: "json_object" }, messages: [{ role: "system", content: system }, { role: "user", content: user }], stream: true, stream_options: { include_usage: true } };
+    await input.onRequest?.({ method: "POST", url: `${this.baseUrl}/v1/chat/completions`, body: requestBody });
+    const response = await fetch(`${this.baseUrl}/v1/chat/completions`, {
       method: "POST",
       headers: { authorization: `Bearer ${this.apiKey}`, "content-type": "application/json" },
       body: JSON.stringify(requestBody),
       signal: AbortSignal.timeout(600_000),
     });
     if (!response.ok) throw new Error(`ai_provider_http_${response.status}`);
-    const body = streaming ? await readCompletionStream(response) : await response.json() as CompletionResponse;
+    const body = await readCompletionStream(response);
     const content = body.choices?.[0]?.message?.content;
     if (!content) throw new Error("ai_provider_empty_response");
     let parsed: unknown;
@@ -145,33 +145,6 @@ export interface AiSourceProposalRuntimeOptions {
   provider?: AiProvider;
 }
 
-function providerOutputSchema(taskDefinition: TaskDefinition, scopeDigest: string) {
-  if ((workbookAiTasks as readonly string[]).includes(taskDefinition)) return workbookProviderSchema(taskDefinition as typeof workbookAiTasks[number],scopeDigest);
-  const strings = { type: "array", items: { type: "string" }, maxItems: 30 };
-  const evidenceLink = { type: "object", additionalProperties: false, required: ["fragment_id", "relationship", "proposition_scope", "qualification", "limitation"], properties: { fragment_id: { type: "string" }, relationship: { enum: ["supports", "challenges"] }, proposition_scope: { type: "string" }, qualification: { type: ["string", "null"] }, limitation: { type: ["string", "null"] } } };
-  const conflict = { type: "object", additionalProperties: false, required: ["conflict_key", "dimension", "competing_refs", "affected_scope", "unresolved_alternatives", "affected_uses"], properties: { conflict_key: { type: "string" }, dimension: { enum: ["definition", "period", "unit", "currency", "sign", "value", "source_version", "scope", "meaning"] }, competing_refs: { type: "array", items: { type: "string" }, minItems: 2, maxItems: 20 }, affected_scope: { type: "string" }, unresolved_alternatives: { type: "array", items: { type: "string" }, minItems: 2, maxItems: 20 }, affected_uses: { type: "array", items: { type: "string" }, minItems: 1, maxItems: 20 } } };
-  const financialSemantic = { type: "object", additionalProperties: false, required: ["proposition", "definition", "period", "unit", "currency", "sign", "precision", "value_text", "actual_forecast", "source_fragment_id", "source_locator", "qualification"], properties: { proposition: { type: "string", minLength: 1, maxLength: 2000 }, definition: { type: "string", minLength: 1, maxLength: 500 }, period: { type: "string", minLength: 1, maxLength: 120 }, unit: { type: "string", minLength: 1, maxLength: 80 }, currency: { type: "string", minLength: 1, maxLength: 20 }, sign: { enum: ["positive", "negative", "not_applicable", "unknown"] }, precision: { type: "integer", minimum: 0, maximum: 12 }, value_text: { type: ["string", "null"], pattern: "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$" }, actual_forecast: { enum: ["actual", "forecast", "unknown"] }, source_fragment_id: { type: "string", minLength: 1, maxLength: 160 }, source_locator: { type: "object", additionalProperties: false }, qualification: { type: ["string", "null"], maxLength: 500 } } };
-  const financialMapping = { type: "object", additionalProperties: false, required: ["mapping_key", "source_fragment_id", "source_definition", "canonical_definition", "canonical_taxonomy_version", "period", "unit", "currency", "sign", "precision", "value_text", "actual_forecast", "decision_id", "assumption_id", "mapping_notes"], properties: { mapping_key: { type: "string", minLength: 1, maxLength: 160 }, source_fragment_id: { type: "string", minLength: 1, maxLength: 160 }, source_definition: { type: "string", minLength: 1, maxLength: 500 }, canonical_definition: { type: "string", minLength: 1, maxLength: 500 }, canonical_taxonomy_version: { type: "string", minLength: 1, maxLength: 80 }, period: { type: "string", minLength: 1, maxLength: 120 }, unit: { type: "string", minLength: 1, maxLength: 80 }, currency: { type: "string", minLength: 1, maxLength: 20 }, sign: { enum: ["positive", "negative", "not_applicable", "unknown"] }, precision: { type: "integer", minimum: 0, maximum: 12 }, value_text: { type: ["string", "null"], pattern: "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$" }, actual_forecast: { enum: ["actual", "forecast", "unknown"] }, decision_id: { type: ["string", "null"], format: "uuid" }, assumption_id: { type: ["string", "null"], format: "uuid" }, mapping_notes: { type: "string", maxLength: 1000 } } };
-  const sellSideDraft = { type: "object", additionalProperties: false, required: ["question", "conclusion", "supporting_fact_ids", "supporting_assumption_ids", "supporting_calculation_run_ids", "supporting_evidence_ids", "limitations", "intended_use", "audience"], properties: { question: { type: "string", minLength: 1, maxLength: 500 }, conclusion: { type: "string", minLength: 1, maxLength: 4000 }, supporting_fact_ids: { type: "array", maxItems: 30, items: { type: "string", format: "uuid" } }, supporting_assumption_ids: { type: "array", maxItems: 30, items: { type: "string", format: "uuid" } }, supporting_calculation_run_ids: { type: "array", maxItems: 30, items: { type: "string", format: "uuid" } }, supporting_evidence_ids: { type: "array", maxItems: 30, items: { type: "string", format: "uuid" } }, limitations: strings, intended_use: { type: "string", minLength: 1, maxLength: 240 }, audience: { type: "string", minLength: 1, maxLength: 240 } } };
-  const valuationCommentary = { type: "object", additionalProperties: false, required: ["valuation_question", "commentary", "model_version_id", "calculation_run_ids", "assumption_ids", "evidence_ids", "scenario_version_ids", "limitations"], properties: { valuation_question: { type: "string", minLength: 1, maxLength: 500 }, commentary: { type: "string", minLength: 1, maxLength: 4000 }, model_version_id: { type: ["string", "null"], format: "uuid" }, calculation_run_ids: { type: "array", maxItems: 30, items: { type: "string", format: "uuid" } }, assumption_ids: { type: "array", maxItems: 30, items: { type: "string", format: "uuid" } }, evidence_ids: { type: "array", maxItems: 30, items: { type: "string", format: "uuid" } }, scenario_version_ids: { type: "array", maxItems: 30, items: { type: "string", format: "uuid" } }, limitations: strings } };
-  const payloads: Record<TaskDefinition, unknown> = {
-    source_claim_extraction: { type: "object", additionalProperties: false, required: ["proposition", "attribution", "definition", "period", "unit", "currency", "sign", "value", "text", "source_fragment_id", "qualification"], properties: { proposition: { type: "string" }, attribution: { type: "string" }, definition: { type: "string" }, period: { type: "string" }, unit: { type: "string" }, currency: { type: "string" }, sign: { enum: ["positive", "negative", "not_applicable", "unknown"] }, value: { type: ["number", "null"] }, text: { type: ["string", "null"] }, source_fragment_id: { type: "string" }, qualification: { type: ["string", "null"] } } },
-    claim_evidence_linking: { type: "object", additionalProperties: false, required: ["proposition_key", "fragment_id", "relationship", "supported_scope", "qualification", "relationship_limitation"], properties: { proposition_key: { type: "string" }, fragment_id: { type: "string" }, relationship: { enum: ["supports", "challenges"] }, supported_scope: { type: "string" }, qualification: { type: ["string", "null"] }, relationship_limitation: { type: ["string", "null"] } } },
-    material_source_conflict_analysis: conflict,
-    contract_repair: { type: "object", additionalProperties: false, required: ["original_candidate_key", "repaired_payload"], properties: { original_candidate_key: { type: "string" }, repaired_payload: { type: "object" } } },
-    financial_semantic_extraction: financialSemantic,
-    financial_normalization_mapping: financialMapping,
-    sell_side_analysis_draft: sellSideDraft,
-    valuation_commentary_draft: valuationCommentary,
-    workbook_commentary_draft: z.toJSONSchema(workbookCommentaryPayload),
-    deliverable_semantic_qc: z.toJSONSchema(deliverableQcPayload),
-    native_reader_semantic_parity_review: z.toJSONSchema(nativeReaderParityPayload),
-  };
-  const result = { type: "object", additionalProperties: false, required: ["candidate_key", "origin", "payload", "evidence_links", "support_status", "conflicts", "uncertainty_flags", "limitations", "required_human_decision"], properties: { candidate_key: { type: "string" }, origin: { const: AI_ORIGIN }, payload: payloads[taskDefinition], evidence_links: { type: "array", items: evidenceLink, maxItems: 30 }, support_status: { enum: ["supported", "challenged", "conflicted", "insufficient_support", "unresolved_locator", "coverage_incomplete", "rights_blocked", "out_of_scope", "not_applicable"] }, conflicts: { type: "array", items: conflict, maxItems: 20 }, uncertainty_flags: { type: "array", items: { enum: ["evidence_missing", "evidence_conflicted", "definition_unclear", "period_unclear", "unit_or_currency_unclear", "coverage_incomplete", "locator_unresolved", "rights_blocked", "source_stale", "source_not_reliance_eligible", "deterministic_validity_missing", "outside_task_scope"] }, maxItems: 20 }, limitations: strings, required_human_decision: { type: ["object", "null"] } } };
-  const abstention = { type: "object", additionalProperties: false, required: ["abstention_key", "affected_scope", "reason_codes", "unsupported_propositions", "missing_inputs", "output_ceiling", "permitted_partial_scope", "smallest_recovery_action", "resume_condition"], properties: { abstention_key: { type: "string" }, affected_scope: { type: "string" }, reason_codes: strings, unsupported_propositions: strings, missing_inputs: strings, output_ceiling: { type: "object", additionalProperties: false, required: ["code"], properties: { code: { type: "string" } } }, permitted_partial_scope: strings, smallest_recovery_action: { type: "string" }, resume_condition: { type: "string" } } };
-  const omission = { type: "object", additionalProperties: false, required: ["omission_key", "affected_scope", "reason_code", "explanation", "recovery_action", "material"], properties: { omission_key: { type: "string" }, affected_scope: { type: "string" }, reason_code: { type: "string" }, explanation: { type: "string" }, recovery_action: { type: ["string", "null"] }, material: { const: false } } };
-  return { type: "object", additionalProperties: false, required: ["status", "schema_version", "task_definition", "scope_digest_echo", "results", "abstentions", "omissions"], properties: { status: { enum: ["complete", "partial", "abstained"] }, schema_version: { const: AI_OUTPUT_SCHEMA_VERSION }, task_definition: { const: taskDefinition }, scope_digest_echo: { const: scopeDigest }, results: { type: "array", items: result, maxItems: 200 }, abstentions: { type: "array", items: abstention, maxItems: 200 }, omissions: { type: "array", items: omission, maxItems: 200 } } };
-}
 
 const outputUncertaintyFlags = new Set(["evidence_missing", "evidence_conflicted", "definition_unclear", "period_unclear", "unit_or_currency_unclear", "coverage_incomplete", "locator_unresolved", "rights_blocked", "source_stale", "source_not_reliance_eligible", "deterministic_validity_missing", "outside_task_scope"]);
 
@@ -201,7 +174,7 @@ function normalizeProviderResponse(value: unknown, taskDefinition: TaskDefinitio
 export class SyntheticAiProvider implements AiProvider {
   readonly providerCode = "hellox" as const;
 
-  async invoke(input: { taskDefinition: TaskDefinition; envelope: AiInputEnvelope; fragments: AiSourceFragment[] }) {
+  async invoke(input: { taskDefinition: TaskDefinition; envelope: AiInputEnvelope; fragments: AiSourceFragment[]; onRequest?: (request: unknown) => void | Promise<void> }) {
     const { taskDefinition, envelope, fragments } = input;
     const injection = fragments.filter((fragment) => /ignore\s+(?:all\s+)?previous|system\s+prompt|call\s+(?:a\s+)?tool|send\s+(?:an\s+)?email|reveal\s+secret/i.test(fragment.content_text));
     const fragmentRef = (fragment: AiSourceFragment) => fragment.run_fragment_id ?? fragment.fragment_id;
@@ -373,33 +346,42 @@ export async function executeAiProposalRun(client: pg.PoolClient, context: {acco
         }
         if(workbook) await client.query("SELECT deliverable.attach_ai_revision($1,$2)",[run.run_id,workbook.id]);
         await client.query("SELECT ai.attach_run_fragments($1,$2,$3,$4,$5)", [context.accountId, context.actorId, dealId, run.run_id, JSON.stringify(fragments.map((fragment) => ({ fragment_id: fragment.fragment_id, run_fragment_id: fragment.run_fragment_id, rights_assessment_id: fragment.rights_assessment_id })))]);
+        let requestEvidence: unknown = { task_definition: body.task_definition, envelope, fragments };
         const startedAt = Date.now(); let providerResult: Awaited<ReturnType<AiProvider["invoke"]>> | undefined; let providerError: unknown;
-        await boundary?.release();
-        try { providerResult = await provider.invoke({ taskDefinition: body.task_definition, envelope, fragments }); } catch (error) { providerError=error; }
+        await client.query("SELECT ai.record_provider_request($1,'input_envelope',$2)", [run.run_id, encrypted(requestEvidence)]);
+        let released = false;
+        try {
+          providerResult = await provider.invoke({ taskDefinition: body.task_definition, envelope, fragments, onRequest: async (request) => {
+            requestEvidence = request;
+            await client.query("SELECT ai.record_provider_request($1,'provider_request',$2)", [run.run_id, encrypted(request)]);
+            // This commit completes before the first outbound provider byte.
+            await boundary?.release(); released = Boolean(boundary);
+          } });
+        } catch (error) { providerError = error; }
         // Revalidate the lease and current source fence before retaining any provider result.
         // No transaction or row lock is held while the external provider is running.
-        await boundary?.restore();
+        if (released) await boundary!.restore();
         if (!providerResult) { const error=providerError;
           if (errorMessage(error).includes("ai_provider_contract_invalid")) {
-            await client.query("SELECT ai.complete_run_v2($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)", [context.accountId, context.actorId, dealId, run.run_id, "failed", "contract_failure", "[]", "[]", "[]", JSON.stringify([{ stage: "schema", code: errorMessage(error), outcome: "failed" }]), encrypted({ request_digest: requestDigest, input_digest: envelope.canonical_input_digest }), encrypted({ error_code: "ai_provider_contract_invalid" }), null, null, {}, null, Date.now() - startedAt, null]);
+            await client.query("SELECT ai.complete_run_v2($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)", [context.accountId, context.actorId, dealId, run.run_id, "failed", "contract_failure", "[]", "[]", "[]", JSON.stringify([{ stage: "schema", code: errorMessage(error), outcome: "failed" }]), encrypted(requestEvidence), encrypted({ error_code: "ai_provider_contract_invalid" }), null, null, {}, null, Date.now() - startedAt, null]);
             return { runId: run.run_id, replayed: false, failureCode: "ai_contract_failure:provider_contract_invalid" };
           }
           // A provider failure is not a business abstention. Preserve only the
           // protected failure evidence and deterministic validation outcome.
           const providerFailure = /^ai_provider_[a-z_0-9]+$/.test(errorMessage(error)) ? errorMessage(error) : error instanceof Error && ["AbortError","TimeoutError"].includes(error.name) ? "ai_provider_timeout" : "provider_request_failed";
-          await client.query("SELECT ai.complete_run_v2($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)", [context.accountId, context.actorId, dealId, run.run_id, "failed", "provider_failure", "[]", "[]", "[]", JSON.stringify([{ stage: "provider", code: providerFailure, outcome: "failed" }]), encrypted({ request_digest: requestDigest, input_digest: envelope.canonical_input_digest }), encrypted({ error_code: providerFailure }), null, null, {}, null, Date.now() - startedAt, null]);
+          await client.query("SELECT ai.complete_run_v2($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)", [context.accountId, context.actorId, dealId, run.run_id, "failed", "provider_failure", "[]", "[]", "[]", JSON.stringify([{ stage: "provider", code: providerFailure, outcome: "failed" }]), encrypted(requestEvidence), encrypted({ error_code: providerFailure }), null, null, {}, null, Date.now() - startedAt, null]);
           return { runId: run.run_id, replayed: false, failureCode: "ai_provider_failure" };
         }
         const output = providerResult.response as AiOutput; const validation = validateAiOutput(output, envelope);
         if (!validation.ok) {
-          await client.query("SELECT ai.complete_run_v2($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)", [context.accountId, context.actorId, dealId, run.run_id, "failed", "contract_failure", "[]", "[]", "[]", JSON.stringify([{ stage: "schema", code: validation.code, json_pointer: validation.pointer, outcome: "failed" }]), encrypted({ request_digest: requestDigest, input_digest: envelope.canonical_input_digest }), encrypted({ response: output }), providerResult.providerRequestId, providerResult.model, providerResult.usage, providerResult.costMinorUnits, Date.now() - startedAt, stableDigest(output)]);
+          await client.query("SELECT ai.complete_run_v2($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)", [context.accountId, context.actorId, dealId, run.run_id, "failed", "contract_failure", "[]", "[]", "[]", JSON.stringify([{ stage: "schema", code: validation.code, json_pointer: validation.pointer, outcome: "failed" }]), encrypted(requestEvidence), encrypted({ response: output }), providerResult.providerRequestId, providerResult.model, providerResult.usage, providerResult.costMinorUnits, Date.now() - startedAt, stableDigest(output)]);
           return { runId: run.run_id, replayed: false, failureCode: `ai_contract_failure:${validation.code}` };
         }
         const proposals = output.results.map((item) => {
           const payload = item.payload; const kind = body.task_definition === "source_claim_extraction" ? "claim" : body.task_definition === "claim_evidence_linking" ? "evidence_link" : body.task_definition === "material_source_conflict_analysis" ? "conflict" : body.task_definition === "financial_semantic_extraction" ? "normalized_value_proposal" : body.task_definition === "financial_normalization_mapping" ? "mapping_proposal" : body.task_definition === "workbook_commentary_draft" ? "workbook_commentary" : body.task_definition === "deliverable_semantic_qc" ? "semantic_qc_finding" : body.task_definition === "native_reader_semantic_parity_review" ? "parity_finding" : "analysis_draft";
           return { candidate_key: item.candidate_key, origin: item.origin, proposal_kind: kind, schema_version: AI_OUTPUT_SCHEMA_VERSION, payload, payload_digest: stableDigest(payload), support_status: item.support_status, evidence_candidates: item.evidence_links, limitations: item.limitations, unsupported_states: item.uncertainty_flags, required_human_decision: item.required_human_decision, conflict: kind === "conflict" ? payload : undefined };
         });
-        await client.query("SELECT ai.complete_run_v2($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)", [context.accountId, context.actorId, dealId, run.run_id, output.status === "abstained" ? "abstained" : "completed", output.status === "abstained" ? "business_abstention" : "succeeded", JSON.stringify(proposals), JSON.stringify(output.abstentions), JSON.stringify(output.omissions), JSON.stringify([{ stage: "schema", code: "passed", outcome: "passed", normalized_digest: stableDigest(output) }, { stage: "locator", code: "preissued_fragment_ids", outcome: "passed" }, { stage: "permission", code: "proposal_only", outcome: "passed" }]), encrypted({ envelope: envelope.canonical_input_digest }), encrypted(output), providerResult.providerRequestId, providerResult.model, providerResult.usage, providerResult.costMinorUnits, Date.now() - startedAt, stableDigest(output)]);
+        await client.query("SELECT ai.complete_run_v2($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)", [context.accountId, context.actorId, dealId, run.run_id, output.status === "abstained" ? "abstained" : "completed", output.status === "abstained" ? "business_abstention" : "succeeded", JSON.stringify(proposals), JSON.stringify(output.abstentions), JSON.stringify(output.omissions), JSON.stringify([{ stage: "schema", code: "passed", outcome: "passed", normalized_digest: stableDigest(output) }, { stage: "locator", code: "preissued_fragment_ids", outcome: "passed" }, { stage: "permission", code: "proposal_only", outcome: "passed" }]), encrypted(requestEvidence), encrypted(output), providerResult.providerRequestId, providerResult.model, providerResult.usage, providerResult.costMinorUnits, Date.now() - startedAt, stableDigest(output)]);
         return { runId: run.run_id, replayed: false };
 }
 
@@ -411,7 +393,14 @@ export function registerAiSourceProposalRoutes(api: FastifyInstance, database: D
     if (request.params.work_objective_id && request.params.work_objective_id !== body.work_objective_id) return problem(reply, 409, "ai_objective_scope_mismatch", "The path Work Objective does not match the requested AI scope.", "use_one_work_objective", request.url);
     const requestDigest = canonicalDigest({ method: "POST", route: request.params.work_objective_id ? "/api/v1/deals/{deal_id}/work-objectives/{work_objective_id}/ai-runs" : "/api/v1/deals/{deal_id}/ai-runs", api_version: "v1", deal_id: dealId, work_objective_id: body.work_objective_id, body });
     try {
-      const result = await database.withContext(session, dealId, (client, context) => executeAiProposalRun(client,context,dealId,body,key,requestDigest,provider));
+      const result = await database.withContext(session, dealId, (client, context) => executeAiProposalRun(client,context,dealId,body,key,requestDigest,provider, {
+        release: async () => { await client.query("SELECT app.clear_request()"); await client.query("COMMIT"); },
+        restore: async () => {
+          await client.query("BEGIN");
+          const restored = await client.query("SELECT * FROM app.begin_request($1,$2)", [Database.hashToken(session), dealId]);
+          if (!restored.rowCount || !restored.rows[0].passkey_verified) throw new Error("ai_scope_mismatch");
+        },
+      }));
       if (result.kind === "invalid") return problem(reply, 401, "session_expired", "The session is no longer valid.", "reauthenticate", request.url);
       if (result.kind === "passkey_required") return problem(reply, 403, "passkey_required", "A Passkey-backed session is required for AI source proposals.", "register_passkey", request.url);
       if (result.kind !== "ok") return problem(reply, 404, "resource_not_found", "The Deal is not available.", "return_to_safe_parent", request.url);
@@ -459,7 +448,8 @@ export function registerAiSourceProposalRoutes(api: FastifyInstance, database: D
     const result = await database.withContext(session, dealId, async (client, context) => (await client.query("SELECT id,job_id,job_scope_id,packet_version_id,task_definition,task_definition_version,scope_digest,status_code AS status,outcome_class AS outcome,created_at,completed_at FROM ai.run WHERE account_id=$1 AND deal_id=$2 ORDER BY created_at DESC", [context.accountId, dealId])).rows);
     if (result.kind === "invalid") return problem(reply, 401, "session_expired", "The session is no longer valid.", "reauthenticate", request.url);
     if (result.kind === "passkey_required") return problem(reply, 403, "passkey_required", "A Passkey-backed session is required for AI source proposals.", "register_passkey", request.url);
-    return reply.code(200).header("Cache-Control", "private, no-store").send({ data: result.kind === "ok" ? result.value : [] });
+    if (result.kind !== "ok") return problem(reply, 404, "resource_not_found", "The requested Deal is not available.", "return_to_safe_parent", request.url);
+    return reply.code(200).header("Cache-Control", "private, no-store").send({ data: result.value });
   });
 }
 

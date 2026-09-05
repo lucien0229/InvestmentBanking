@@ -2,19 +2,44 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import { PageHeader, StatePanel, StatusBadge } from "../../../../../components/deal-control/ui";
 
-const guideTasks = [
-  ["Establish the first Source Packet", "Add synthetic Source Records for the Management Model, QoE, and Draft CIM.", "sources/add"],
-  ["Inspect the first material conflict", "Inspect exact Evidence, locators, and relationships for EBITDA and Cash.", "evidence-decisions"],
-  ["Record the first Human Decision", "Preserve rationale, impact, and the immutable control-review record.", "evidence-decisions/control-review"],
-  ["Validate and establish a Revision", "Run deterministic rules and understand their boundary with professional review.", "analysis"],
-  ["Inspect the first controlled outcome", "Confirm Package Readiness and the Internal Controlled Export.", "review-readiness"],
-] as const;
-
+type Guide = { status: string | null; current_action: string | null };
+type Checkpoint = { title: string; detail: string; route: string; receipt: string | null; state: "recorded" | "pending" };
 export default function FirstDealGuidePage() {
   const { deal_id: dealId } = useParams<{ deal_id: string }>();
-  const [guide, setGuide] = useState<any>(null);
+  const [guide, setGuide] = useState<Guide | null>(null);
+  const [checkpoints, setCheckpoints] = useState<Checkpoint[]>([]);
   const [error, setError] = useState("");
-  useEffect(() => { void fetch(`/api/v1/deals/${dealId}/guide`, { cache: "no-store" }).then(async (response) => { const body = await response.json().catch(() => ({})); if (response.ok) setGuide(body.data); else setError(body.detail ?? "First Deal Guide is unavailable."); }).catch(() => setError("The API could not be reached. Return to Deal Setup and retry.")); }, [dealId]);
-  return <main className="dc-page"><a href={`/app/deals/${dealId}/setup`}>← Deal Setup</a><p className="dc-eyebrow">DEAL SETUP / FIRST DEAL GUIDE</p><h1>First Deal Guide</h1><p>Complete the first controlled loop without moving objects out of their canonical work areas. Each checkpoint preserves the same Account, Deal, and Workspace identity.</p>{guide ? <section className="dc-surface-card"><span className="dc-status-badge" data-tone="info">{guide.status}</span><h2>Next controlled action</h2><p>{guide.current_action}</p></section> : <div className="dc-state-panel" data-tone={error ? "critical" : "info"} role={error ? "alert" : "status"}><span className="dc-state-label">Guide status</span><strong className="dc-state-title">{error ? "First Deal Guide unavailable" : "Loading First Deal Guide…"}</strong><span className="dc-state-detail">{error || "The saved guide will show the next canonical object and its control boundary."}</span><a href={`/app/deals/${dealId}/setup`}>Return to Deal Setup →</a></div>}<ol className="dc-guide-task-list" aria-label="First Deal Guide checkpoints">{guideTasks.map(([title, detail, slug], index) => <li key={title} className={index < 2 ? "is-complete" : index === 2 ? "is-current" : undefined}><span className="dc-guide-index">0{index + 1}</span><div><h2>{title}</h2><p>{detail}</p></div><a className="dc-button dc-button-secondary" href={`/app/deals/${dealId}/${slug}`}>{index < 2 ? "Reinspect" : index === 2 ? "Continue" : "Open task"}</a></li>)}</ol><section className="dc-state-panel" data-tone="warning"><span className="dc-state-label">Control boundary</span><strong className="dc-state-title">Completing the Guide does not authorize external use</strong><span className="dc-state-detail">Source rights, Professional Usability, re-review, and external circulation remain separate controlled decisions.</span></section></main>;
+  useEffect(() => {
+    let disposed = false;
+    async function read(path: string) {
+      const response = await fetch(`/api/v1/deals/${dealId}/${path}`, { cache: "no-store" });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(body.detail ?? "A Guide checkpoint could not be loaded.");
+      return body.data;
+    }
+    void Promise.all([read("guide"), read("source-packets"), read("evidence"), read("human-decisions"), read("deterministic-validation-records")]).then(([saved, packets, evidence, decisions, validations]) => {
+      if (disposed) return;
+      setGuide(saved);
+      const passed = validations.find((record: { outcome?: string; result?: { passed?: boolean } }) => record.outcome === "passed" || record.result?.passed === true);
+      const rows = [
+        { title: "Establish the first Source Packet", detail: "Select exact Source Record versions, assess rights and coverage, and define the Work Objective.", route: "sources", receipt: packets[0]?.id ?? null },
+        { title: "Inspect exact Evidence", detail: "Read the Source context, native locator and supporting or challenging relationships.", route: "evidence-decisions", receipt: evidence[0]?.id ?? null },
+        { title: "Record a scoped Human Decision", detail: "Preserve the selected treatment, contrary Evidence, rationale and conditions in an immutable receipt.", route: "evidence-decisions/control-review", receipt: decisions[0]?.id ?? null },
+        { title: "Validate controlled financial inputs", detail: "Run deterministic checks against pinned inputs and inspect the exact result and exceptions.", route: "analysis", receipt: passed?.id ?? null },
+        { title: "Inspect the controlled outcome", detail: "Review the affected Workbook, Revision and readiness. Internal Controlled Export is a separate checkpoint.", route: "review-readiness", receipt: null },
+      ];
+      setCheckpoints(rows.map((row) => ({ ...row, state: row.receipt ? "recorded" : "pending" })));
+    }).catch((cause) => { if (!disposed) setError(cause instanceof Error ? cause.message : "The Guide is unavailable."); });
+    return () => { disposed = true; };
+  }, [dealId]);
+  const current = checkpoints.findIndex((item) => item.state === "pending");
+  return <main className="dc-page"><a href={`/app/deals/${dealId}/setup`}>← Deal Setup</a><PageHeader eyebrow="Deal setup · First Deal Guide" title="Your first controlled loop" description="Continue through the formal objects in this Deal. Recorded objects remain inspectable; opening a page does not complete a checkpoint." />
+    {error ? <StatePanel tone="critical" label="Guide unavailable" title={error}><a href={`/app/deals/${dealId}/setup`}>Return to Deal Setup</a></StatePanel> : !guide ? <StatePanel label="Loading" title="Loading saved checkpoints…" /> : <>
+      <section className="dc-surface-card"><StatusBadge>{guide.status ?? "Guide not established"}</StatusBadge><h2>Next controlled action</h2><p>{checkpoints[current]?.title ?? "Inspect the recorded control history"}</p><small>{guide.current_action?.replaceAll("_", " ") ?? "Complete Paid Preflight to establish the Guide."}</small></section>
+      <ol className="dc-guide-task-list" aria-label="First Deal Guide checkpoints">{checkpoints.map((item, index) => <li key={item.title} className={item.state === "recorded" ? "is-complete" : index === current ? "is-current" : undefined}><span className="dc-guide-index">0{index + 1}</span><div><h2>{item.title}</h2><p>{item.detail}</p><StatusBadge tone={item.state === "recorded" ? "success" : "neutral"}>{item.state === "recorded" ? "Recorded object available" : "Pending"}</StatusBadge>{item.receipt && <small className="dc-mono">{item.receipt}</small>}</div><a className="dc-button dc-button-secondary" href={`/app/deals/${dealId}/${item.route}`}>{item.receipt ? "Inspect" : index === current ? "Continue" : "Open task"}</a></li>)}</ol>
+    </>}
+    <StatePanel tone="warning" label="Control boundary" title="Each result has its own scope" detail="Source rights, professional review, Internal Controlled Export and external use retain their separate requirements." />
+  </main>;
 }

@@ -51,12 +51,20 @@ test("HTTP black-box: bootstrap, Passkey posture, overview and privacy-safe Audi
   const authenticated = await fetch(`${origin}/api/v1/session/passkey/authenticate`, { method: "POST", headers: { cookie: pending } });
   assert.equal(authenticated.status, 200);
   const banker = cookieFrom(authenticated, "__Host-banker_session");
+  const deals = await fetch(`${origin}/api/v1/deals`, { headers: { cookie: banker } });
+  assert.equal(deals.status, 200, "the runtime role can enumerate only its Account's Deals");
+  assert.equal((await deals.text()).includes(otherAccountDealId), false);
   const overview = await fetch(`${origin}/api/v1/deals/${northstarDealId}/overview`, { headers: { cookie: banker } });
   assert.equal(overview.status, 200);
   assert.equal((await overview.json()).deal.name, "Project Northstar");
   const audit = await fetch(`${origin}/api/v1/account/audit-events?deal_id=${northstarDealId}`, { headers: { cookie: banker } });
   assert.equal(audit.status, 200);
   assert.equal((await audit.text()).includes("Project Northstar"), false);
+  const logout = await fetch(`${origin}/api/v1/session/logouts`, { method: "POST", headers: { cookie: banker, origin } });
+  assert.equal(logout.status, 201);
+  assert.match(logout.headers.get("set-cookie") ?? "", /__Host-banker_session=;/);
+  assert.equal((await fetch(`${origin}/api/v1/session`, { headers: { cookie: banker } })).status, 401, "a copied cookie cannot reopen a revoked session");
+  assert.equal((await fetch(`${origin}/api/v1/deals/${northstarDealId}/overview`, { headers: { cookie: banker } })).status, 401);
 });
 
 test("HTTP black-box: cross-Account/cross-Deal and absent resources are indistinguishable", async () => {

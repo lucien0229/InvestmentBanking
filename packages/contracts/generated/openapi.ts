@@ -11,6 +11,196 @@ export const openApiContract = {
     }
   ],
   "paths": {
+    "/api/v1/session/logouts": {
+      "post": {
+        "operationId": "revoke_current_session",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Current session revoked and both authentication Cookies cleared."
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/source-records": {
+      "get": {
+        "operationId": "list_source_inventory",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "name": "purpose",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Purpose for independent current rights and condition projections."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Immutable Sources with current assessment and latest truthful coverage."
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/source-fragments": {
+      "get": {
+        "operationId": "list_source_fragments",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Exact native Source fragments from the authorized Deal."
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/jobs": {
+      "get": {
+        "operationId": "list_deal_jobs",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Latest 100 authorized durable Jobs."
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/source-records/{source_record_id}/processing-jobs": {
+      "post": {
+        "operationId": "enqueue_source_processing",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "$ref": "#/components/parameters/SourceRecordId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Durable task identity and current state; repeated requests retain one task per Source."
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/api/v1/deals/{deal_id}/source-processing-jobs/{job_id}": {
+      "get": {
+        "operationId": "get_source_processing",
+        "security": [
+          {
+            "bankerSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DealId"
+          },
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Exact task state, bounded attempts, heartbeat and resulting Representation."
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
     "/api/v1/deals/{deal_id}/workbook-bases": {
       "get": {
         "operationId": "list_workbook_bases",
@@ -9383,6 +9573,16 @@ export const openApiContract = {
               },
               "requested_scope": {
                 "const": "synthetic_reference_fixture"
+              },
+              "source_record_id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "Optional exact Source whose native processing must complete before the Source checkpoint."
+              },
+              "assumption_id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "Optional exact bounded Assumption whose Human Decision must be recorded before the workspace checkpoint."
               }
             }
           }

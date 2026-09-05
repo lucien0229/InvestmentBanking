@@ -1,5 +1,28 @@
 name: investmentbanking-dev
 
+x-worker: &worker
+  image: ${NODE_RUNTIME_IMAGE:-node:22-bookworm-slim}
+  environment: &worker_environment
+    APP_ENV: ${APP_ENV:-development}
+    RELEASE_ID: ${RELEASE_ID:?RELEASE_ID must identify this immutable release}
+    JOB_EXECUTION_MODE: external
+    DATABASE_SSL_CA_FILE: /run/secrets/supabase-chain.pem
+  volumes:
+    - ${APP_RELEASE_PATH:?APP_RELEASE_PATH is required}:/opt/app:ro
+    - ${DATABASE_SSL_CA_HOST_PATH:?DATABASE_SSL_CA_HOST_PATH is required}:/run/secrets/supabase-chain.pem:ro
+  working_dir: /opt/app
+  init: true
+  read_only: true
+  tmpfs: [/tmp]
+  security_opt: [no-new-privileges:true]
+  cap_drop: [ALL]
+  restart: unless-stopped
+  pids_limit: 64
+  networks: [private]
+  deploy:
+    resources:
+      limits: { cpus: "0.50", memory: 256M, pids: 64 }
+
 services:
   api:
     image: ${NODE_RUNTIME_IMAGE:-node:22-bookworm-slim}
@@ -14,6 +37,9 @@ services:
       PROTECTED_STORAGE_ROOT: /var/lib/investmentbanking/protected
       DATABASE_SSL_CA_FILE: /run/secrets/supabase-chain.pem
       OFFICE_RENDERER_SOCKET: /run/office/renderer.sock
+      SOURCE_INSPECTOR_SOCKET: /run/office/source-repair.sock
+      PUBLIC_FETCH_SOCKET: /run/public-fetch/fetch.sock
+      JOB_EXECUTION_MODE: external
     command:
       - node
       - /opt/app/node_modules/tsx/dist/cli.mjs
@@ -40,8 +66,13 @@ services:
         source: ${ARTIFACT_IDENTITY_DIRECTORY:?ARTIFACT_IDENTITY_DIRECTORY must point to the workload token directory}
         target: /run/artifact-identity
         read_only: true
+      - type: bind
+        source: ${PUBLIC_FETCH_SOCKET_DIRECTORY:?PUBLIC_FETCH_SOCKET_DIRECTORY is required}
+        target: /run/public-fetch
+        read_only: true
     group_add:
       - "${OFFICE_RENDERER_GID:-1001}"
+      - "${PUBLIC_FETCH_GID:?PUBLIC_FETCH_GID is required}"
     networks:
       - private
     init: true
@@ -64,6 +95,65 @@ services:
         limits:
           cpus: "1.50"
           memory: 768M
+
+  dispatcher:
+    <<: *worker
+    env_file: ${DISPATCHER_ENV_FILE:?DISPATCHER_ENV_FILE is required}
+    command: [node, /opt/app/node_modules/tsx/dist/cli.mjs, /opt/app/apps/api/src/job-process.ts, dispatcher]
+
+  reference_worker:
+    <<: *worker
+    env_file: ${REFERENCE_WORKER_ENV_FILE:?REFERENCE_WORKER_ENV_FILE is required}
+    command: [node, /opt/app/node_modules/tsx/dist/cli.mjs, /opt/app/apps/api/src/job-process.ts, worker]
+
+  source_worker:
+    <<: *worker
+    env_file: ${SOURCE_WORKER_ENV_FILE:?SOURCE_WORKER_ENV_FILE is required}
+    command: [node, /opt/app/node_modules/tsx/dist/cli.mjs, /opt/app/apps/api/src/source-worker.ts]
+    environment:
+      <<: *worker_environment
+      PROTECTED_STORAGE_ROOT: /var/lib/investmentbanking/protected
+      SOURCE_INSPECTOR_SOCKET: /run/office/source-repair.sock
+    volumes:
+      - ${APP_RELEASE_PATH}:/opt/app:ro
+      - ${DATABASE_SSL_CA_HOST_PATH}:/run/secrets/supabase-chain.pem:ro
+      - ${PROTECTED_VOLUME_PATH}:/var/lib/investmentbanking/protected:ro
+      - ${OFFICE_SOCKET_DIRECTORY}:/run/office:ro
+    group_add: ["${OFFICE_RENDERER_GID:-1001}"]
+
+  workbook_worker:
+    <<: *worker
+    env_file: ${WORKBOOK_WORKER_ENV_FILE:?WORKBOOK_WORKER_ENV_FILE is required}
+    command: [node, /opt/app/node_modules/tsx/dist/cli.mjs, /opt/app/apps/api/src/workbook-worker.ts]
+    environment:
+      <<: *worker_environment
+      PROTECTED_STORAGE_ROOT: /var/lib/investmentbanking/protected
+      OFFICE_RENDERER_SOCKET: /run/office/renderer.sock
+    volumes:
+      - ${APP_RELEASE_PATH}:/opt/app:ro
+      - ${DATABASE_SSL_CA_HOST_PATH}:/run/secrets/supabase-chain.pem:ro
+      - ${PROTECTED_VOLUME_PATH}:/var/lib/investmentbanking/protected
+      - ${OFFICE_SOCKET_DIRECTORY}:/run/office:ro
+      - ${ARTIFACT_IDENTITY_DIRECTORY}:/run/artifact-identity:ro
+    group_add: ["${OFFICE_RENDERER_GID:-1001}"]
+    deploy:
+      resources:
+        limits: { cpus: "1.00", memory: 768M, pids: 64 }
+
+  public_fetch:
+    <<: *worker
+    user: "${PUBLIC_FETCH_UID:?PUBLIC_FETCH_UID is required}:${PUBLIC_FETCH_GID}"
+    environment:
+      PUBLIC_FETCH_SOCKET: /socket/fetch.sock
+    command: [node, /service/server.mjs]
+    working_dir: /service
+    volumes:
+      - ${APP_RELEASE_PATH}/services/public-fetch:/service:ro
+      - ${PUBLIC_FETCH_SOCKET_DIRECTORY}:/socket
+    networks: [public_fetch]
+    deploy:
+      resources:
+        limits: { cpus: "0.50", memory: 128M, pids: 64 }
 
   web:
     image: ${NODE_RUNTIME_IMAGE:-node:22-bookworm-slim}
@@ -107,5 +197,7 @@ services:
           memory: 512M
 
 networks:
+  public_fetch:
+    name: investmentbanking-dev-public-fetch
   private:
     name: investmentbanking-dev-private

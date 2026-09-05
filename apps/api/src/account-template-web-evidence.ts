@@ -3,6 +3,8 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
+import { isolatedPublicFetcher } from "./public-fetch-client.js";
+import { inspectSource } from "./source-inspector.js";
 import { Database } from "./database.js";
 
 const uuid = z.string().uuid();
@@ -241,7 +243,8 @@ export function registerAccountTemplateWebEvidenceRoutes(api: FastifyInstance, d
         if (!target) throw new Error("account_template_upload_scope_mismatch");
         const bytes = await fs.readFile(quarantinePath(target.quarantine_storage_key));
         const digest = crypto.createHash("sha256").update(bytes).digest("hex");
-        const scan = templateScan(bytes, target.declared_media_type, target.display_name);
+        const family = target.declared_media_type.includes("spreadsheet") ? "xlsx" : target.declared_media_type.includes("presentation") ? "pptx" : target.declared_media_type.includes("word") ? "docx" : target.declared_media_type === "application/pdf" ? "pdf" : target.declared_media_type === "text/csv" ? "csv" : "unsupported";
+        const scan = process.env.NODE_ENV === "test" ? templateScan(bytes, target.declared_media_type, target.display_name) : await inspectSource(bytes, family, "scan");
         const finalized = (await client.query<{ outcome: string; problem_code: string | null }>("SELECT * FROM source.mark_account_template_upload_finalized($1,$2,$3,$4,$5,$6,$7,$8)", [context.accountId, context.actorId, sessionId, fileId, bytes.length, digest, target.declared_media_type, JSON.stringify(scan)])).rows[0];
         return { finalized, digest, scan };
       });
@@ -353,14 +356,11 @@ export function registerAccountTemplateWebEvidenceRoutes(api: FastifyInstance, d
     let parsed: URL;
     try { parsed = publicUrl(body.url); } catch (error) { if (errorCode(error).includes("public_https_required")) return problem(reply, 400, "public_https_required", "Only public unauthenticated HTTPS URLs are allowed.", "provide_public_https_url", request.url); throw error; }
     try {
+      const authorization = await database.withContext(session, dealId, async () => true);
+      if (authorization.kind !== "ok") return problem(reply, authorization.kind === "invalid" ? 401 : authorization.kind === "passkey_required" ? 403 : 404, authorization.kind === "invalid" ? "session_expired" : authorization.kind === "passkey_required" ? "passkey_required" : "resource_not_found", "The requested Deal is not available.", "return_to_safe_parent", request.url);
       let fetched: Awaited<ReturnType<PublicWebFetcher>>;
       try {
-        fetched = await (deps.publicWebFetcher ? deps.publicWebFetcher(parsed.toString()) : (async () => {
-          const response = await fetch(parsed, { redirect: "error", signal: AbortSignal.timeout(10_000) });
-          const declaredLength = Number(response.headers.get("content-length") ?? 0);
-          if (Number.isFinite(declaredLength) && declaredLength > MAX_PUBLIC_RESPONSE_BYTES) throw new Error("public_response_too_large");
-          return { status: response.status, headers: Object.fromEntries(response.headers.entries()), body: Buffer.from(await response.arrayBuffer()) };
-        })());
+        fetched = await (deps.publicWebFetcher ?? isolatedPublicFetcher)(parsed.toString());
       } catch (error) {
         if (errorCode(error).includes("public_response_too_large")) return accountTemplateWebEvidenceError(error, request, reply);
         return problem(reply, 502, "public_retrieval_failed", "The public resource could not be retrieved within the bounded fetch window.", "retry_retrieval", request.url);

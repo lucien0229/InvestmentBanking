@@ -1,7 +1,8 @@
 "use client";
 
 import { useParams, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { AlternativeIntake } from "../../../../../../components/deal-control/alternative-intake";
 
 type IntakeState = "idle" | "uploading" | "quarantined" | "accepted" | "rejected";
 
@@ -16,30 +17,33 @@ export default function AddSourcePage() {
   const [stage, setStage] = useState<1 | 2 | 3 | 4>(1);
   const [message, setMessage] = useState("Original bytes stay in Deal-bound quarantine until safety checks complete.");
   const [error, setError] = useState("");
+  const [processing, setProcessing] = useState<{ id: string; state: string; source_record_id: string; representation_id?: string; problem_code?: string } | null>(null);
+  useEffect(() => {
+    if (!processing || ["completed", "failed", "canceled"].includes(processing.state)) return;
+    const abort = new AbortController();
+    const timer = setInterval(() => { void fetch(`/api/v1/deals/${dealId}/source-processing-jobs/${processing.id}`, { cache: "no-store", signal: abort.signal }).then(async (response) => { const body = await response.json(); if (!response.ok) throw new Error(body.detail ?? "Source processing state is unavailable."); if (!abort.signal.aborted) { setProcessing(body.data); if (body.data.state === "completed") { setStage(4); setMessage("Native Source fragments are ready for exact inspection. Review coverage before adding this record to a Source Packet."); } } }).catch((cause) => { if (!abort.signal.aborted) setError(cause instanceof Error ? cause.message : "Processing state unavailable."); }); }, 2000);
+    return () => { abort.abort(); clearInterval(timer); };
+  }, [dealId, processing?.id, processing?.state]);
 
   async function addSource(event: React.FormEvent) {
     event.preventDefault();
-    if (mode !== "file") {
-      setStage(3);
-      setState("quarantined");
-      setMessage(mode === "web" ? "Public URL captured as a review candidate. No Web Evidence Observation is created until rights, retrieval limits, and exact locator are reviewed." : "Account template is staged for compatibility review. It cannot be used by a Deal until rights, format, and exact mapping are accepted.");
-      return;
-    }
+    if (window.innerWidth < 1024) return setError("Continue native Source intake on desktop.");
     if (!file) return setError("Choose a native source file first.");
-    setError(""); setState("uploading"); setMessage("Creating a Deal-bound resumable upload…");
+    setError(""); setStage(2); setState("uploading"); setMessage("Creating a Deal-bound resumable upload…");
     const digestBuffer = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
     const sha256 = Array.from(new Uint8Array(digestBuffer)).map((byte) => byte.toString(16).padStart(2, "0")).join("");
     const declaration = {
       client_file_id: `${file.name}-${file.lastModified}`,
       display_name: file.name,
       byte_length: String(file.size),
-      media_type: file.type || "application/octet-stream",
+      media_type: ({ csv: "text/csv", pdf: "application/pdf", xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation" } as Record<string,string>)[file.name.split(".").pop()?.toLowerCase() ?? ""] ?? file.type,
       sha256,
       source_declaration: { source_material_id: null, new_source_material_name: materialName, origin: "client_supplied", authority_basis: authority, intended_purpose: "financial_analysis" },
       rights_posture_inputs: { receipt_permitted: true, processing_operations: ["quarantine", "parse"], conditions: [] },
       confidentiality_posture: { confidentiality_class: "confidential", de_identification_posture: "not_de_identified" },
       processing_posture: { expected_file_family: file.name.split(".").pop() ?? "unknown", special_structures: [] },
     };
+    let acceptedRecordId: string | undefined;
     try {
       const preflightResponse = await fetch(`/api/v1/deals/${dealId}/preflights`, { cache: "no-store" });
       const preflightBody = await preflightResponse.json().catch(() => ({}));
@@ -60,37 +64,45 @@ export default function AddSourcePage() {
       const finalized = await finalizedResponse.json().catch(() => ({}));
       const item = finalized.items?.[0];
       if (!finalizedResponse.ok || item?.outcome !== "succeeded") { setState("rejected"); setMessage(item?.problem?.detail ?? "Safety checks rejected this file; it remains outside Source Material."); return; }
-      setState("quarantined"); setMessage("Safety checks completed. Review the authority and classification before acceptance.");
+      setStage(3); setState("quarantined"); setMessage("Safety checks completed. Review the authority and classification before acceptance.");
       const acceptedResponse = await fetch(`/api/v1/deals/${dealId}/source-materials/${item.source_material_id}/record-acceptances`, { method: "POST", headers: { "content-type": "application/json", "idempotency-key": crypto.randomUUID() }, body: JSON.stringify({ server_file_id: upload.server_file_id, authority_basis: authority, record_date: new Date().toISOString().slice(0, 10), version_label: "v1", rights_posture: "internal_use_only", confidentiality_class: "confidential" }) });
       const accepted = await acceptedResponse.json().catch(() => ({}));
       if (!acceptedResponse.ok) throw new Error(accepted.detail ?? "Source Record acceptance is blocked.");
-      setState("accepted"); setMessage(`Accepted Source Record ${accepted.data.source_record_id}. Original bytes are protected behind a short-lived Object Grant.`);
+      acceptedRecordId = accepted.data.source_record_id;
+      setState("accepted"); setMessage(`Source Record ${accepted.data.source_record_id} accepted. Native parsing will preserve the original bytes.`);
+      const processingResponse = await fetch(`/api/v1/deals/${dealId}/source-records/${accepted.data.source_record_id}/processing-jobs`, { method: "POST", headers: { "content-type": "application/json", "idempotency-key": crypto.randomUUID() }, body: "{}" });
+      const processingBody = await processingResponse.json();
+      if (!processingResponse.ok) { setError(processingBody.detail ?? "Source accepted; parsing could not start. Retry from Sources."); return; }
+      setProcessing({ ...processingBody.data, source_record_id: accepted.data.source_record_id });
     } catch (caught) {
-      setState("rejected"); setError(caught instanceof Error ? caught.message : "Source intake failed.");
+      setState(acceptedRecordId ? "accepted" : "rejected"); setError(acceptedRecordId ? "Source accepted. Processing status is unavailable; continue to Sources to inspect or retry parsing." : caught instanceof Error ? caught.message : "Source intake failed.");
     }
   }
 
+  if (mode !== "file") return <AlternativeIntake key={mode} dealId={dealId} mode={mode} />;
+
   const stateLabel = { idle: "Ready", uploading: "Uploading", quarantined: "Quarantined", accepted: "Accepted", rejected: "Rejected" }[state];
-  const title = mode === "web" ? "Capture a public web source" : mode === "template" ? "Intake an account template" : "Bring one native source into the Deal";
-  const description = mode === "web" ? "Web retrieval creates an immutable observation with URL, digest, exact locator, rights posture and retrieval limits." : mode === "template" ? "Account templates stay isolated from Deal material until compatibility, rights and exact Deal mapping are recorded." : "Upload is resumable and Deal-scoped. We do not treat a file as a Source Record until quarantine, authority, rights, and classification are explicit.";
   return <main className="dc-page">
     <a href={`/app/deals/${dealId}/setup`}>← Deal Setup</a>
-    <p style={{ color: "#6b7280", letterSpacing: ".08em", textTransform: "uppercase", fontSize: 12 }}>Sources · Add source</p>
-    <h1>{title}</h1>
-    <p>{description}</p>
+    <p className="dc-eyebrow">Sources · Add source</p>
+    <h1>Bring one native source into the Deal</h1>
+    <p>Upload is resumable and Deal-scoped. Quarantine, authority, rights and classification are recorded before Source acceptance.</p>
     <div className="dc-stepper" aria-label="Source intake stages">
-      {[['1', 'Select', mode === 'file' ? 'Native file' : mode === 'web' ? 'Public URL' : 'Template file'], ['2', 'Declare', 'Rights and classification'], ['3', 'Review', 'Quarantine and parse'], ['4', 'Handoff', 'Source Packet']].map(([number, label, detail], index) => <div className="dc-step" data-active={stage === index + 1} key={number}><span className="dc-mono">{number}</span><strong>{label}</strong><small>{detail}</small></div>)}
+      {[['1', 'Select', 'Native file'], ['2', 'Declare', 'Rights and classification'], ['3', 'Review', 'Quarantine and parse'], ['4', 'Handoff', 'Source Packet']].map(([number, label, detail], index) => <div className="dc-step" data-active={stage === index + 1} key={number}><span className="dc-mono">{number}</span><strong>{label}</strong><small>{detail}</small></div>)}
     </div>
     <section aria-label="source intake status" className="dc-state-panel" data-tone={state === "rejected" ? "critical" : state === "accepted" ? "success" : "info"}>
       <span className="dc-state-label">Source intake status</span><strong className="dc-state-title">{stateLabel}</strong><p role={state === "rejected" ? "alert" : "status"} className="dc-state-detail">{error || message}</p>
     </section>
-    <form onSubmit={addSource} style={{ display: "grid", gap: 16, maxWidth: 620 }}>
-      {mode === "web" ? <label>Public URL<input required type="url" placeholder="https://example.com/source" /></label> : <label>{mode === "template" ? "Template file" : "Native file"}<input required type="file" accept=".xlsx,.pptx,.docx,.pdf,.csv" onChange={(event) => setFile(event.target.files?.[0] ?? null)} /></label>}
-      <label>{mode === "template" ? "Template display name" : "Source Material name"}<input required value={materialName} onChange={(event) => setMaterialName(event.target.value)} /></label>
+    {processing && <section className="dc-state-panel" data-tone={processing.state === "completed" ? "success" : ["failed", "canceled"].includes(processing.state) ? "warning" : "info"}><span className="dc-state-label">Native processing · {processing.state}</span><p className="dc-mono">{processing.id}</p>{processing.problem_code && <p>{processing.problem_code.replaceAll("_", " ")}</p>}{processing.state === "completed" && <a href={`/app/deals/${dealId}/evidence-decisions`}>Inspect exact native fragments →</a>}<a href={`/app/deals/${dealId}/sources`}>Continue to Source Packet →</a></section>}
+    {state === "accepted" && <a href={`/app/deals/${dealId}/sources`}>Inspect accepted Source and processing →</a>}
+    <form onSubmit={addSource} className="dc-domain-form dc-surface-card">
+      <label>Native file<input required type="file" accept=".xlsx,.pptx,.docx,.pdf,.csv" onChange={(event) => setFile(event.target.files?.[0] ?? null)} /></label>
+      <label>Source Material name<input required value={materialName} onChange={(event) => setMaterialName(event.target.value)} /></label>
       <label>Authority basis<select value={authority} onChange={(event) => setAuthority(event.target.value)}><option value="provided_under_mandate">Provided under mandate</option><option value="limited_pending_confirmation">Limited pending confirmation</option></select></label>
       <fieldset><legend>Rights and processing boundary</legend><label><input type="checkbox" required /> I confirm this source may be inspected for the declared Deal purpose.</label></fieldset>
       <p className="dc-state-detail">Safety boundary: macros, executable content, unsafe archive paths, malformed packages, unsupported active content and unverified external rights remain blocked or quarantined.</p>
-      <button type="submit" disabled={state === "uploading"}>{state === "uploading" ? "Uploading…" : mode === "web" ? "Review public capture" : mode === "template" ? "Review template compatibility" : "Upload and review source"}</button>
+      <p className="dc-desktop-resume">Continue native Source intake on desktop. Accepted records remain available for inspection.</p>
+      <button className="dc-button dc-material-command" type="submit" disabled={state === "uploading" || state === "accepted"}>{state === "uploading" ? "Uploading…" : state === "accepted" ? "Source accepted" : "Upload and review source"}</button>
     </form>
   </main>;
 }
