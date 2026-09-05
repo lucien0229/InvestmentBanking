@@ -9,6 +9,7 @@ export default function DealSetupPage() {
   const [projection, setProjection] = useState<Record<string, any> | null>(null);
   const [source, setSource] = useState("");
   const [rights, setRights] = useState("confirmed");
+  const [minimumPacket, setMinimumPacket] = useState("incomplete");
   const [error, setError] = useState("");
   const [saved, setSaved] = useState("");
 
@@ -21,6 +22,7 @@ export default function DealSetupPage() {
     setProjection(body);
     setSource(body.data.setup.source_reference.reference ?? "");
     setRights(body.data.setup.source_rights);
+    setMinimumPacket(body.data.setup.minimum_packet);
     } catch { setError("Deal Setup could not be reached. Retry to load the saved state."); }
   }
   useEffect(() => { void load(); }, [dealId]);
@@ -29,7 +31,7 @@ export default function DealSetupPage() {
     event.preventDefault();
     setError(""); setSaved("");
     try {
-    const response = await fetch(`/api/v1/deals/${dealId}/setup`, { method: "PATCH", headers: { "content-type": "application/json", "if-match": `"deal-setup-${projection?.data.setup.version}"` }, body: JSON.stringify({ source_reference: source || null, source_rights: rights }) });
+    const response = await fetch(`/api/v1/deals/${dealId}/setup`, { method: "PATCH", headers: { "content-type": "application/json", "if-match": `"deal-setup-${projection?.data.setup.version}"` }, body: JSON.stringify({ source_reference: source || null, source_rights: rights, minimum_packet: minimumPacket }) });
     const body = await response.json().catch(() => ({}));
     if (!response.ok) return setError(body.detail ?? "Setup save failed.");
     setProjection(body); setSaved("Setup saved. Run Paid Preflight to evaluate the changed scope.");
@@ -49,7 +51,9 @@ export default function DealSetupPage() {
     {saved && <p role="status" style={{ color: "#16724b" }}>{saved}</p>}
     <form onSubmit={save} style={{ display: "grid", gap: 14, maxWidth: 560 }}>
       <label>Source reference<input value={source} onChange={(event) => setSource(event.target.value)} placeholder="source:packet-v1" /></label>
+      <small>Use a stable reference such as source:management-accounts for the planned input set. This declaration does not accept Source bytes or assess Packet coverage.</small>
       <label>Source-use rights<select value={rights} onChange={(event) => setRights(event.target.value)}><option value="missing">Missing</option><option value="confirmed">Confirmed</option><option value="limited">Limited</option><option value="blocked">Blocked</option></select></label>
+      <label>Minimum input readiness<select value={minimumPacket} onChange={(event) => setMinimumPacket(event.target.value)}><option value="missing">No input set identified</option><option value="incomplete">Input set still incomplete</option><option value="complete">Minimum input set identified for the declared purpose</option></select></label>
       <button type="submit">Save setup</button>
     </form>
     <p><a href={`/app/deals/${dealId}/controls/preflight`}>Run Paid Preflight →</a> · <a href={`/app/deals/${dealId}/sources`}>Sources →</a> · <a href={`/app/deals/${dealId}/sources/add`}>Add Source →</a> · <a href={`/app/deals/${dealId}/guide`}>First Deal Guide</a></p>
