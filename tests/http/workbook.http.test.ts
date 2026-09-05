@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import crypto from "node:crypto";
+import pg from "pg";
 import { buildApi } from "../../apps/api/src/app.js";
 import { createTestDatabase } from "../../apps/api/src/test-database.js";
 import { hashToken } from "../../apps/api/src/database.js";
@@ -145,6 +146,102 @@ test("Workbook HTTP commands are authenticated, scoped, idempotent and version g
     exact.json().data.build_input.calculations[0].expected_equity_value,
     "94.7",
   );
+  const unrelated = await prepareWorkbookObjective(
+    database.ownerPool,
+    api,
+    actor.account_id,
+    actor.id,
+    deal,
+    cookie,
+  );
+  const otherRevision = await api.inject({
+    method: "POST",
+    url: `${url}/${id}/revisions`,
+    headers: {
+      cookie,
+      "idempotency-key": crypto.randomUUID(),
+      "if-match": '"2"',
+    },
+    payload: { basis: [basis], limitations: ["Same-Deal isolation observer"] },
+  });
+  assert.equal(otherRevision.statusCode, 202, otherRevision.body);
+  const token = crypto.randomUUID();
+  await database.ownerPool.query(
+    "UPDATE deliverable.workbook_job SET lease_hash=$2,lease_expires_at=now()+interval '2 minutes',attempt=1 WHERE job_id=$1",
+    [accepted.json().data.id, hashToken(token)],
+  );
+  const worker = new pg.Client({
+    connectionString: process.env.JOB_WORKER_DATABASE_URL,
+  });
+  await worker.connect();
+  try {
+    await worker.query("BEGIN");
+    await worker.query("SELECT deliverable.begin_workbook_step($1,$2)", [
+      accepted.json().data.id,
+      token,
+    ]);
+    assert.equal(
+      (
+        await worker.query(
+          "SELECT count(*)::int AS count FROM source.source_record WHERE id=$1",
+          [unrelated.source_record_id],
+        )
+      ).rows[0].count,
+      0,
+      "A same-Deal Source Record outside the accepted Packet must be unreadable",
+    );
+    assert.equal(
+      (
+        await worker.query(
+          "SELECT count(*)::int AS count FROM deliverable.deliverable_revision WHERE id=$1",
+          [otherRevision.json().data.revision_id],
+        )
+      ).rows[0].count,
+      0,
+      "A same-Deal unrelated Revision must be unreadable",
+    );
+    const expectedFragments = (
+      await database.ownerPool.query(
+        "SELECT count(*)::int AS count FROM source.source_fragment f JOIN source.source_packet_member m ON m.source_record_id=f.source_record_id WHERE m.packet_version_id=$1",
+        [objective.packet_version_id],
+      )
+    ).rows[0].count;
+    assert.equal(
+      (
+        await worker.query(
+          "SELECT count(*)::int AS count FROM source.source_fragment",
+        )
+      ).rows[0].count,
+      expectedFragments,
+    );
+    const inputs = (
+      await worker.query(
+        "SELECT deliverable.get_workbook_ai_inputs($1) AS data",
+        [accepted.json().data.revision_id],
+      )
+    ).rows[0].data;
+    assert.equal(inputs.assumptions.length, 3);
+    await assert.rejects(
+      worker.query("SELECT deliverable.get_workbook_ai_inputs($1)", [
+        otherRevision.json().data.revision_id,
+      ]),
+      /ai_artifact_scope_invalid/,
+    );
+  } finally {
+    await worker.query("ROLLBACK");
+    await worker.end();
+    await database.ownerPool.query(
+      "UPDATE deliverable.workbook_job SET lease_hash=NULL,lease_expires_at=NULL,attempt=0 WHERE job_id=$1",
+      [accepted.json().data.id],
+    );
+  }
+  const cancelOther = await api.inject({
+    method: "POST",
+    url: `/api/v1/jobs/${otherRevision.json().data.id}/cancellations`,
+    headers: { cookie, "if-match": '"job-1"' },
+    payload: { reason: "Same-Deal scope test complete" },
+  });
+  assert.equal(cancelOther.statusCode, 201, cancelOther.body);
   if (process.env.OFFICE_RENDERER_SOCKET) {
     const runtime = new WorkbookRuntime();
     t.after(() => runtime.close());
@@ -216,6 +313,30 @@ test("Workbook HTTP commands are authenticated, scoped, idempotent and version g
       readiness.json().data.posture,
       "circulation_candidate",
       readiness.body,
+    );
+    assert.equal(
+      readiness
+        .json()
+        .data.requirements.find(
+          (r: { code: string }) => r.code === "recalculation",
+        ).outcome,
+      "passed",
+    );
+    assert.equal(
+      readiness
+        .json()
+        .data.requirements.find(
+          (r: { code: string }) => r.code === "office_roundtrip",
+        ).outcome,
+      "missing",
+    );
+    assert.equal(
+      readiness
+        .json()
+        .data.requirements.find(
+          (r: { code: string }) => r.code === "professional_suitability",
+        ).outcome,
+      "missing",
     );
     const scopeState = (
       await database.ownerPool.query(
@@ -346,4 +467,41 @@ test("Workbook HTTP commands are authenticated, scoped, idempotent and version g
       true,
     );
   }
+  const revisionId = accepted.json().data.revision_id;
+  const readinessUrl = `${url}/${id}/revisions/${revisionId}/readiness?purpose=Internal%20valuation%20review&audience=Named%20Individual%20Banker`;
+  const beforeChange = await api.inject({
+    method: "GET",
+    url: readinessUrl,
+    headers: { cookie },
+  });
+  assert.notEqual(
+    beforeChange
+      .json()
+      .data.requirements.find(
+        (r: { code: string }) => r.code === "controlled_inputs",
+      ).outcome,
+    "failed",
+    beforeChange.body,
+  );
+  const decisionId =
+    exact.json().data.build_input.calculations[0].measures[0].decision_id;
+  await database.ownerPool.query(
+    "INSERT INTO knowledge.human_decision SELECT (jsonb_populate_record(NULL::knowledge.human_decision,to_jsonb(d)||jsonb_build_object('id',$2::uuid,'supersedes_decision_id',d.id,'recorded_at',clock_timestamp()))).* FROM knowledge.human_decision d WHERE d.id=$1",
+    [decisionId, crypto.randomUUID()],
+  );
+  const changed = await api.inject({
+    method: "GET",
+    url: readinessUrl,
+    headers: { cookie },
+  });
+  assert.equal(
+    changed
+      .json()
+      .data.requirements.find(
+        (r: { code: string }) => r.code === "controlled_inputs",
+      ).outcome,
+    "failed",
+    changed.body,
+  );
+  assert.equal(changed.json().data.posture, "blocked");
 });

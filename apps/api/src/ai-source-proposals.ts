@@ -6,7 +6,7 @@ import { canonicalDigest } from "./commerce.js";
 import { Database } from "./database.js";
 import {
   AI_OUTPUT_SCHEMA_VERSION,
-  taskDefinitions, workbookAiTasks, workbookCommentaryPayload, deliverableQcPayload, nativeReaderParityPayload,
+  taskDefinitions, workbookAiTasks, workbookCommentaryPayload, deliverableQcPayload, nativeReaderParityPayload, workbookProviderSchema,
   AI_ORIGIN,
   buildAiInputEnvelope,
   canRouteMaterial,
@@ -109,6 +109,8 @@ export class HelloXAiProvider implements AiProvider {
       "For financial_normalization_mapping payload use mapping_key, source_fragment_id, source_definition, canonical_definition, canonical_taxonomy_version, period, unit, currency, sign, precision, value_text, actual_forecast, decision_id, assumption_id, mapping_notes.",
       "For sell_side_analysis_draft payload use question, conclusion, supporting_fact_ids, supporting_assumption_ids, supporting_calculation_run_ids, supporting_evidence_ids, limitations, intended_use, audience.",
       "Workbook tasks must use the supplied exact Revision, manifest regions, artifact IDs and strict task payload schema. Findings are proposals; never assert readiness, professional approval or resolved QC. Missing visual or source coverage requires abstention.",
+      "For workbook artifact-only observations, support_status=not_applicable denotes that source-fragment support is not being assessed; retain exact artifact/region IDs and explain the limitation. Never mark a result supported or challenged without at least one supplied run_fragment_id that actually supports that proposition. If the necessary evidence is absent, abstain instead of inventing a link.",
+      "For native_reader_semantic_parity_review copy native_locator.sheet and native_locator.range verbatim from the matching native artifact region. reader_locator.page must belong to that same region's reader_pages; reader_locator.region_label must equal its region_key. A physically plausible output cell is not a substitute for a pre-issued locator. Keep candidate_key to 1–80 ASCII letters, digits, dots, underscores or hyphens, starting with a letter or digit.",
       "For valuation_commentary_draft payload use valuation_question, commentary, model_version_id, calculation_run_ids, assumption_ids, evidence_ids, scenario_version_ids, limitations.",
       "Each result also requires candidate_key, origin, evidence_links, support_status, conflicts, uncertainty_flags, limitations, required_human_decision.",
       "If the contract cannot be satisfied, return status=abstained with a typed abstentions entry instead of inventing fields.",
@@ -144,6 +146,7 @@ export interface AiSourceProposalRuntimeOptions {
 }
 
 function providerOutputSchema(taskDefinition: TaskDefinition, scopeDigest: string) {
+  if ((workbookAiTasks as readonly string[]).includes(taskDefinition)) return workbookProviderSchema(taskDefinition as typeof workbookAiTasks[number],scopeDigest);
   const strings = { type: "array", items: { type: "string" }, maxItems: 30 };
   const evidenceLink = { type: "object", additionalProperties: false, required: ["fragment_id", "relationship", "proposition_scope", "qualification", "limitation"], properties: { fragment_id: { type: "string" }, relationship: { enum: ["supports", "challenges"] }, proposition_scope: { type: "string" }, qualification: { type: ["string", "null"] }, limitation: { type: ["string", "null"] } } };
   const conflict = { type: "object", additionalProperties: false, required: ["conflict_key", "dimension", "competing_refs", "affected_scope", "unresolved_alternatives", "affected_uses"], properties: { conflict_key: { type: "string" }, dimension: { enum: ["definition", "period", "unit", "currency", "sign", "value", "source_version", "scope", "meaning"] }, competing_refs: { type: "array", items: { type: "string" }, minItems: 2, maxItems: 20 }, affected_scope: { type: "string" }, unresolved_alternatives: { type: "array", items: { type: "string" }, minItems: 2, maxItems: 20 }, affected_uses: { type: "array", items: { type: "string" }, minItems: 1, maxItems: 20 } } };
@@ -326,9 +329,9 @@ export async function executeAiProposalRun(client: pg.PoolClient, context: {acco
         await client.query("SELECT source.get_packet_worker_input($1,$2,$3,$4,$5)", [context.accountId, dealId, body.packet_version_id, body.work_objective_id, "ai_processing"]);
         const rows = await client.query<Record<string, unknown>>(`SELECT f.id AS fragment_id,f.source_record_id,r.version_ordinal AS source_record_version,r.content_sha256 AS source_record_digest,f.representation_id,rep.content_sha256 AS representation_digest,f.locator,f.content_sha256 AS content_digest,f.content_text,f.coverage_code,r.provenance_class,r.confidentiality_class,r.de_identification_posture,coalesce((SELECT cs.assessment_id::text FROM source.source_rights_current_selection cs WHERE cs.source_record_id=r.id AND cs.purpose_code=(SELECT purpose_code FROM source.source_packet_version WHERE id=$2) ORDER BY cs.updated_at DESC LIMIT 1),'not-recorded') AS rights_assessment_id FROM source.source_packet_member m JOIN source.source_fragment f ON f.source_record_id=m.source_record_id JOIN source.source_record r ON r.id=f.source_record_id JOIN source.source_representation rep ON rep.id=f.representation_id WHERE m.packet_version_id=$2 AND m.account_id=$1 AND m.deal_id=$3 ORDER BY m.sort_key,f.created_at`, [context.accountId, body.packet_version_id, dealId]);
         const fragments = rows.rows.map((row) => ({ ...asFragment(row), run_fragment_id: crypto.randomUUID() })); const material = materialFromFragments(fragments);
-        const controlled = (await client.query<{ facts: unknown; assumptions: unknown; evidence: unknown; decisions: unknown; analysis: Record<string, unknown> }>("SELECT knowledge.get_fact_projection($1,$2,$3,NULL) AS facts, knowledge.get_assumption_projection($1,$2,$3,NULL) AS assumptions, knowledge.get_evidence_projection($1,$2,$3,NULL) AS evidence, knowledge.get_decision_projection($1,$2,$3,NULL) AS decisions, analysis.get_analysis_projection($1,$2,$3,NULL,NULL) AS analysis", [context.accountId, context.actorId, dealId])).rows[0] ?? { facts: [], assumptions: [], evidence: [], decisions: [], analysis: {} };
-        let analysisProjection = controlled.analysis ?? {};
         const workbookTask = (workbookAiTasks as readonly string[]).includes(body.task_definition);
+        const controlled = workbookTask ? (await client.query<{data:{facts:unknown;assumptions:unknown;evidence:unknown;decisions:unknown;analysis:Record<string,unknown>}}>("SELECT deliverable.get_workbook_ai_inputs($1) AS data",[body.revision_id])).rows[0]!.data : (await client.query<{ facts: unknown; assumptions: unknown; evidence: unknown; decisions: unknown; analysis: Record<string, unknown> }>("SELECT knowledge.get_fact_projection($1,$2,$3,NULL) AS facts, knowledge.get_assumption_projection($1,$2,$3,NULL) AS assumptions, knowledge.get_evidence_projection($1,$2,$3,NULL) AS evidence, knowledge.get_decision_projection($1,$2,$3,NULL) AS decisions, analysis.get_analysis_projection($1,$2,$3,NULL,NULL) AS analysis", [context.accountId, context.actorId, dealId])).rows[0] ?? { facts: [], assumptions: [], evidence: [], decisions: [], analysis: {} };
+        let analysisProjection = controlled.analysis ?? {};
         type WorkbookContext = { id:string; purpose:string; audience:string; confidentiality: "public"|"internal"|"confidential"|"restricted"; build_input:{calculations:Array<{run_id:string;model_version_id:string;scenario_version_id:string;measures:Array<{source_record_id:string|null;fact_id:string|null;assumption_id:string|null;decision_id:string}>}>}; artifacts:unknown[]; regions:unknown[]; render_evidence:unknown; manifest:unknown };
         let workbook: WorkbookContext | null = null;
         if(workbookTask){
@@ -345,7 +348,7 @@ export async function executeAiProposalRun(client: pg.PoolClient, context: {acco
           controlled.assumptions=exact(controlled.assumptions,measures.map(m=>m.assumption_id));
           controlled.decisions=exact(controlled.decisions,measures.map(m=>m.decision_id));
           controlled.evidence=[];
-          analysisProjection=(await client.query<{data:Record<string,unknown>}>("SELECT deliverable.get_revision_analysis_input($1) AS data",[workbook.id])).rows[0]!.data;
+
           if(measures.some(m=>m.assumption_id&&!m.source_record_id))material.provenanceClass="real";
 
         }

@@ -354,7 +354,7 @@ export function registerDeliverableRoutes(
       await parentCheck(client, p.parent, p.revision);
       return query(
         client,
-        `SELECT to_jsonb(r)||jsonb_build_object('artifacts',(SELECT coalesce(jsonb_agg(to_jsonb(a)-'protected_object_id'),'[]') FROM deliverable.artifact a WHERE a.revision_id=r.id),'jobs',(SELECT coalesce(jsonb_agg(jsonb_build_object('id',j.id,'job_type',j.command_type,'state',j.state,'problem',j.problem,'progress',j.progress) ORDER BY j.created_at DESC),'[]') FROM jobs.job j WHERE j.accepted_inputs->>'revision_id'=r.id::text)) AS data FROM deliverable.deliverable_revision r WHERE r.id=$1`,
+        `SELECT to_jsonb(r)||jsonb_build_object('artifacts',(SELECT coalesce(jsonb_agg(to_jsonb(a)-'protected_object_id'),'[]') FROM deliverable.artifact a WHERE a.revision_id=r.id),'jobs',(SELECT coalesce(jsonb_agg(jsonb_build_object('id',j.id,'job_type',j.command_type,'state',j.state,'row_version',j.row_version,'problem',j.problem,'progress',j.progress) ORDER BY j.created_at DESC),'[]') FROM jobs.job j WHERE j.accepted_inputs->>'revision_id'=r.id::text)) AS data FROM deliverable.deliverable_revision r WHERE r.id=$1`,
         [p.revision],
       );
     }),

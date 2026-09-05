@@ -13,6 +13,71 @@ import pymupdf
 SHEETS = ['Overview', 'Inputs', 'Assumptions', 'Valuation', 'Scenarios', 'Lineage', 'Banker Notes']
 KEYS = [('enterprise_value', 'EV'), ('cash', 'Cash'), ('debt', 'Debt')]
 
+def number(text):
+    return Decimal(text.replace(',', '')) if re.fullmatch(r'-?\d[\d,]*(?:\.\d+)?', text) else None
+
+def valuation_rows_match(pages, runs):
+    rows=[]
+    for page,_ in pages:
+        words=page.get_text('words')
+        heading=next((w for w in words if w[4]=='Scenario'),None)
+        if not heading:return False
+        columns=sorted([d['rect'] for d in page.get_drawings() if d.get('fill') and d['rect'].y0<=heading[1]<d['rect'].y1 and d['rect'].width>30],key=lambda r:r.x0)
+        if len(columns)!=8:return False
+        anchors=sorted([w for w in words if columns[1].x0<=w[0]<columns[1].x1 and w[1]>columns[1].y1 and number(w[4]) is not None],key=lambda w:w[1])
+        for index,anchor in enumerate(anchors):
+            bottom=anchors[index+1][1]-2 if index+1<len(anchors) else page.rect.height-40
+            values=[]
+            for column in columns[1:7]:
+                tokens=[number(w[4]) for w in words if column.x0<=w[0]<column.x1 and abs(w[1]-anchor[1])<3 and number(w[4]) is not None]
+                if len(tokens)!=1:return False
+                values.append(tokens[0])
+            texts=[' '.join(w[4] for w in words if column.x0<=w[0]<column.x1 and anchor[1]-2<=w[1]<bottom) for column in [columns[0],columns[7]]]
+            rows.append((values,texts))
+    if len(rows)!=len(runs):return False
+    for (values,texts),run in zip(rows,runs):
+        measures={m['key']:m for m in run['measures']}
+        expected=[Decimal(measures[key]['value']) for key,_ in KEYS]+[Decimal(run['expected_equity_value'])]*2+[Decimal(0)]
+        if values!=expected or ' '.join(run['scenario'].split()) not in texts[0]:return False
+        if not all(measures['cash'][key] in texts[1] for key in ['unit','period']):return False
+    return True
+
+def chart_matches(pages,runs):
+    for page,content in pages:
+        titles=page.search_for('Equity value by controlled scenario')
+        if not titles:continue
+        drawings=page.get_drawings()
+        plots=[d['rect'] for d in drawings if d.get('fill') and all(abs(c-.7529)<.01 for c in d['fill']) and d['rect'].y0>titles[0].y0 and d['rect'].width>100]
+        if len(plots)!=1:continue
+        plot=plots[0]
+        bars=sorted([d['rect'] for d in drawings if d.get('fill') and all(abs(c-e)<.01 for c,e in zip(d['fill'],(.2667,.4471,.7686))) and plot.contains(d['rect'])],key=lambda r:r.x0)
+        words=page.get_text('words')
+        ticks=[(number(w[4]),(w[1]+w[3])/2) for w in words if w[2]<plot.x0 and plot.y0-10<w[1]<plot.y1+10 and number(w[4]) is not None]
+        if len(ticks)<2:continue
+        low,high=min(ticks),max(ticks)
+        if low[0]==high[0] or low[1]==high[1]:continue
+        scale=float(high[0]-low[0])/(high[1]-low[1])
+        zero_y=low[1]-float(low[0])/scale
+        matched=0
+        for index,run in enumerate(runs):
+            expected=Decimal(run['expected_equity_value'])
+            left=plot.x0+index*plot.width/len(runs);right=left+plot.width/len(runs)
+            candidates=[bar for bar in bars if left<(bar.x0+bar.x1)/2<right]
+            if expected==0:
+                if any(bar.height>1 for bar in candidates):break
+            else:
+                if len(candidates)!=1:break
+                bar=candidates[0];matched+=1
+                endpoint=bar.y0 if expected>0 else bar.y1
+                observed=float(low[0])+(endpoint-low[1])*scale
+                tolerance=max(.05,abs(scale)*1.5)
+                if abs(observed-float(expected))>tolerance:break
+            category=' '.join(w[4] for w in words if left<((w[0]+w[2])/2)<right and zero_y<w[1]<zero_y+50)
+            if ' '.join(run['scenario'].split()) not in category:break
+        else:
+            return matched==len([bar for bar in bars if bar.height>1]) and runs[0]['measures'][0]['unit'] in content
+    return False
+
 
 def inspect(data, native, reader):
     checks = []
@@ -33,11 +98,19 @@ def inspect(data, native, reader):
         props = {p.name: p.value for p in workbook.custom_doc_props}
         structure = all(name in workbook.sheetnames for name in SHEETS) and props.get('revision_id') == data['revision_id']
         structure &= len(workbook['Scenarios']._charts) == 1 and workbook.calculation.calcMode in (None, 'auto')
+        series=workbook['Scenarios']._charts[0].series
+        reference=lambda value: value.replace('$','').replace("'",'')
+        structure &= len(series)==1 and reference(series[0].val.numRef.f)==f'Scenarios!B8:B{7+len(data["calculations"])}'
+        category=series[0].cat.strRef or series[0].cat.numRef
+        structure &= reference(category.f)==f'Scenarios!A8:A{7+len(data["calculations"])}'
         cache_pass, lineage_pass = True, True
         for index, run in enumerate(data['calculations'], 1):
             row = index+7
-            expected_formula = f'=EV_{index}+Cash_{index}-Debt_{index}'
+            precision=max(m['precision'] for m in run['measures'])
+            expected_formula = f'=ROUND(EV_{index}+Cash_{index}-Debt_{index},{precision})'
             structure &= workbook['Valuation'][f'E{row}'].value == expected_formula
+            structure &= all(workbook['Valuation'].cell(row,col).value==f'={name}_{index}' for col,(_,name) in enumerate(KEYS,2))
+            structure &= workbook['Scenarios'][f'A{row}'].value==run['scenario'] and workbook['Scenarios'][f'B{row}'].value==f'=Valuation!E{row}'
             expected = Decimal(next(m['value'] for m in run['measures'] if m['key']=='enterprise_value')) + Decimal(next(m['value'] for m in run['measures'] if m['key']=='cash')) - Decimal(next(m['value'] for m in run['measures'] if m['key']=='debt'))
             cache_pass &= Decimal(str(cached['Valuation'][f'E{row}'].value)) == expected and Decimal(str(cached['Valuation'][f'G{row}'].value)) == 0
             cache_pass &= Decimal(str(cached['Scenarios'][f'B{row}'].value)) == expected
@@ -75,7 +148,7 @@ def inspect(data, native, reader):
     try:
         pdf = pymupdf.open(reader)
         text = '\n'.join(p.get_text() for p in pdf)
-        clean = 'evaluation' not in text.lower() and 'aspose' not in text.lower().replace('aspose.cells python via .net 26.8.0', '')
+        clean = not re.search(r'evaluation\s+only|evaluation\s+warning|created\s+(?:with|by)\s+aspose|aspose[^\n]{0,80}(?:trial|unlicensed)', text, re.I)
         record('clean_copy', clean, 'Reader Copy checked for evaluation marks and clean output')
         pages = [(page, page.get_text()) for page in pdf]
         sheet_pages = {sheet: [(page, content) for page, content in pages if f'DEAL CONTROL / {sheet.upper()}' in content] for sheet in SHEETS}
@@ -85,20 +158,12 @@ def inspect(data, native, reader):
                 if f'DEAL CONTROL / {sheet.upper()}' in content and (not order or order[-1] != sheet):
                     order.append(sheet)
         observations['sheet_order_matches'] = order == SHEETS
-        valuation_text = '\n'.join(content for _, content in sheet_pages['Valuation'])
-        valuation_numbers = {Decimal(token.replace(',', '')) for token in re.findall(r'(?<![\w.])-?\d[\d,]*(?:\.\d+)?(?![\w.])', valuation_text)}
-        values_match = bool(valuation_text)
-        for run in data['calculations']:
-            values_match &= run['scenario'] in valuation_text
-            values_match &= all(Decimal(m['value']) in valuation_numbers for m in run['measures'])
-            values_match &= Decimal(run['expected_equity_value']) in valuation_numbers
-            values_match &= run['measures'][0]['unit'] in valuation_text and run['measures'][0]['period'] in valuation_text
-        observations['valuation_values_match'] = bool(values_match)
+        observations['valuation_values_match'] = valuation_rows_match(sheet_pages['Valuation'],data['calculations'])
         normalized_lineage = re.sub(r'\s+', '', '\n'.join(content for _, content in sheet_pages['Lineage']))
         citations_match = all(m['decision_id'] in normalized_lineage and (not m.get('source_record_id') or m['source_record_id'] in normalized_lineage) for run in data['calculations'] for m in run['measures'])
         observations['decision_and_source_citations_match'] = citations_match
         chart_pages = sheet_pages['Scenarios']
-        observations['chart_region_present'] = any('Equity value by controlled scenario' in content and len(page.get_drawings()) > 0 for page, content in chart_pages)
+        observations['chart_region_present'] = chart_matches(chart_pages,data['calculations'])
         parity = all(observations.values()) and data['revision_id'] in text and data['confidentiality'].upper() in text
         parity &= data['purpose'] in text and data['audience'] in text
         fonts = [f for page in pdf for f in page.get_fonts(full=True)]

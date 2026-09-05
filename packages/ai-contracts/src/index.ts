@@ -328,6 +328,14 @@ const taskPayloads: Record<TaskDefinition, z.ZodType<Record<string, unknown>>> =
   native_reader_semantic_parity_review: nativeReaderParityPayload,
 };
 
+/** Use the same structural contract for provider instructions and deterministic validation. */
+export function workbookProviderSchema(task: typeof workbookAiTasks[number], scopeDigest: string) {
+  return z.toJSONSchema(z.object({
+    status:z.enum(["complete","partial","abstained"]),schema_version:z.literal(AI_OUTPUT_SCHEMA_VERSION),task_definition:z.literal(task),scope_digest_echo:z.literal(scopeDigest),
+    results:z.array(commonResult.extend({payload:taskPayloads[task]})).max(200),abstentions:z.array(abstention).max(200),omissions:z.array(omission).max(200),
+  }).strict());
+}
+
 export function validateAiOutput(value: unknown, envelope: AiInputEnvelope): { ok: true } | { ok: false; code: string; pointer?: string } {
   const base = z.object({ status: z.enum(["complete", "partial", "abstained"]), schema_version: z.literal(AI_OUTPUT_SCHEMA_VERSION), task_definition: z.enum(taskDefinitions), scope_digest_echo: z.string(), results: z.array(z.record(z.string(), z.unknown())).max(200), abstentions: z.array(z.record(z.string(), z.unknown())).max(200), omissions: z.array(z.record(z.string(), z.unknown())).max(200) }).strict().safeParse(value);
   if (!base.success) return { ok: false, code: "schema_invalid", pointer: base.error.issues[0]?.path.join(".") };

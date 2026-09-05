@@ -36,6 +36,7 @@ type Revision = {
     id: string;
     job_type: string;
     state: string;
+    row_version: number;
     problem: { code: string } | null;
   }>;
 };
@@ -110,7 +111,7 @@ const pendingCommands = new Map<string, string>();
 async function request<T>(
   url: string,
   body?: unknown,
-  etag?: number,
+  etag?: number | string,
 ): Promise<T> {
   const fingerprint =
     body === undefined ? null : JSON.stringify([url, body, etag]);
@@ -128,7 +129,9 @@ async function request<T>(
           headers: {
             "content-type": "application/json",
             "idempotency-key": commandKey,
-            ...(etag ? { "if-match": `"${etag}"` } : {}),
+            ...(etag
+              ? { "if-match": typeof etag === "string" ? etag : `"${etag}"` }
+              : {}),
           },
           body: JSON.stringify(body),
         }),
@@ -579,12 +582,17 @@ export function WorkbookSurface({
       ) : null}
       <PageHeader
         eyebrow={
-          selected ? "Deliverable · Analysis & valuation" : "Execution Package"
+          selected || slug[0] === "deliverables"
+            ? "Deliverable · Analysis & valuation"
+            : "Execution Package"
         }
         title={
           slug[0] === "review-readiness"
             ? "Review & Readiness"
-            : (selected?.title ?? "Execution Package")
+            : (selected?.title ??
+              (slug[0] === "deliverables"
+                ? "Analysis and Valuation Workbook"
+                : "Execution Package"))
         }
         description={
           selected
@@ -606,6 +614,7 @@ export function WorkbookSurface({
           ) : (
             <button
               className="dc-button dc-workbook-command"
+              disabled={!loaded}
               onClick={() => setCreation(true)}
             >
               Create valuation workbook
@@ -919,27 +928,60 @@ export function WorkbookSurface({
             />
           ) : (
             <>
-              {revision.jobs.map((job) => (
-                <StatePanel
-                  key={job.id}
-                  tone={
-                    job.state === "failed_terminal"
-                      ? "critical"
-                      : job.state === "completed"
-                        ? "success"
-                        : "info"
-                  }
-                  label={`${label(job.job_type)} · ${label(job.state)}`}
-                  title={
-                    job.problem
-                      ? label(job.problem.code)
-                      : job.state === "completed"
-                        ? "Result recorded for this exact Revision"
-                        : "Execution in progress"
-                  }
-                  detail={`Job ${job.id}`}
-                />
-              ))}
+              <details className="dc-workbook-jobs">
+                <summary>
+                  Execution jobs ({revision.jobs.length}) ·{" "}
+                  {label(revision.jobs[0]?.state ?? "No jobs")}
+                </summary>
+                {revision.jobs.map((job) => (
+                  <StatePanel
+                    key={job.id}
+                    tone={
+                      job.state === "failed_terminal"
+                        ? "critical"
+                        : job.state === "completed"
+                          ? "success"
+                          : "info"
+                    }
+                    label={`${label(job.job_type)} · ${label(job.state)}`}
+                    title={
+                      job.problem
+                        ? label(job.problem.code)
+                        : job.state === "completed"
+                          ? "Result recorded for this exact Revision"
+                          : job.state === "canceled"
+                            ? "Canceled; late results cannot commit"
+                            : "Execution in progress"
+                    }
+                    detail={`Job ${job.id}`}
+                  >
+                    {["queued", "running"].includes(job.state) ? (
+                      <button
+                        className="dc-button dc-workbook-command"
+                        disabled={busy}
+                        onClick={() =>
+                          void mutate(async () => {
+                            await request(
+                              `/api/v1/jobs/${job.id}/cancellations`,
+                              {
+                                reason:
+                                  "Canceled by Banker from exact Revision inspection",
+                              },
+                              `"job-${job.row_version}"`,
+                            );
+                            setNotice(
+                              "Job canceled. Late provider results cannot commit.",
+                            );
+                            await load();
+                          })
+                        }
+                      >
+                        Cancel {label(job.job_type)}
+                      </button>
+                    ) : null}
+                  </StatePanel>
+                ))}
+              </details>
               <nav
                 className="dc-tab-list"
                 role="tablist"

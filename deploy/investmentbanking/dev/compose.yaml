@@ -36,6 +36,10 @@ services:
         source: ${OFFICE_SOCKET_DIRECTORY:?OFFICE_SOCKET_DIRECTORY must point to the dedicated rootless supervisor socket directory}
         target: /run/office
         read_only: true
+      - type: bind
+        source: ${ARTIFACT_IDENTITY_DIRECTORY:?ARTIFACT_IDENTITY_DIRECTORY must point to the workload token directory}
+        target: /run/artifact-identity
+        read_only: true
     group_add:
       - "${OFFICE_RENDERER_GID:-1001}"
     networks:

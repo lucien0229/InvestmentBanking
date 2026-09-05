@@ -207,10 +207,11 @@ def build(data, output):
             sheets['Lineage'].cells.set_row_height(line_row, 160.0)
         sheet = sheets['Valuation']
         write_text(sheet, valuation_row, 0, run['scenario'])
-        for col, formula in enumerate([f'=EV_{index}', f'=Cash_{index}', f'=Debt_{index}', f'=EV_{index}+Cash_{index}-Debt_{index}'], 1):
+        precision = max(measure['precision'] for measure in run['measures'])
+        for col, formula in enumerate([f'=EV_{index}', f'=Cash_{index}', f'=Debt_{index}', f'=ROUND(EV_{index}+Cash_{index}-Debt_{index},{precision})'], 1):
             sheet.cells.get(valuation_row, col).formula = formula
         sheet.cells.get(valuation_row, 5).put_value(float(run['expected_equity_value']))
-        sheet.cells.get(valuation_row, 6).formula = f'=E{valuation_row+1}-F{valuation_row+1}'
+        sheet.cells.get(valuation_row, 6).formula = f'=ROUND(E{valuation_row+1}-F{valuation_row+1},{precision})'
         write_text(sheet, valuation_row, 7, f"{run['measures'][0]['unit']} / {run['measures'][0]['period']}")
         for col in range(1, 7):
             style = sheet.cells.get(valuation_row, col).get_style()

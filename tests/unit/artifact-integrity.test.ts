@@ -2,7 +2,6 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   canonicalJson,
-  evaluateReadiness,
   makeManifest,
   verifyManifest,
 } from "../../apps/api/src/artifact-integrity.js";
@@ -64,49 +63,4 @@ test("manifest binds exact bytes and rejects a substituted member", () => {
     '{"a":{"a":"x","z":2},"z":1}',
   );
   assert.throws(() => canonicalJson({ malformed: "\ud800" }));
-});
-
-test("one passing check clears only its own exact-use readiness blocker", () => {
-  const base = {
-    revisionId: "r1",
-    purpose: "review",
-    audience: "banker",
-    checks: [{ code: "recalculation", outcome: "passed" as const }],
-    reviews: [],
-  };
-  const result = evaluateReadiness(base);
-  assert.equal(result.posture, "working_draft");
-  assert.equal(
-    result.requirements.find((r) => r.code === "recalculation")?.outcome,
-    "passed",
-  );
-  assert.equal(
-    result.requirements.find((r) => r.code === "native_reader_parity")?.outcome,
-    "missing",
-  );
-  const critical = evaluateReadiness({
-    ...base,
-    checks: [
-      ...base.checks,
-      { code: "native_structure", outcome: "failed" as const },
-    ],
-  });
-  assert.equal(critical.posture, "blocked");
-  const unrelated = evaluateReadiness({
-    ...base,
-    reviews: [
-      {
-        revisionId: "r0",
-        purpose: "review",
-        audience: "banker",
-        standard: "professional_suitability",
-        conclusion: "passed",
-      },
-    ],
-  });
-  assert.equal(
-    unrelated.requirements.find((r) => r.code === "professional_suitability")
-      ?.outcome,
-    "missing",
-  );
 });

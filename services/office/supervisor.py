@@ -57,7 +57,8 @@ class Handler(BaseHTTPRequestHandler):
                         if len(content)>32*1024*1024:
                             raise ValueError('artifact_byte_limit')
                         (root/'input'/f'artifact.{suffix}').write_bytes(content)
-                command = ['podman','run','--rm','--network=none','--read-only','--cap-drop=ALL','--security-opt=no-new-privileges',
+                container_name = 'ib-office-' + root.name
+                command = ['podman','run','--name',container_name,'--timeout=175','--rm','--network=none','--read-only','--cap-drop=ALL','--security-opt=no-new-privileges',
                     '--memory=1g','--cpus=1','--pids-limit=128','--userns=keep-id:uid=1000,gid=1000','--user=1000:1000',
                     '--tmpfs=/tmp:rw,size=256m','-e','XDG_CACHE_HOME=/tmp/fontcache',
                     '-v',f'{root}/input:/input:ro','-v',f'{root}/output:/output:rw']
@@ -69,7 +70,11 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     arguments=['/app/services/office/inspect_workbook.py','/input/input.json','/input/artifact.xlsx','/input/artifact.pdf','/output/inspection-report.json']
                 command += ['--entrypoint','python',IMAGE,*arguments]
-                result = subprocess.run(command, capture_output=True, timeout=180)
+                try:
+                    result = subprocess.run(command, capture_output=True, timeout=180)
+                finally:
+                    # Kill only this render's container, including when the Podman client times out.
+                    subprocess.run(['podman','rm','--force','--ignore',container_name], capture_output=True, timeout=15)
                 if result.returncode:
                     self.send_error(502, 'Office renderer failed')
                     return

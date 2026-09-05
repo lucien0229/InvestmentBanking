@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import fs from "node:fs/promises";
 
 export function canonicalJson(value: unknown): string {
   if (value === null || typeof value === "boolean")
@@ -124,146 +125,6 @@ export type ArtifactCheck = {
   detail?: string;
   evidence?: unknown;
 };
-export type ArtifactReview = {
-  revisionId: string;
-  purpose: string;
-  audience: string;
-  standard: string;
-  conclusion: string;
-};
-const requirements = [
-  [
-    "controlled_inputs",
-    "analysis_ready",
-    "Complete material input authority and explicit assumptions",
-  ],
-  [
-    "native_structure",
-    "analysis_ready",
-    "Inspect native formulas, names, scenarios and charts",
-  ],
-  [
-    "method_review",
-    "analysis_ready",
-    "Record Banker review of the exact method and scope",
-  ],
-  [
-    "recalculation",
-    "senior_review_ready",
-    "Recalculate and inspect exact stored Native Artifact",
-  ],
-  [
-    "lineage",
-    "senior_review_ready",
-    "Trace all material native and reader regions to exact source cells",
-  ],
-  [
-    "native_reader_parity",
-    "senior_review_ready",
-    "Inspect Native and Reader Copy content and layout parity",
-  ],
-  [
-    "review_scope",
-    "senior_review_ready",
-    "Confirm exact purpose, audience and review perimeter",
-  ],
-  [
-    "clean_copy",
-    "circulation_candidate",
-    "Provide licensed clean output with fonts and qualifications intact",
-  ],
-  [
-    "office_roundtrip",
-    "circulation_candidate",
-    "Verify the declared Microsoft 365 build and edit/save/reopen path",
-  ],
-  [
-    "rights_confidentiality",
-    "circulation_candidate",
-    "Confirm rights and confidentiality for this exact use",
-  ],
-  [
-    "signed_manifest",
-    "circulation_candidate",
-    "Verify KMS signature and hashes of every exact artifact",
-  ],
-  [
-    "professional_suitability",
-    "circulation_candidate",
-    "Record professional suitability review for this exact use",
-  ],
-] as const;
-const humanStandards = new Set([
-  "method_review",
-  "review_scope",
-  "rights_confidentiality",
-  "professional_suitability",
-  "office_roundtrip",
-]);
-export function evaluateReadiness(input: {
-  revisionId: string;
-  purpose: string;
-  audience: string;
-  checks: ArtifactCheck[];
-  reviews: ArtifactReview[];
-}) {
-  const results = requirements.map(([code, gate, recovery]) => {
-    const exactReviews = input.reviews.filter(
-      (r) =>
-        r.revisionId === input.revisionId &&
-        r.purpose === input.purpose &&
-        r.audience === input.audience &&
-        r.standard === code,
-    );
-    const check = input.checks.filter((r) => r.code === code).at(-1);
-    let outcome: CheckOutcome = humanStandards.has(code)
-      ? exactReviews.at(-1)?.conclusion === "passed"
-        ? "passed"
-        : exactReviews.at(-1)?.conclusion === "failed"
-          ? "failed"
-          : "missing"
-      : (check?.outcome ?? "missing");
-    if (code === "native_reader_parity" && outcome === "passed")
-      outcome =
-        exactReviews.at(-1)?.conclusion === "passed"
-          ? "passed"
-          : exactReviews.at(-1)?.conclusion === "failed"
-            ? "failed"
-            : "missing";
-    return { code, gate, outcome, recovery, detail: check?.detail ?? null };
-  });
-  let posture:
-    | "working_draft"
-    | "analysis_ready"
-    | "senior_review_ready"
-    | "circulation_candidate"
-    | "blocked" = "working_draft";
-  if (results.some((r) => r.outcome === "failed")) posture = "blocked";
-  else
-    for (const gate of [
-      "analysis_ready",
-      "senior_review_ready",
-      "circulation_candidate",
-    ] as const) {
-      if (
-        results
-          .filter((r) => r.gate === gate)
-          .some((r) => r.outcome !== "passed")
-      )
-        break;
-      posture = gate;
-    }
-  return {
-    revision_id: input.revisionId,
-    purpose: input.purpose,
-    audience: input.audience,
-    posture,
-    requirements: results,
-    blockers: results.filter((r) => r.outcome !== "passed"),
-    external_use_authorized: false,
-  };
-}
-
 function crc32c(bytes: Buffer): string {
   let crc = 0xffffffff;
   for (const byte of bytes) {
@@ -288,7 +149,11 @@ export class GoogleKmsArtifactSigner implements ArtifactSigner {
   constructor(
     private readonly keyVersion = process.env.ARTIFACT_KMS_KEY_VERSION,
     private readonly accessToken = async () =>
-      process.env.GOOGLE_KMS_ACCESS_TOKEN,
+      process.env.GOOGLE_KMS_ACCESS_TOKEN_FILE
+        ? (
+            await fs.readFile(process.env.GOOGLE_KMS_ACCESS_TOKEN_FILE, "utf8")
+          ).trim()
+        : process.env.GOOGLE_KMS_ACCESS_TOKEN,
   ) {}
   async sign(canonical: string): Promise<ArtifactSignature> {
     if (

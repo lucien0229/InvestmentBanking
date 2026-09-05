@@ -6,7 +6,7 @@ After=network.target
 Type=simple
 ExecStart=/usr/bin/python3 /opt/cells/investmentbanking/dev/office/supervisor.py
 Environment=OFFICE_RENDERER_SOCKET=/opt/cells/investmentbanking/dev/office/socket/renderer.sock
-Environment=OFFICE_RENDERER_IMAGE=sha256:fa651dcd342157af5e7a7ca9205bf63dc93c4245bf601c3ac82cdfce1fca35ab
+Environment=OFFICE_RENDERER_IMAGE=sha256:3ee44d3e668af1543831cc3773c878ff04cfc8ca5d761fe4a697d22d8e808256
 Environment=OFFICE_WORK_ROOT=/opt/cells/investmentbanking/dev/office/work
 Environment=XDG_RUNTIME_DIR=/run/user/1001
 Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1001/bus
