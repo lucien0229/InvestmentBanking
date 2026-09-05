@@ -7,6 +7,11 @@ export async function createWorkbookBasis(
   api: FastifyInstance,
   deal: string,
   cookie: string,
+  cashFact?: {
+    id: string;
+    decisionId: string;
+    locator: Record<string, unknown>;
+  },
 ) {
   const command = async (
     path: string,
@@ -35,6 +40,23 @@ export async function createWorkbookBasis(
     ["cash", "4.7"],
     ["debt", "10.0"],
   ]) {
+    if (key === "cash" && cashFact) {
+      measures.push({
+        measure_key: key,
+        definition: key,
+        period: "FY2025E",
+        unit: "USD million",
+        currency: "USD",
+        sign: "positive",
+        precision: 1,
+        value_text: value,
+        source_locator: cashFact.locator,
+        fact_id: cashFact.id,
+        assumption_id: null,
+        decision_id: cashFact.decisionId,
+      });
+      continue;
+    }
     const assumption = await command("assumptions", {
       proposition: `Synthetic ${key} assumption`,
       value,
@@ -105,7 +127,10 @@ export async function createWorkbookBasis(
     {
       definition: { label: "Synthetic acceptance" },
       calculation_version_ids: [version.id],
-      assumption_ids: measures.map((m) => m.assumption_id),
+      assumption_ids: measures.flatMap((m) =>
+        m.assumption_id ? [m.assumption_id] : [],
+      ),
+      fact_ids: cashFact ? [cashFact.id] : [],
     },
     1,
   );

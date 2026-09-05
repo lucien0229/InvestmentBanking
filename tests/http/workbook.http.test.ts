@@ -121,7 +121,70 @@ test("Workbook HTTP commands are authenticated, scoped, idempotent and version g
     database.pool.query("UPDATE deliverable.deliverable SET title='forged'"),
     /permission denied/,
   );
-  const basis = await createWorkbookBasis(api, deal, cookie);
+  const sourceFragment = (
+    await database.ownerPool.query(
+      "SELECT id,representation_id,locator FROM source.source_fragment WHERE source_record_id=$1 AND content_text='Cash,4.7'",
+      [objective.source_record_id],
+    )
+  ).rows[0];
+  const command = async (path: string, payload: Record<string, unknown>) => {
+    const response = await api.inject({
+      method: "POST",
+      url: `/api/v1/deals/${deal}/${path}`,
+      headers: { cookie, "idempotency-key": crypto.randomUUID() },
+      payload,
+    });
+    assert.equal(response.statusCode, 201, response.body);
+    return response.json().data;
+  };
+  const claim = await command("claims", {
+    proposition: "Synthetic Cash is 4.7 USD million",
+    attribution: "Synthetic CSV",
+    definition: "cash",
+    period: "FY2025E",
+    unit: "USD million",
+    currency: "USD",
+    sign: "positive",
+    value: "4.7",
+    purpose: body.purpose,
+    scope: "Synthetic valuation acceptance",
+  });
+  const evidence = await command("evidence-acceptances", {
+    source_record_id: objective.source_record_id,
+    representation_id: sourceFragment.representation_id,
+    locator: sourceFragment.locator,
+    proposition: "Synthetic Cash is 4.7 USD million",
+    relationship: "supports",
+    supported_scope: "Synthetic valuation acceptance",
+    qualification: "Controlled synthetic parser fixture",
+    limitation: null,
+  });
+  const fact = await command(`claims/${claim.id}/fact-acceptances`, {
+    evidence_relationship_ids: [evidence.relationship.id],
+    purpose: body.purpose,
+    scope: "Synthetic valuation acceptance",
+    rationale: "Exact synthetic CSV row supports the disclosed Cash value.",
+    alternatives: [],
+    contrary_evidence: [],
+  });
+  await command("normalized-financial-values", {
+    definition: "cash",
+    period: "FY2025E",
+    unit: "USD million",
+    currency: "USD",
+    sign: "positive",
+    precision: 1,
+    value_text: "4.7",
+    actual_forecast: "forecast",
+    source_locator: sourceFragment.locator,
+    source_fragment_id: sourceFragment.id,
+    decision_id: fact.human_decision.id,
+  });
+  const basis = await createWorkbookBasis(api, deal, cookie, {
+    id: fact.id,
+    decisionId: fact.human_decision.id,
+    locator: sourceFragment.locator,
+  });
   const accepted = await api.inject({
     method: "POST",
     url: `${url}/${id}/revisions`,
@@ -220,7 +283,9 @@ test("Workbook HTTP commands are authenticated, scoped, idempotent and version g
         [accepted.json().data.revision_id],
       )
     ).rows[0].data;
-    assert.equal(inputs.assumptions.length, 3);
+    assert.equal(inputs.assumptions.length, 2);
+    assert.equal(inputs.facts.length, 1);
+    assert.equal(inputs.facts[0].id, fact.id);
     await assert.rejects(
       worker.query("SELECT deliverable.get_workbook_ai_inputs($1)", [
         otherRevision.json().data.revision_id,
