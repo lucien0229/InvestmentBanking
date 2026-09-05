@@ -44,7 +44,11 @@ export default function PreflightPage() {
       const response = await fetch(`/api/v1/deals/${dealId}/preflights/${result.id}/limited-proceed-acceptances`, { method: "POST", headers: { "content-type": "application/json", "idempotency-key": `web-limited-${result.id}` }, body: JSON.stringify({ accepted_scope: result.permitted_scope, excluded_scope: result.excluded_scope, output_ceiling: result.output_ceiling }) });
       const body = await response.json();
       if (!response.ok) throw new Error(body.detail ?? "The limited scope was not accepted. Reload the current result.");
-      setLimitedAccepted(body.data.accepted === true);
+      const currentResponse = await fetch(`/api/v1/deals/${dealId}/setup`, { cache: "no-store" });
+      const current = await currentResponse.json();
+      const currentAcceptance = currentResponse.ok && body.data.accepted === true && current.data.paid_preflight.id === result.id && current.data.workspace.processing_posture === "limited";
+      setLimitedAccepted(currentAcceptance);
+      if (!currentAcceptance) setError("The acceptance receipt belongs to an earlier Setup. Run Paid Preflight for the current declarations before continuing.");
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Limited acceptance could not be confirmed. Reload before retrying."); }
     finally { setBusy(false); }
   }
