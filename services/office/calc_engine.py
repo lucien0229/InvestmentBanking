@@ -100,7 +100,7 @@ def export_pdf(workbook, path):
         workbook.storeToURL(raw.as_uri(),
             (property_value('FilterName', 'calc_pdf_Export'), property_value('Overwrite', True),
              property_value('FilterData', uno.Any('[]com.sun.star.beans.PropertyValue',
-                (property_value('SelectPdfVersion', 0), property_value('ExportBookmarks', False))))))
+                (property_value('SelectPdfVersion', 0), property_value('ExportBookmarks', False), property_value('ExportNotes', False))))))
         with pymupdf.open(raw) as source, pymupdf.open() as final:
             final.insert_pdf(source)
             final.set_metadata(source.metadata)

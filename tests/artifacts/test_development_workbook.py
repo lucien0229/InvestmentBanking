@@ -7,6 +7,8 @@ import tempfile
 import unittest
 import openpyxl
 import hashlib
+import pymupdf
+import re
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -29,6 +31,13 @@ class DevelopmentWorkbook(unittest.TestCase):
             render = json.loads((root/'render-report.json').read_text())
             self.assertEqual(render['engine'], 'libreoffice.calc')
             self.assertEqual(render['acceptance_profile'], 'development_foss_v1')
+            with pymupdf.open(root/'analysis-valuation.pdf') as pdf:
+                self.assertTrue(all(not list(page.annots() or []) for page in pdf), 'Reader annotations must not cover periods or values')
+                scenario_page=next(page for page in pdf if 'DEAL CONTROL / SCENARIOS' in page.get_text())
+                visible=re.sub(r'\s+', '', scenario_page.get_text())
+                fixture=json.loads((ROOT/'tests/fixtures/analysis-workbook.json').read_text())
+                for run in fixture['calculations']:
+                    self.assertIn(run['model_version_id'], visible, 'Full model citation must be visible, not clipped by row height')
             previews=render['native_pages']
             self.assertEqual(len(previews),7)
             native_hashes={hashlib.sha256((root/p['image']).read_bytes()).hexdigest() for p in previews}

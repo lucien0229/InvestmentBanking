@@ -149,7 +149,16 @@ def build(data, output):
     with tempfile.TemporaryDirectory(prefix='calc-native-') as temporary:
         initial=Path(temporary)/'input.xlsx';workbook.save(initial)
         native=output/'analysis-valuation.xlsx'
-        with document(initial) as actual:save_xlsx(actual,native)
+        with document(initial) as actual:
+            # Ask the actual font/layout engine to size unmerged data rows before
+            # freezing the delivered bytes; fixed heights can clip long citations.
+            ends={'Inputs':counters['Inputs']-1,'Assumptions':counters['Assumptions']-1,
+                'Lineage':counters['Lineage']-1,'Valuation':7+len(data['calculations']),
+                'Scenarios':7+len(data['calculations'])}
+            for name,last_row in ends.items():
+                if last_row>=8:
+                    actual.Sheets.getByName(name).getCellRangeByName(f'A8:H{last_row}').Rows.OptimalHeight=True
+            save_xlsx(actual,native)
         # The PDF is rendered only after reopening the exact delivered XLSX.
         with document(native) as exact:export_pdf(exact,output/'analysis-valuation.pdf')
     cached=openpyxl.load_workbook(native,data_only=True)

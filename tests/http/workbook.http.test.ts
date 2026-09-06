@@ -252,6 +252,12 @@ test("Workbook HTTP commands are authenticated, scoped, idempotent and version g
   await worker.connect();
   try {
     await worker.query("BEGIN");
+    await worker.query("SAVEPOINT request_evidence_scope");
+    await assert.rejects(worker.query("SELECT ai.record_provider_request($1,'input_envelope',$2)",[crypto.randomUUID(),Buffer.alloc(32)]),/ai_run_scope_mismatch/);
+    await worker.query("ROLLBACK TO SAVEPOINT request_evidence_scope");
+    await assert.rejects(worker.query("SELECT * FROM ai.provider_request_evidence"),/permission denied/);
+    await worker.query("ROLLBACK TO SAVEPOINT request_evidence_scope");
+
     await worker.query("SELECT deliverable.begin_workbook_step($1,$2)", [
       accepted.json().data.id,
       token,
