@@ -257,6 +257,7 @@ function Preview({
   caption: string;
   zoom: number;
 }) {
+  const artifactId = artifact?.id;
   const [url, setUrl] = useState("");
   const [error, setError] = useState("");
   useEffect(() => {
@@ -264,15 +265,15 @@ function Preview({
     let objectUrl = "";
     setUrl("");
     setError("");
-    if (!artifact) return;
+    if (!artifactId) return;
     (async () => {
       try {
         const grant = await request<{ grant_token: string }>(
-          `/api/v1/deals/${dealId}/artifacts/${artifact.id}/preview-grants`,
+          `/api/v1/deals/${dealId}/artifacts/${artifactId}/preview-grants`,
           { purpose: "artifact_inspection" },
         );
         const response = await fetch(
-          `/api/v1/deals/${dealId}/artifacts/${artifact.id}/preview`,
+          `/api/v1/deals/${dealId}/artifacts/${artifactId}/preview`,
           {
             credentials: "same-origin",
             cache: "no-store",
@@ -295,7 +296,7 @@ function Preview({
       disposed = true;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [dealId, artifact]);
+  }, [dealId, artifactId]);
   return (
     <figure className="dc-workbook-preview">
       <figcaption>
