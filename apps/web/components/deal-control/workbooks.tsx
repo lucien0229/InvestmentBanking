@@ -1666,7 +1666,7 @@ function Manifest({ api, digest }: { api: string; digest: string }) {
       {data ? (
         <>
           <dl>
-            <dt>KMS key version</dt>
+            <dt>Signing key version</dt>
             <dd className="dc-mono dc-wrap-anywhere">
               {String(data.key_version)}
             </dd>
