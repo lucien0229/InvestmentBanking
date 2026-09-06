@@ -1,0 +1,84 @@
+{
+  "schema_version": "1.0.0",
+  "revision_id": "24b8a4ec-7bba-465d-bb2f-0bf6b3728627",
+  "acceptance_profile": "development_foss_v1",
+  "platform": "linux",
+  "channel": "other",
+  "application": "LibreOffice Calc",
+  "build": "LibreOffice 7.4.7.2 40(Build:2)",
+  "native_sha256": "f29d53e28728b932286f2db6586b19a950ffd2ada0aad19d9bc7f03a801e6cfa",
+  "reader_sha256": "0e74db0b37ebde27bc4668a81ae5e31218c870b1f05154a75ff73053cd60fba5",
+  "returned_sha256": "9fbb2642ba1b2de6edcf91276cf6a94781bfbdc4c0eabf45af329c59f145902f",
+  "steps": {
+    "open": true,
+    "edit_notes": true,
+    "save": true,
+    "reopen": true,
+    "reimport": true,
+    "formulas": true,
+    "names": true,
+    "charts": true,
+    "comments": true,
+    "recalculation": true,
+    "sheet_order": true,
+    "lineage": true
+  },
+  "observed_values": [
+    94.7
+  ],
+  "outcome": "passed",
+  "returned_file_inspection": {
+    "schema_version": "1.0.0",
+    "revision_id": "24b8a4ec-7bba-465d-bb2f-0bf6b3728627",
+    "native_sha256": "9fbb2642ba1b2de6edcf91276cf6a94781bfbdc4c0eabf45af329c59f145902f",
+    "reader_sha256": "0e74db0b37ebde27bc4668a81ae5e31218c870b1f05154a75ff73053cd60fba5",
+    "checks": [
+      {
+        "code": "native_structure",
+        "outcome": "passed",
+        "detail": "Native formula, defined-name, chart, revision and calculation-mode checks",
+        "locator": {}
+      },
+      {
+        "code": "recalculation",
+        "outcome": "passed",
+        "detail": "Exact stored Native reopened and recalculated by the declared engine; independent decimals compared with stored caches and chart data",
+        "locator": {}
+      },
+      {
+        "code": "lineage",
+        "outcome": "passed",
+        "detail": "Input authority, source locator and exact native cell checked independently",
+        "locator": {}
+      },
+      {
+        "code": "clean_copy",
+        "outcome": "passed",
+        "detail": "Reader Copy checked for evaluation marks and clean output",
+        "locator": {}
+      },
+      {
+        "code": "native_reader_parity",
+        "outcome": "passed",
+        "detail": "Sheet order/content, revision, numbers, confidentiality, embedded fonts and PDF active content checked; visual review remains explicit",
+        "locator": {}
+      },
+      {
+        "code": "controlled_inputs",
+        "outcome": "passed",
+        "detail": "Exact controlled inputs and explicit assumptions are pinned"
+      }
+    ],
+    "observations": {
+      "sheet_order_matches": true,
+      "valuation_values_match": true,
+      "decision_and_source_citations_match": true,
+      "chart_region_present": true,
+      "fonts_embedded": true,
+      "safe_pdf_17": true
+    }
+  },
+  "limitations": [
+    "Synthetic development smoke path only. No Windows Excel claim. Returned copy is not a new Deliverable Revision."
+  ]
+}

@@ -1,0 +1,63 @@
+{
+  "run_id": "0032e871-ab14-44c9-b58a-410b947ef2b6",
+  "authority": "User-delegated development acceptance review",
+  "proposals": [
+    {
+      "id": "150f1d07-0181-4f4d-a67c-9e99ace16c85",
+      "proposal_kind": "semantic_qc_finding",
+      "payload": {
+        "category": "lineage",
+        "region_key": "41dce42c-a128-4e40-a890-5ed27b199542:cash",
+        "artifact_id": "a82542fe-412a-4fbf-9541-71289896b682",
+        "revision_id": "24b8a4ec-7bba-465d-bb2f-0bf6b3728627",
+        "expected_contract": "A source-backed input should distinguish metadata supported by the source row from controlled metadata supplied through the acceptance or lineage record.",
+        "severity_proposal": "minor",
+        "observed_condition": "The supplied workbook presents cash as 4.7 for FY2025E, USD million / USD, positive / 1, forecast, but the selected source fragment contains only Cash,4.7.",
+        "remediation_proposal": "Add an explicit visible qualification or lineage reference for the period, unit/currency, sign/precision, and forecast classification, or provide a source fragment containing those attributes."
+      },
+      "limitations": [
+        "This proposal addresses traceability of the non-value metadata shown in the cash input; the supplied controlled metadata may exist outside the cited source row."
+      ]
+    },
+    {
+      "id": "e19889c6-b528-4f12-956b-2a5bf5e43e82",
+      "proposal_kind": "semantic_qc_finding",
+      "payload": {
+        "category": "lineage",
+        "region_key": "41dce42c-a128-4e40-a890-5ed27b199542:debt",
+        "artifact_id": "a82542fe-412a-4fbf-9541-71289896b682",
+        "revision_id": "24b8a4ec-7bba-465d-bb2f-0bf6b3728627",
+        "expected_contract": "For an assumption with no source record, the workbook should use an unambiguous not-applicable or source-not-used label and separately identify the controlling Banker assumption Decision.",
+        "severity_proposal": "minor",
+        "observed_condition": "In Assumptions!B9, the supplied cell comment begins Source None, while the source-locator field identifies a banker_assumption decision.",
+        "remediation_proposal": "Replace Source None with an explicit not-applicable or banker-assumption label while preserving the displayed decision identifier and assumption classification."
+      },
+      "limitations": [
+        "Artifact-only observation from the supplied workbook cell and render representation; source-fragment support is not being assessed for this observation."
+      ]
+    },
+    {
+      "id": "93e4add0-0315-4153-8a3d-d66bb7f2ae0c",
+      "proposal_kind": "semantic_qc_finding",
+      "payload": {
+        "category": "lineage",
+        "region_key": "41dce42c-a128-4e40-a890-5ed27b199542:enterprise_value",
+        "artifact_id": "a82542fe-412a-4fbf-9541-71289896b682",
+        "revision_id": "24b8a4ec-7bba-465d-bb2f-0bf6b3728627",
+        "expected_contract": "For an assumption with no source record, the workbook should use an unambiguous not-applicable or source-not-used label and separately identify the controlling Banker assumption Decision.",
+        "severity_proposal": "minor",
+        "observed_condition": "In Assumptions!B8, the supplied cell comment begins Source None, while the source-locator field identifies a banker_assumption decision.",
+        "remediation_proposal": "Replace Source None with an explicit not-applicable or banker-assumption label while preserving the displayed decision identifier and assumption classification."
+      },
+      "limitations": [
+        "Artifact-only observation from the supplied workbook cell and render representation; source-fragment support is not being assessed for this observation."
+      ]
+    }
+  ],
+  "disposition": "Retained non-blocking minor observations for exact synthetic Revision 05, not marked as code fixes.",
+  "basis": [
+    "The exact Inputs Authority and Lineage Decision identify the controlled synthetic Fact supplying metadata; CSV row 4 supports only the cash value. This is not real-source proof of period/unit/forecast attributes.",
+    "Assumption comments include banker_assumption and exact Decision IDs; the visible Lineage sheet already labels absent source metadata Not applicable. Source None comment wording remains an observation."
+  ],
+  "external_use_authorized": false
+}

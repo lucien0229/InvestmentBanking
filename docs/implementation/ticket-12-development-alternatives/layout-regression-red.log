@@ -1,0 +1,13 @@
+F
+======================================================================
+FAIL: test_clean_native_reader_and_recalculation (tests.artifacts.test_development_workbook.DevelopmentWorkbook.test_clean_native_reader_and_recalculation)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/app/tests/artifacts/test_development_workbook.py", line 35, in test_clean_native_reader_and_recalculation
+    self.assertTrue(all(not list(page.annots() or []) for page in pdf), 'Reader annotations must not cover periods or values')
+AssertionError: False is not true : Reader annotations must not cover periods or values
+
+----------------------------------------------------------------------
+Ran 1 test in 3.882s
+
+FAILED (failures=1)

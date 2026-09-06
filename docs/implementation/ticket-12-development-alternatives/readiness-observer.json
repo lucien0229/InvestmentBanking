@@ -1,0 +1,326 @@
+{
+  "current": {
+    "posture": "circulation_candidate",
+    "purpose": "Internal valuation review",
+    "audience": "Named Individual Banker",
+    "blockers": [],
+    "limitations": [
+      "Synthetic development acceptance only; Windows Excel compatibility and cloud KMS custody are unverified."
+    ],
+    "revision_id": "24b8a4ec-7bba-465d-bb2f-0bf6b3728627",
+    "requirements": [
+      {
+        "code": "controlled_inputs",
+        "gate": "analysis_ready",
+        "outcome": "passed",
+        "recovery": "Complete controlled input authority"
+      },
+      {
+        "code": "native_structure",
+        "gate": "analysis_ready",
+        "outcome": "passed",
+        "recovery": "Inspect native formulas, names, scenarios and charts"
+      },
+      {
+        "code": "method_review",
+        "gate": "analysis_ready",
+        "outcome": "passed",
+        "recovery": "Record exact Banker method review"
+      },
+      {
+        "code": "recalculation",
+        "gate": "senior_review_ready",
+        "outcome": "passed",
+        "recovery": "Recalculate exact stored native bytes"
+      },
+      {
+        "code": "lineage",
+        "gate": "senior_review_ready",
+        "outcome": "passed",
+        "recovery": "Inspect exact source-cell lineage"
+      },
+      {
+        "code": "native_reader_parity",
+        "gate": "senior_review_ready",
+        "outcome": "passed",
+        "recovery": "Compare native and reader content and layout"
+      },
+      {
+        "code": "review_scope",
+        "gate": "senior_review_ready",
+        "outcome": "passed",
+        "recovery": "Confirm purpose, audience and scope"
+      },
+      {
+        "code": "clean_copy",
+        "gate": "circulation_candidate",
+        "outcome": "passed",
+        "recovery": "Provide licensed clean output"
+      },
+      {
+        "code": "office_roundtrip",
+        "gate": "circulation_candidate",
+        "outcome": "passed",
+        "recovery": "Verify exact declared LibreOffice build and open/edit/save/reopen/reimport receipt"
+      },
+      {
+        "code": "rights_confidentiality",
+        "gate": "circulation_candidate",
+        "outcome": "passed",
+        "recovery": "Review exact rights and confidentiality"
+      },
+      {
+        "code": "signed_manifest",
+        "gate": "circulation_candidate",
+        "outcome": "passed",
+        "recovery": "Verify exact development Ed25519 signature and artifact hashes"
+      },
+      {
+        "code": "professional_suitability",
+        "gate": "circulation_candidate",
+        "outcome": "passed",
+        "recovery": "Record professional suitability for this use"
+      }
+    ],
+    "acceptance_profile": "development_foss_v1",
+    "external_use_authorized": false
+  },
+  "changed_purpose": {
+    "posture": "working_draft",
+    "purpose": "Different purpose",
+    "audience": "Named Individual Banker",
+    "blockers": [
+      {
+        "code": "method_review",
+        "gate": "analysis_ready",
+        "outcome": "missing",
+        "recovery": "Record exact Banker method review"
+      },
+      {
+        "code": "native_reader_parity",
+        "gate": "senior_review_ready",
+        "outcome": "missing",
+        "recovery": "Compare native and reader content and layout"
+      },
+      {
+        "code": "review_scope",
+        "gate": "senior_review_ready",
+        "outcome": "missing",
+        "recovery": "Confirm purpose, audience and scope"
+      },
+      {
+        "code": "office_roundtrip",
+        "gate": "circulation_candidate",
+        "outcome": "missing",
+        "recovery": "Verify exact declared LibreOffice build and open/edit/save/reopen/reimport receipt"
+      },
+      {
+        "code": "rights_confidentiality",
+        "gate": "circulation_candidate",
+        "outcome": "missing",
+        "recovery": "Review exact rights and confidentiality"
+      },
+      {
+        "code": "professional_suitability",
+        "gate": "circulation_candidate",
+        "outcome": "missing",
+        "recovery": "Record professional suitability for this use"
+      }
+    ],
+    "limitations": [
+      "Synthetic development acceptance only; Windows Excel compatibility and cloud KMS custody are unverified."
+    ],
+    "revision_id": "24b8a4ec-7bba-465d-bb2f-0bf6b3728627",
+    "requirements": [
+      {
+        "code": "controlled_inputs",
+        "gate": "analysis_ready",
+        "outcome": "passed",
+        "recovery": "Complete controlled input authority"
+      },
+      {
+        "code": "native_structure",
+        "gate": "analysis_ready",
+        "outcome": "passed",
+        "recovery": "Inspect native formulas, names, scenarios and charts"
+      },
+      {
+        "code": "method_review",
+        "gate": "analysis_ready",
+        "outcome": "missing",
+        "recovery": "Record exact Banker method review"
+      },
+      {
+        "code": "recalculation",
+        "gate": "senior_review_ready",
+        "outcome": "passed",
+        "recovery": "Recalculate exact stored native bytes"
+      },
+      {
+        "code": "lineage",
+        "gate": "senior_review_ready",
+        "outcome": "passed",
+        "recovery": "Inspect exact source-cell lineage"
+      },
+      {
+        "code": "native_reader_parity",
+        "gate": "senior_review_ready",
+        "outcome": "missing",
+        "recovery": "Compare native and reader content and layout"
+      },
+      {
+        "code": "review_scope",
+        "gate": "senior_review_ready",
+        "outcome": "missing",
+        "recovery": "Confirm purpose, audience and scope"
+      },
+      {
+        "code": "clean_copy",
+        "gate": "circulation_candidate",
+        "outcome": "passed",
+        "recovery": "Provide licensed clean output"
+      },
+      {
+        "code": "office_roundtrip",
+        "gate": "circulation_candidate",
+        "outcome": "missing",
+        "recovery": "Verify exact declared LibreOffice build and open/edit/save/reopen/reimport receipt"
+      },
+      {
+        "code": "rights_confidentiality",
+        "gate": "circulation_candidate",
+        "outcome": "missing",
+        "recovery": "Review exact rights and confidentiality"
+      },
+      {
+        "code": "signed_manifest",
+        "gate": "circulation_candidate",
+        "outcome": "passed",
+        "recovery": "Verify exact development Ed25519 signature and artifact hashes"
+      },
+      {
+        "code": "professional_suitability",
+        "gate": "circulation_candidate",
+        "outcome": "missing",
+        "recovery": "Record professional suitability for this use"
+      }
+    ],
+    "acceptance_profile": "development_foss_v1",
+    "external_use_authorized": false
+  },
+  "original_revision": {
+    "posture": "blocked",
+    "purpose": "Internal valuation review",
+    "audience": "Named Individual Banker",
+    "blockers": [
+      {
+        "code": "native_reader_parity",
+        "gate": "senior_review_ready",
+        "outcome": "failed",
+        "recovery": "Compare native and reader content and layout"
+      },
+      {
+        "code": "clean_copy",
+        "gate": "circulation_candidate",
+        "outcome": "failed",
+        "recovery": "Provide licensed clean output"
+      },
+      {
+        "code": "office_roundtrip",
+        "gate": "circulation_candidate",
+        "outcome": "missing",
+        "recovery": "Verify declared Windows Microsoft 365 build and edit/save/reopen path"
+      },
+      {
+        "code": "signed_manifest",
+        "gate": "circulation_candidate",
+        "outcome": "missing",
+        "recovery": "Verify exact KMS signature and artifact hashes"
+      },
+      {
+        "code": "professional_suitability",
+        "gate": "circulation_candidate",
+        "outcome": "missing",
+        "recovery": "Record professional suitability for this use"
+      }
+    ],
+    "limitations": [],
+    "revision_id": "d1377418-fa68-4354-9545-f0d4172b3972",
+    "requirements": [
+      {
+        "code": "controlled_inputs",
+        "gate": "analysis_ready",
+        "outcome": "passed",
+        "recovery": "Complete controlled input authority"
+      },
+      {
+        "code": "native_structure",
+        "gate": "analysis_ready",
+        "outcome": "passed",
+        "recovery": "Inspect native formulas, names, scenarios and charts"
+      },
+      {
+        "code": "method_review",
+        "gate": "analysis_ready",
+        "outcome": "passed",
+        "recovery": "Record exact Banker method review"
+      },
+      {
+        "code": "recalculation",
+        "gate": "senior_review_ready",
+        "outcome": "passed",
+        "recovery": "Recalculate exact stored native bytes"
+      },
+      {
+        "code": "lineage",
+        "gate": "senior_review_ready",
+        "outcome": "passed",
+        "recovery": "Inspect exact source-cell lineage"
+      },
+      {
+        "code": "native_reader_parity",
+        "gate": "senior_review_ready",
+        "outcome": "failed",
+        "recovery": "Compare native and reader content and layout"
+      },
+      {
+        "code": "review_scope",
+        "gate": "senior_review_ready",
+        "outcome": "passed",
+        "recovery": "Confirm purpose, audience and scope"
+      },
+      {
+        "code": "clean_copy",
+        "gate": "circulation_candidate",
+        "outcome": "failed",
+        "recovery": "Provide licensed clean output"
+      },
+      {
+        "code": "office_roundtrip",
+        "gate": "circulation_candidate",
+        "outcome": "missing",
+        "recovery": "Verify declared Windows Microsoft 365 build and edit/save/reopen path"
+      },
+      {
+        "code": "rights_confidentiality",
+        "gate": "circulation_candidate",
+        "outcome": "passed",
+        "recovery": "Review exact rights and confidentiality"
+      },
+      {
+        "code": "signed_manifest",
+        "gate": "circulation_candidate",
+        "outcome": "missing",
+        "recovery": "Verify exact KMS signature and artifact hashes"
+      },
+      {
+        "code": "professional_suitability",
+        "gate": "circulation_candidate",
+        "outcome": "missing",
+        "recovery": "Record professional suitability for this use"
+      }
+    ],
+    "acceptance_profile": "production_v1",
+    "external_use_authorized": false
+  }
+}

@@ -1,0 +1,147 @@
+{
+  "reviews": [
+    {
+      "id": "67857339-e6b5-43f6-9b1b-32f47d0be65f",
+      "standard": "method_review",
+      "conclusion": "passed",
+      "revision_id": "24b8a4ec-7bba-465d-bb2f-0bf6b3728627",
+      "evidence": {
+        "build": "LibreOffice 7.4.7.2 40(Build:2)",
+        "steps": {
+          "fonts": true,
+          "charts": true,
+          "values": true,
+          "citations": true,
+          "confidentiality": true,
+          "all_seven_pages_inspected": true,
+          "independent_native_and_reader": true
+        },
+        "application": "LibreOffice Calc",
+        "native_sha256": "f29d53e28728b932286f2db6586b19a950ffd2ada0aad19d9bc7f03a801e6cfa",
+        "reader_sha256": "0e74db0b37ebde27bc4668a81ae5e31218c870b1f05154a75ff73053cd60fba5",
+        "report_sha256": "52aad01b9e324a756d0cdfc42ea4af673aac75a9172c224625ed375d867c66ab"
+      }
+    },
+    {
+      "id": "f10d0967-9f55-447e-8768-1c0fec5723e6",
+      "standard": "review_scope",
+      "conclusion": "passed",
+      "revision_id": "24b8a4ec-7bba-465d-bb2f-0bf6b3728627",
+      "evidence": {
+        "build": "LibreOffice 7.4.7.2 40(Build:2)",
+        "steps": {
+          "fonts": true,
+          "charts": true,
+          "values": true,
+          "citations": true,
+          "confidentiality": true,
+          "all_seven_pages_inspected": true,
+          "independent_native_and_reader": true
+        },
+        "application": "LibreOffice Calc",
+        "native_sha256": "f29d53e28728b932286f2db6586b19a950ffd2ada0aad19d9bc7f03a801e6cfa",
+        "reader_sha256": "0e74db0b37ebde27bc4668a81ae5e31218c870b1f05154a75ff73053cd60fba5",
+        "report_sha256": "52aad01b9e324a756d0cdfc42ea4af673aac75a9172c224625ed375d867c66ab"
+      }
+    },
+    {
+      "id": "bd0d13de-aeb6-4944-a05c-2f28b5cc3236",
+      "standard": "rights_confidentiality",
+      "conclusion": "passed",
+      "revision_id": "24b8a4ec-7bba-465d-bb2f-0bf6b3728627",
+      "evidence": {
+        "build": "LibreOffice 7.4.7.2 40(Build:2)",
+        "steps": {
+          "fonts": true,
+          "charts": true,
+          "values": true,
+          "citations": true,
+          "confidentiality": true,
+          "all_seven_pages_inspected": true,
+          "independent_native_and_reader": true
+        },
+        "application": "LibreOffice Calc",
+        "native_sha256": "f29d53e28728b932286f2db6586b19a950ffd2ada0aad19d9bc7f03a801e6cfa",
+        "reader_sha256": "0e74db0b37ebde27bc4668a81ae5e31218c870b1f05154a75ff73053cd60fba5",
+        "report_sha256": "52aad01b9e324a756d0cdfc42ea4af673aac75a9172c224625ed375d867c66ab"
+      }
+    },
+    {
+      "id": "e572a71e-4d07-4dd6-b219-bad3e0c4a036",
+      "standard": "professional_suitability",
+      "conclusion": "passed",
+      "revision_id": "24b8a4ec-7bba-465d-bb2f-0bf6b3728627",
+      "evidence": {
+        "build": "LibreOffice 7.4.7.2 40(Build:2)",
+        "steps": {
+          "fonts": true,
+          "charts": true,
+          "values": true,
+          "citations": true,
+          "confidentiality": true,
+          "all_seven_pages_inspected": true,
+          "independent_native_and_reader": true
+        },
+        "application": "LibreOffice Calc",
+        "native_sha256": "f29d53e28728b932286f2db6586b19a950ffd2ada0aad19d9bc7f03a801e6cfa",
+        "reader_sha256": "0e74db0b37ebde27bc4668a81ae5e31218c870b1f05154a75ff73053cd60fba5",
+        "report_sha256": "52aad01b9e324a756d0cdfc42ea4af673aac75a9172c224625ed375d867c66ab"
+      }
+    },
+    {
+      "id": "a30052ac-eabe-4b63-9e5c-663a2f6bf7a9",
+      "standard": "office_roundtrip",
+      "conclusion": "passed",
+      "revision_id": "24b8a4ec-7bba-465d-bb2f-0bf6b3728627",
+      "evidence": {
+        "build": "LibreOffice 7.4.7.2 40(Build:2)",
+        "steps": {
+          "open": true,
+          "save": true,
+          "names": true,
+          "charts": true,
+          "reopen": true,
+          "lineage": true,
+          "comments": true,
+          "formulas": true,
+          "reimport": true,
+          "edit_notes": true,
+          "sheet_order": true,
+          "recalculation": true
+        },
+        "application": "LibreOffice Calc",
+        "native_sha256": "f29d53e28728b932286f2db6586b19a950ffd2ada0aad19d9bc7f03a801e6cfa",
+        "reader_sha256": "0e74db0b37ebde27bc4668a81ae5e31218c870b1f05154a75ff73053cd60fba5",
+        "report_sha256": "bfc005102544c5b1c6c06e13cb7ae127f7b5b5fac7eab4d08ed2f4b2cd7b14f7"
+      }
+    },
+    {
+      "id": "39cf6c1a-22e4-4d8b-bf06-8ae1fa0536d4",
+      "standard": "native_reader_parity",
+      "conclusion": "passed",
+      "revision_id": "24b8a4ec-7bba-465d-bb2f-0bf6b3728627",
+      "evidence": {
+        "build": "LibreOffice 7.4.7.2 40(Build:2)",
+        "steps": {
+          "fonts": true,
+          "charts": true,
+          "values": true,
+          "citations": true,
+          "confidentiality": true,
+          "all_seven_pages_inspected": true,
+          "independent_native_and_reader": true
+        },
+        "application": "LibreOffice Calc",
+        "native_sha256": "f29d53e28728b932286f2db6586b19a950ffd2ada0aad19d9bc7f03a801e6cfa",
+        "reader_sha256": "0e74db0b37ebde27bc4668a81ae5e31218c870b1f05154a75ff73053cd60fba5",
+        "report_sha256": "52aad01b9e324a756d0cdfc42ea4af673aac75a9172c224625ed375d867c66ab"
+      }
+    }
+  ],
+  "qc_job": {
+    "id": "a36b6ad4-58fd-47cb-a46c-95637435bd76",
+    "state": "queued",
+    "job_type": "analysis_workbook_qc",
+    "revision_id": "24b8a4ec-7bba-465d-bb2f-0bf6b3728627"
+  }
+}

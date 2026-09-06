@@ -1,0 +1,9 @@
+{
+  "observed_at": "2026-09-06T11:24:47.907Z",
+  "session_id": "62aea9d2-c560-42a1-a935-1a62e0fd9ba0",
+  "before_status": 200,
+  "logout_status": 201,
+  "old_session_status": 401,
+  "old_session_protected_read_status": 401,
+  "scope": "Only temporary synthetic acceptance session"
+}

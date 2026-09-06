@@ -1,14 +1,29 @@
 # Ticket 12 Office / artifact development runbook
 
-## Current runtime update
+## Current runtime update — 2026-09-06
 
-The later authorized predecessor repairs are now deployed as
-`20260905-predecessor-repairs-v12` (app `46cb49a`), with 82 canonical migrations.
-See [current acceptance](tickets-01-11-repair-acceptance-2026-09-05.md). The older
-release identities below describe the original Ticket 12 acceptance; the three
-remaining configuration and exact-artifact rerun requirements are unchanged.
+The user authorized replacements for the three unavailable dependencies.
+ADR 0043 now permits explicit synthetic `development_foss_v1` acceptance using
+LibreOffice Calc, a separate development Ed25519 signer and an actual Linux
+Calc edit/save/reopen/reimport lab. See [alternative acceptance and exact artifacts](ticket-12-development-alternatives-2026-09-06.md).
+The original requirements below remain the production-profile instructions;
+they no longer block this explicitly scoped development path.
 
-## Deployed boundary
+Current application release: `20260906-ticket12-final-beab2e8`. Current Office
+image: `sha256:c195fa00da8dd1a252982d53c4a72bdc0668088342fa4b06d2d4eacb369fea36`,
+built from `services/office/Dockerfile.libreoffice`. The existing rootless
+`investmentbanking-office.service` uses this pinned image. The independent
+host unit `investmentbanking-artifact-signer.service` runs as `ib-artifact-sign`;
+its private key lives outside application mounts. Public key version:
+`development/artifact/20260906/versions/1`.
+
+The administrator-bound profile applies only to the exact synthetic Revision
+listed in the acceptance report. New Revisions require fresh scoped evidence;
+normal Account settings cannot enable the exception. Original images, release
+and service/env backups are retained for rollback. This is not a production
+replacement for Windows Excel compatibility or cloud key custody.
+
+## Original deployed boundary — historical Aspose profile
 
 The application uses the existing Docker Cell at
 `/opt/cells/investmentbanking/dev`, API/Web loopback ports 3101/3102, and
@@ -41,7 +56,7 @@ persistence. A canceled Job's late result cannot restore authority. Heartbeat
 updates at step boundaries are not evidence of continuous liveness during a
 long provider call.
 
-## Remaining configuration and acceptance
+## Original production-profile configuration and acceptance
 
 ### 1. Licensed clean Office output
 

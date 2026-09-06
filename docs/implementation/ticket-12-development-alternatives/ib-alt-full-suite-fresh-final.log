@@ -1,0 +1,644 @@
+
+> hellox-investment-banking-v1@0.1.0 contracts:check
+> node scripts/check-contract.mjs
+
+contract check: ok
+
+> hellox-investment-banking-v1@0.1.0 db:migrate
+> tsx scripts/migrate.ts
+
+db migration: 20260830000000_reference_deal.sql applied
+db migration: 20260830010000_supabase_identity.sql applied
+db migration: 20260830020000_commerce_entitlement.sql applied
+db migration: 20260830030000_durable_reference_job.sql applied
+db migration: 20260830040000_deal_setup_paid_preflight.sql applied
+db migration: 20260830050000_protected_source_intake.sql applied
+db migration: 20260830060000_web_evidence_account_templates.sql applied
+db migration: 20260830070000_source_packet_output_ceiling.sql applied
+db migration: 20260830080000_source_packet_projection_guard.sql applied
+db migration: 20260830090000_source_condition_selection_guard.sql applied
+db migration: 20260830100000_source_reliance_assessment.sql applied
+db migration: 20260830110000_source_packet_version_projection_guard.sql applied
+db migration: 20260830120000_source_packet_command_idempotency.sql applied
+db migration: 20260830130000_source_condition_reliance_guard.sql applied
+db migration: 20260830140000_source_packet_preflight_cap.sql applied
+db migration: 20260830150000_source_packet_idempotency_retention.sql applied
+db migration: 20260903000000_domainize_source_command_objects.sql applied
+db migration: 20260903010000_ai_source_proposal_loop.sql applied
+db migration: 20260903020000_ai_source_proposal_conflict_fix.sql applied
+db migration: 20260903030000_ai_source_proposal_owner_grants.sql applied
+db migration: 20260903040000_ai_run_state_transition.sql applied
+db migration: 20260903050000_ai_task_controls_and_ceiling_access.sql applied
+db migration: 20260903060000_ai_retry_idempotency_and_repair_bound.sql applied
+db migration: 20260903070000_ai_start_run_enablement_guard.sql applied
+db migration: 20260903080000_ai_protected_payload_column_acl.sql applied
+db migration: 20260903090000_ai_contract_digest_release.sql applied
+db migration: 20260903100000_ai_fragment_digest_guard.sql applied
+db migration: 20260903110000_ai_contract_immutability.sql applied
+db migration: 20260903120000_ai_output_ceiling_gate.sql applied
+db migration: 20260903130000_ai_run_scoped_fragment_ids.sql applied
+db migration: 20260903140000_ai_fragment_scope_guard.sql applied
+db migration: 20260903150000_ai_manifest_digest_refresh.sql applied
+db migration: 20260903160000_ai_output_digest_refresh.sql applied
+db migration: 20260903170000_ai_governed_completion_hardening.sql applied
+db migration: 20260904000000_evidence_fact_decision_control.sql applied
+db migration: 20260904003000_financial_prompt_bootstrap_guard.sql applied
+db migration: 20260904004000_ai_contract_trigger_dispatch.sql applied
+db migration: 20260904005000_financial_unused_manifest_reconciliation.sql applied
+db migration: 20260904010000_deterministic_analysis_loop.sql applied
+db migration: 20260904020000_deterministic_analysis_forward_fixes.sql applied
+db migration: 20260905012749_analysis_valuation_artifacts.sql applied
+db migration: 20260905014928_artifact_preview_and_scope_guards.sql applied
+db migration: 20260905015911_artifact_review_retests.sql applied
+db migration: 20260905021039_workbook_proposal_contracts.sql applied
+db migration: 20260905021558_financial_input_trigger_dispatch.sql applied
+db migration: 20260905021703_financial_decimal_literal_guard.sql applied
+db migration: 20260905022052_calculation_run_decimal_inputs.sql applied
+db migration: 20260905022355_model_version_typed_dependencies.sql applied
+db migration: 20260905023008_workbook_worker_scoped_execution.sql applied
+db migration: 20260905024231_exact_artifact_qc_retests.sql applied
+db migration: 20260905024617_artifact_manifest_worker_observer.sql applied
+db migration: 20260905024726_workbook_job_controls.sql applied
+db migration: 20260905024858_workbook_ai_exact_scope.sql applied
+db migration: 20260905025145_protected_artifact_manifest.sql applied
+db migration: 20260905030341_workbook_output_ceiling_scope.sql applied
+db migration: 20260905031152_workbook_declared_acceptance_evidence.sql applied
+db migration: 20260905031512_workbook_worker_input_context.sql applied
+db migration: 20260905032151_workbook_context_rls.sql applied
+db migration: 20260905032521_workbook_completion_integrity.sql applied
+db migration: 20260905034226_ai_provider_failure_receipts.sql applied
+db migration: 20260905042111_workbook_interrupted_ai_receipts.sql applied
+db migration: 20260905045000_workbook_exact_worker_reads.sql applied
+db migration: 20260905045100_workbook_current_input_authority.sql applied
+db migration: 20260905051500_normalized_financial_decimal_guard.sql applied
+db migration: 20260905052300_workbook_current_source_locator.sql applied
+db migration: 20260905073024_account_access_revocation.sql applied
+db migration: 20260905082311_source_processing_jobs.sql applied
+db migration: 20260905085503_predecessor_owner_rls.sql applied
+db migration: 20260905090837_independent_job_runtime.sql applied
+db migration: 20260905091600_controlled_projection_receipts.sql applied
+db migration: 20260905092242_protected_ai_request_evidence.sql applied
+db migration: 20260905093216_source_processing_authority_fences.sql applied
+db migration: 20260905094600_ai_operator_control_owner.sql applied
+db migration: 20260905110000_reference_dependency_graph.sql applied
+db migration: 20260905111500_exact_evidence_claim_binding.sql applied
+db migration: 20260905111600_source_processing_transport_recovery.sql applied
+db migration: 20260905111700_source_recovery_posture_locks.sql applied
+db migration: 20260905113000_financial_source_basis_identity.sql applied
+db migration: 20260905123000_limited_preflight_acceptance_gate.sql applied
+db migration: 20260905125934_analysis_projection_current_collections.sql applied
+db migration: 20260905130426_analysis_authority_and_validation_forward.sql applied
+db migration: 20260905134031_account_capacity_usage_projection.sql applied
+db migration: 20260906094653_development_workbook_acceptance_profile.sql applied
+db migration: 20260906103109_workbook_worker_protected_request_permission.sql applied
+
+> hellox-investment-banking-v1@0.1.0 db:seed
+> tsx scripts/seed.ts
+
+db seed: reference fixtures ready
+TAP version 13
+# Subtest: Stripe checkout session evidence accepts nullable subscription fields
+ok 1 - Stripe checkout session evidence accepts nullable subscription fields
+  ---
+  duration_ms: 3.731263
+  type: 'test'
+  ...
+# Subtest: StripeCheckoutAdapter creates a subscription Checkout Session with the confirmed price and metadata
+ok 2 - StripeCheckoutAdapter creates a subscription Checkout Session with the confirmed price and metadata
+  ---
+  duration_ms: 0.958423
+  type: 'test'
+  ...
+# Subtest: Commerce exposes one public offer and non-confidential qualification result
+ok 3 - Commerce exposes one public offer and non-confidential qualification result
+  ---
+  duration_ms: 211.91024
+  type: 'test'
+  ...
+# Subtest: Commerce reconciles a monthly purchase exactly once and keeps provider status non-authoritative
+ok 4 - Commerce reconciles a monthly purchase exactly once and keeps provider status non-authoritative
+  ---
+  duration_ms: 200.205522
+  type: 'test'
+  ...
+# Subtest: Commerce keeps annual pricing, invalid signatures, ambiguous events, and persistence failures fail closed
+ok 5 - Commerce keeps annual pricing, invalid signatures, ambiguous events, and persistence failures fail closed
+  ---
+  duration_ms: 197.975166
+  type: 'test'
+  ...
+# Subtest: Commerce applies an explicit add-on only to its product-owned capacity ledger
+ok 6 - Commerce applies an explicit add-on only to its product-owned capacity ledger
+  ---
+  duration_ms: 147.136929
+  type: 'test'
+  ...
+# Subtest: generated API contract declares the Reference Deal seam and stable problem media type
+ok 7 - generated API contract declares the Reference Deal seam and stable problem media type
+  ---
+  duration_ms: 3.284802
+  type: 'test'
+  ...
+# Subtest: generated API contract declares the isolated Project Northstar synthetic proof seam
+ok 8 - generated API contract declares the isolated Project Northstar synthetic proof seam
+  ---
+  duration_ms: 1.534419
+  type: 'test'
+  ...
+# Subtest: generated API contract declares source intake protected Source intake and Object Gateway seams
+ok 9 - generated API contract declares source intake protected Source intake and Object Gateway seams
+  ---
+  duration_ms: 1.756992
+  type: 'test'
+  ...
+# Subtest: public Web retrieval creates immutable observations and lowers posture when snapshot rights are unavailable
+ok 10 - public Web retrieval creates immutable observations and lowers posture when snapshot rights are unavailable
+  ---
+  duration_ms: 306.962308
+  type: 'test'
+  ...
+# Subtest: Account template remains quarantined until compatibility preflight and cannot cross Account or accept live Deal material
+ok 11 - Account template remains quarantined until compatibility preflight and cannot cross Account or accept live Deal material
+  ---
+  duration_ms: 261.390044
+  type: 'test'
+  ...
+# Subtest: full encrypted AI wire request is committed before transport and survives provider failure
+ok 12 - full encrypted AI wire request is committed before transport and survives provider failure
+  ---
+  duration_ms: 549.33494
+  type: 'test'
+  ...
+# Subtest: all three Source proposal families complete against the configured HelloX provider
+ok 13 - all three Source proposal families complete against the configured HelloX provider # SKIP
+  ---
+  duration_ms: 0.418379
+  type: 'test'
+  ...
+# Subtest: Analysis API creates a pinned Calculation Version, deterministic Run, and validation receipt
+ok 14 - Analysis API creates a pinned Calculation Version, deterministic Run, and validation receipt
+  ---
+  duration_ms: 297.808467
+  type: 'test'
+  ...
+# (node:231) DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+# (Use `node --trace-deprecation ...` to show where the warning was created)
+# Subtest: product Deal lifecycle creates an identity-complete Deal atomically with a reserved slot and guide checkpoint
+ok 15 - product Deal lifecycle creates an identity-complete Deal atomically with a reserved slot and guide checkpoint
+  ---
+  duration_ms: 294.676446
+  type: 'test'
+  ...
+# Subtest: product Deal lifecycle preflight returns blocked and recovers after source replacement and narrowed use
+ok 16 - product Deal lifecycle preflight returns blocked and recovers after source replacement and narrowed use
+  ---
+  duration_ms: 163.387058
+  type: 'test'
+  ...
+# Subtest: product Deal lifecycle enforces two-slot capacity under concurrent creates and keeps cross-Deal reads non-enumerating
+ok 17 - product Deal lifecycle enforces two-slot capacity under concurrent creates and keeps cross-Deal reads non-enumerating
+  ---
+  duration_ms: 163.740409
+  type: 'test'
+  ...
+# Subtest: product Deal lifecycle exposes limited-proceed acceptance and blocks restricted AI before egress
+ok 18 - product Deal lifecycle exposes limited-proceed acceptance and blocks restricted AI before egress
+  ---
+  duration_ms: 209.352492
+  type: 'test'
+  ...
+# Subtest: product Deal lifecycle creates a linked Deal for identity change and preserves the original
+ok 19 - product Deal lifecycle creates a linked Deal for identity change and preserves the original
+  ---
+  duration_ms: 153.979112
+  type: 'test'
+  ...
+# Subtest: Evidence Inspector accepts exact source Evidence and exposes independent dimensions
+ok 20 - Evidence Inspector accepts exact source Evidence and exposes independent dimensions
+  ---
+  duration_ms: 287.504904
+  type: 'test'
+  ...
+# Subtest: Evidence acceptance rejects a locator that is not an eligible Source fragment
+ok 21 - Evidence acceptance rejects a locator that is not an eligible Source fragment
+  ---
+  duration_ms: 140.461607
+  type: 'test'
+  ...
+# Subtest: Claim promotion requires accepted Evidence and a typed Banker Decision; Assumption approval stays an Assumption
+ok 22 - Claim promotion requires accepted Evidence and a typed Banker Decision; Assumption approval stays an Assumption
+  ---
+  duration_ms: 206.204176
+  type: 'test'
+  ...
+# Subtest: Fact acceptance preserves conflicts and rejects stale concurrent control reviews
+ok 23 - Fact acceptance preserves conflicts and rejects stale concurrent control reviews
+  ---
+  duration_ms: 229.883613
+  type: 'test'
+  ...
+# Subtest: Knowledge projections do not enumerate another Deal
+ok 24 - Knowledge projections do not enumerate another Deal
+  ---
+  duration_ms: 91.713114
+  type: 'test'
+  ...
+# Subtest: Claim correction is append-only and exposes every dependent candidate
+ok 25 - Claim correction is append-only and exposes every dependent candidate
+  ---
+  duration_ms: 169.248648
+  type: 'test'
+  ...
+# Subtest: Evidence binds the selected Claim even when proposition wording is identical
+ok 26 - Evidence binds the selected Claim even when proposition wording is identical
+  ---
+  duration_ms: 293.7169
+  type: 'test'
+  ...
+# Subtest: independent PGMQ workers survive process loss, preserve checkpoints and meet AC-071
+ok 27 - independent PGMQ workers survive process loss, preserve checkpoints and meet AC-071 # SKIP
+  ---
+  duration_ms: 0.664199
+  type: 'test'
+  ...
+# Subtest: anonymous browser completes the resumable synthetic Project Northstar control loop
+ok 28 - anonymous browser completes the resumable synthetic Project Northstar control loop
+  ---
+  duration_ms: 194.071683
+  type: 'test'
+  ...
+# Subtest: proof completion is gated to one resumable session and real upload paths stay unreachable
+ok 29 - proof completion is gated to one resumable session and real upload paths stay unreachable
+  ---
+  duration_ms: 54.33734
+  type: 'test'
+  ...
+# Subtest: synthetic commands reject overwrite/average and public payloads do not expose production or raw-byte authority
+ok 30 - synthetic commands reject overwrite/average and public payloads do not expose production or raw-byte authority
+  ---
+  duration_ms: 34.584002
+  type: 'test'
+  ...
+# Subtest: HTTP black-box: bootstrap, Passkey posture, overview and privacy-safe Audit
+ok 31 - HTTP black-box: bootstrap, Passkey posture, overview and privacy-safe Audit
+  ---
+  duration_ms: 833.079057
+  type: 'test'
+  ...
+# Subtest: HTTP black-box: cross-Account/cross-Deal and absent resources are indistinguishable
+ok 32 - HTTP black-box: cross-Account/cross-Deal and absent resources are indistinguishable
+  ---
+  duration_ms: 35.198506
+  type: 'test'
+  ...
+# Subtest: Banker starts one durable Reference Deal Job and can read its authoritative snapshot
+ok 33 - Banker starts one durable Reference Deal Job and can read its authoritative snapshot
+  ---
+  duration_ms: 228.654483
+  type: 'test'
+  ...
+# Subtest: accepted asynchronous command becomes completed through the default dispatcher/worker within the visibility bound
+ok 34 - accepted asynchronous command becomes completed through the default dispatcher/worker within the visibility bound
+  ---
+  duration_ms: 211.015044
+  type: 'test'
+  ...
+# Subtest: duplicate commands replay one Job and one allowance effect
+ok 35 - duplicate commands replay one Job and one allowance effect
+  ---
+  duration_ms: 108.727812
+  type: 'test'
+  ...
+# Subtest: Reference worker completes from checkpoints with one committed allowance and a replayable SSE history
+ok 36 - Reference worker completes from checkpoints with one committed allowance and a replayable SSE history
+  ---
+  duration_ms: 228.075821
+  type: 'test'
+  ...
+# Subtest: worker termination at each material checkpoint is retryable and preserves accepted inputs
+ok 37 - worker termination at each material checkpoint is retryable and preserves accepted inputs
+  ---
+  duration_ms: 426.515537
+  type: 'test'
+  ...
+# Subtest: lease loss becomes visible and resumes only after an explicit retry
+ok 38 - lease loss becomes visible and resumes only after an explicit retry
+  ---
+  duration_ms: 241.97848
+  type: 'test'
+  ...
+# Subtest: cancellation releases unused allowance exactly once and cross-Account Job reads remain hidden
+ok 39 - cancellation releases unused allowance exactly once and cross-Account Job reads remain hidden
+  ---
+  duration_ms: 103.766849
+  type: 'test'
+  ...
+# Subtest: Job controls preserve the Passkey boundary and reject malformed SSE cursors
+ok 40 - Job controls preserve the Passkey boundary and reject malformed SSE cursors
+  ---
+  duration_ms: 52.430794
+  type: 'test'
+  ...
+# Subtest: stale Job Scope cannot commit after the Workspace posture version advances
+ok 41 - stale Job Scope cannot commit after the Workspace posture version advances
+  ---
+  duration_ms: 153.507964
+  type: 'test'
+  ...
+# Subtest: live SSE delivers new durable events and closes when its session is revoked
+ok 42 - live SSE delivers new durable events and closes when its session is revoked
+  ---
+  duration_ms: 2125.650064
+  type: 'test'
+  ...
+# Subtest: source intake binds resumable upload to exact Deal scope and keeps TUS headers non-secret
+ok 43 - source intake binds resumable upload to exact Deal scope and keeps TUS headers non-secret
+  ---
+  duration_ms: 329.992176
+  type: 'test'
+  ...
+# Subtest: source intake binds uploads to the current operation preview and uses versioned cancellation
+ok 44 - source intake binds uploads to the current operation preview and uses versioned cancellation
+  ---
+  duration_ms: 184.451619
+  type: 'test'
+  ...
+# Subtest: source intake quarantines unsafe packages before acceptance and keeps accepted bytes encrypted
+ok 45 - source intake quarantines unsafe packages before acceptance and keeps accepted bytes encrypted
+  ---
+  duration_ms: 355.913155
+  type: 'test'
+  ...
+# Subtest: source intake preserves immutable source history and denies cross-account object or record access
+ok 46 - source intake preserves immutable source history and denies cross-account object or record access
+  ---
+  duration_ms: 278.523891
+  type: 'test'
+  ...
+# Subtest: isolated Source processing retains original bytes and returns exact CSV fragments after a durable task
+ok 47 - isolated Source processing retains original bytes and returns exact CSV fragments after a durable task # SKIP
+  ---
+  duration_ms: 0.111138
+  type: 'test'
+  ...
+# Subtest: Source Packet binds exact Source Record version and rejects stale concurrent changes
+ok 48 - Source Packet binds exact Source Record version and rejects stale concurrent changes
+  ---
+  duration_ms: 513.320908
+  type: 'test'
+  ...
+# Subtest: rights blocking creates an impact candidate, removes prospective circulation, and caps worker operations
+ok 49 - rights blocking creates an impact candidate, removes prospective circulation, and caps worker operations
+  ---
+  duration_ms: 253.385151
+  type: 'test'
+  ...
+# Subtest: Supabase callback exchanges a bearer access token and keeps the pending posture
+ok 50 - Supabase callback exchanges a bearer access token and keeps the pending posture
+  ---
+  duration_ms: 177.645068
+  type: 'test'
+  ...
+# Subtest: Workbook HTTP commands are authenticated, scoped, idempotent and version guarded
+ok 51 - Workbook HTTP commands are authenticated, scoped, idempotent and version guarded
+  ---
+  duration_ms: 1138.01691
+  type: 'test'
+  ...
+# Subtest: a new Individual Banker completes Magic Link + mandatory Passkey and reads Project Northstar
+ok 52 - a new Individual Banker completes Magic Link + mandatory Passkey and reads Project Northstar
+  ---
+  duration_ms: 209.870372
+  type: 'test'
+  ...
+# Subtest: cross-Account and cross-Deal reads return the same non-enumerating 404 problem
+ok 53 - cross-Account and cross-Deal reads return the same non-enumerating 404 problem
+  ---
+  duration_ms: 90.657605
+  type: 'test'
+  ...
+# Subtest: ordinary Deal access is denied until the current session has a registered Passkey
+ok 54 - ordinary Deal access is denied until the current session has a registered Passkey
+  ---
+  duration_ms: 71.112239
+  type: 'test'
+  ...
+# Subtest: product account-template migration declares immutable public observations and Account template quarantine boundaries
+ok 55 - product account-template migration declares immutable public observations and Account template quarantine boundaries
+  ---
+  duration_ms: 24.786311
+  type: 'test'
+  ...
+# Subtest: AI source proposal migration declares strict contracts, protected payloads, and no authority promotion
+ok 56 - AI source proposal migration declares strict contracts, protected payloads, and no authority promotion
+  ---
+  duration_ms: 6.194799
+  type: 'test'
+  ...
+# Subtest: AI source proposal tables are forced RLS and runtime cannot write them
+ok 57 - AI source proposal tables are forced RLS and runtime cannot write them
+  ---
+  duration_ms: 22.54631
+  type: 'test'
+  ...
+# Subtest: deployment controls can suspend and restore AI policy without runtime configuration writes
+ok 58 - deployment controls can suspend and restore AI policy without runtime configuration writes
+  ---
+  duration_ms: 19.62113
+  type: 'test'
+  ...
+# Subtest: AI input envelope binds exact packet, versions, fragment locators and canonical digest
+ok 59 - AI input envelope binds exact packet, versions, fragment locators and canonical digest
+  ---
+  duration_ms: 8.158794
+  type: 'test'
+  ...
+# Subtest: confidential and restricted material require verified HelloX processing evidence
+ok 60 - confidential and restricted material require verified HelloX processing evidence
+  ---
+  duration_ms: 0.185369
+  type: 'test'
+  ...
+# Subtest: strict result validation rejects invented locators and authority fields
+ok 61 - strict result validation rejects invented locators and authority fields
+  ---
+  duration_ms: 8.945828
+  type: 'test'
+  ...
+# Subtest: one repair is structure-only and semantic changes reject the response
+ok 62 - one repair is structure-only and semantic changes reject the response
+  ---
+  duration_ms: 0.353462
+  type: 'test'
+  ...
+# Subtest: each concrete task ships a versioned strict output contract and synthetic evaluation manifest
+ok 63 - each concrete task ships a versioned strict output contract and synthetic evaluation manifest
+  ---
+  duration_ms: 1.10388
+  type: 'test'
+  ...
+# Subtest: financial inputs retain the selected accepted native Evidence location and reject missing or foreign relationships
+ok 64 - financial inputs retain the selected accepted native Evidence location and reject missing or foreign relationships
+  ---
+  duration_ms: 1.453998
+  type: 'test'
+  ...
+# Subtest: manifest binds exact bytes and rejects a substituted member
+ok 65 - manifest binds exact bytes and rejects a substituted member
+  ---
+  duration_ms: 2.962738
+  type: 'test'
+  ...
+# Subtest: product Deal lifecycle Deal Setup and Paid Preflight authority tables are forced-RLS and write through definer functions
+ok 66 - product Deal lifecycle Deal Setup and Paid Preflight authority tables are forced-RLS and write through definer functions
+  ---
+  duration_ms: 27.384471
+  type: 'test'
+  ...
+# Subtest: deterministic Analysis persists typed, immutable and isolated lineage
+ok 67 - deterministic Analysis persists typed, immutable and isolated lineage
+  ---
+  duration_ms: 0.935238
+  type: 'test'
+  ...
+# Subtest: separate development signer binds exact manifest bytes and cannot be selected in production
+ok 68 - separate development signer binds exact manifest bytes and cannot be selected in production
+  ---
+  duration_ms: 76.723471
+  type: 'test'
+  ...
+# Subtest: Knowledge authority tables are forced-RLS and runtime write-denied
+ok 69 - Knowledge authority tables are forced-RLS and runtime write-denied
+  ---
+  duration_ms: 25.037199
+  type: 'test'
+  ...
+# Subtest: financial AI tasks accept decimal, lineage-bearing proposals only
+ok 70 - financial AI tasks accept decimal, lineage-bearing proposals only
+  ---
+  duration_ms: 21.503362
+  type: 'test'
+  ...
+# Subtest: analysis drafts cannot smuggle authority fields or foreign source locators
+ok 71 - analysis drafts cannot smuggle authority fields or foreign source locators
+  ---
+  duration_ms: 4.867332
+  type: 'test'
+  ...
+# Subtest: complete AI output cannot silently omit every result
+ok 72 - complete AI output cannot silently omit every result
+  ---
+  duration_ms: 1.251914
+  type: 'test'
+  ...
+# Subtest: financial proposals reject a value whose lexical scale disagrees with precision
+ok 73 - financial proposals reject a value whose lexical scale disagrees with precision
+  ---
+  duration_ms: 1.842531
+  type: 'test'
+  ...
+# Subtest: financial values use exact decimal arithmetic and preserve precision
+ok 74 - financial values use exact decimal arithmetic and preserve precision
+  ---
+  duration_ms: 1.635221
+  type: 'test'
+  ...
+# Subtest: EV-to-equity tie-out records deterministic checks and replays identically
+ok 75 - EV-to-equity tie-out records deterministic checks and replays identically
+  ---
+  duration_ms: 0.729728
+  type: 'test'
+  ...
+# Subtest: financial normalization rejects exponent notation and sign/precision mismatches
+ok 76 - financial normalization rejects exponent notation and sign/precision mismatches
+  ---
+  duration_ms: 0.486322
+  type: 'test'
+  ...
+# Subtest: dedicated worker and dispatcher pools load the configured database CA
+ok 77 - dedicated worker and dispatcher pools load the configured database CA
+  ---
+  duration_ms: 7.290548
+  type: 'test'
+  ...
+# Subtest: worker and dispatcher principals cannot query tenant tables directly
+ok 78 - worker and dispatcher principals cannot query tenant tables directly
+  ---
+  duration_ms: 53.724961
+  type: 'test'
+  ...
+# Subtest: runtime role and tenant tables enforce the forced-RLS boundary
+ok 79 - runtime role and tenant tables enforce the forced-RLS boundary
+  ---
+  duration_ms: 31.681696
+  type: 'test'
+  ...
+# Subtest: durable Job tables are forced-RLS and worker procedures are the only write seam
+ok 80 - durable Job tables are forced-RLS and worker procedures are the only write seam
+  ---
+  duration_ms: 15.116333
+  type: 'test'
+  ...
+# Subtest: database policy cannot be redirected to a different Deal by a caller-supplied object identity
+ok 81 - database policy cannot be redirected to a different Deal by a caller-supplied object identity
+  ---
+  duration_ms: 41.470363
+  type: 'test'
+  ...
+# Subtest: commerce authority tables are forced-RLS and provider evidence has no raw payload column
+ok 82 - commerce authority tables are forced-RLS and provider evidence has no raw payload column
+  ---
+  duration_ms: 28.501941
+  type: 'test'
+  ...
+# Subtest: source intake source and protected-object tables are forced-RLS and write through a non-login definer
+ok 83 - source intake source and protected-object tables are forced-RLS and write through a non-login definer
+  ---
+  duration_ms: 28.710355
+  type: 'test'
+  ...
+# Subtest: source packet migration declares immutable packet, objective, ceiling, and condition boundaries
+ok 84 - source packet migration declares immutable packet, objective, ceiling, and condition boundaries
+  ---
+  duration_ms: 25.872816
+  type: 'test'
+  ...
+# Subtest: Supabase Auth identity is mapped to one product actor and requires passkey assurance
+ok 85 - Supabase Auth identity is mapped to one product actor and requires passkey assurance
+  ---
+  duration_ms: 48.98638
+  type: 'test'
+  ...
+# Subtest: workbook AI findings stay proposals on the exact delivered pair
+ok 86 - workbook AI findings stay proposals on the exact delivered pair
+  ---
+  duration_ms: 24.997939
+  type: 'test'
+  ...
+# Subtest: workbook commentary keeps current fragment citations separate from calculation and stale IDs
+ok 87 - workbook commentary keeps current fragment citations separate from calculation and stale IDs
+  ---
+  duration_ms: 7.608878
+  type: 'test'
+  ...
+# Subtest: Workbook provider streaming preserves split Unicode, content, identity and usage
+ok 88 - Workbook provider streaming preserves split Unicode, content, identity and usage
+  ---
+  duration_ms: 3.492104
+  type: 'test'
+  ...
+# Subtest: Incomplete and failed provider streams cannot become accepted output
+ok 89 - Incomplete and failed provider streams cannot become accepted output
+  ---
+  duration_ms: 0.908638
+  type: 'test'
+  ...
+1..89
+# tests 89
+# suites 0
+# pass 86
+# fail 0
+# cancelled 0
+# skipped 3
+# todo 0
+# duration_ms 26512.410709

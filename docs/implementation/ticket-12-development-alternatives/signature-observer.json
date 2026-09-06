@@ -1,0 +1,13 @@
+{
+  "revision_id": "24b8a4ec-7bba-465d-bb2f-0bf6b3728627",
+  "key_version": "development/artifact/20260906/versions/1",
+  "canonical_sha256": "b2920198bae7af5fd84d9ef899515715027a8bf3ee169b1a2d1ce6c13dece74e",
+  "members": 17,
+  "all_member_hashes_match": true,
+  "signature_verified": true,
+  "public_registry_matches": true,
+  "changed_payload_rejected": true,
+  "changed_signature_rejected": true,
+  "custody": "development_host_service",
+  "observed_at": "2026-09-06T10:53:27.461Z"
+}

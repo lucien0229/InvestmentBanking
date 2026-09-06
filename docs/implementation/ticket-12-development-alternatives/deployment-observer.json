@@ -1,0 +1,55 @@
+{
+  "release": "20260906-ticket12-final-beab2e8",
+  "commit": "beab2e8a4ce997b4c8ee84cbe1f0129ee7fe6596",
+  "changed_source_files_verified": 26,
+  "containers": [
+    {
+      "name": "/investmentbanking-dev-api-1",
+      "running": true,
+      "health": "healthy",
+      "release_mounts": [
+        "/opt/cells/investmentbanking/dev/releases/20260906-ticket12-final-beab2e8"
+      ]
+    },
+    {
+      "name": "/investmentbanking-dev-web-1",
+      "running": true,
+      "health": "healthy",
+      "release_mounts": [
+        "/opt/cells/investmentbanking/dev/web-releases/20260906-ticket12-final-beab2e8"
+      ]
+    },
+    {
+      "name": "/investmentbanking-dev-workbook_worker-1",
+      "running": true,
+      "health": null,
+      "release_mounts": [
+        "/opt/cells/investmentbanking/dev/releases/20260906-ticket12-final-beab2e8"
+      ]
+    },
+    {
+      "name": "/investmentbanking-dev-source_worker-1",
+      "running": true,
+      "health": null,
+      "release_mounts": [
+        "/opt/cells/investmentbanking/dev/releases/20260906-ticket12-final-beab2e8"
+      ]
+    },
+    {
+      "name": "/investmentbanking-dev-reference_worker-1",
+      "running": true,
+      "health": null,
+      "release_mounts": [
+        "/opt/cells/investmentbanking/dev/releases/20260906-ticket12-final-beab2e8"
+      ]
+    },
+    {
+      "name": "/investmentbanking-dev-dispatcher-1",
+      "running": true,
+      "health": null,
+      "release_mounts": [
+        "/opt/cells/investmentbanking/dev/releases/20260906-ticket12-final-beab2e8"
+      ]
+    }
+  ]
+}

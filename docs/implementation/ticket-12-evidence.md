@@ -1,5 +1,14 @@
 # Ticket 12 — development implementation and acceptance
 
+2026-09-06 update: the user explicitly authorized alternative development
+acceptance under ADR 0043. [Current evidence](ticket-12-development-alternatives-2026-09-06.md)
+records the exact LibreOffice / development signer / Linux lab profile.
+Ticket 12 is now **resolved for that authorized development profile** after
+all 12 scoped readiness requirements passed on exact synthetic Revision 05.
+The evidence and original configuration failures below remain historical;
+they are not relabeled as Windows Excel or cloud KMS success.
+
+
 Date: 2026-09-05. Branch: `develop`. Ticket status: **needs-info**.
 
 The workbook implementation is deployed and its executable development paths

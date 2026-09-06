@@ -1,0 +1,1429 @@
+{
+  "schema_version": "1.0.0",
+  "revision_id": "24b8a4ec-7bba-465d-bb2f-0bf6b3728627",
+  "engine": "libreoffice.calc",
+  "engine_version": "LibreOffice 7.4.7.2 40(Build:2)",
+  "template_version": "analysis-valuation-1.0.0",
+  "acceptance_profile": "development_foss_v1",
+  "licensed": true,
+  "font": "DejaVu Sans",
+  "font_manifest": [
+    {
+      "file": "DejaVuSans-Bold.ttf",
+      "sha256": "0d977336a6d5fba34eab8e3199eb218327161b5143749f802982c2bc34df0c96"
+    },
+    {
+      "file": "DejaVuSans.ttf",
+      "sha256": "abdc775b21b1bc470d50c97e790d276f2054b7504e56e5bd3e64f48d68582322"
+    },
+    {
+      "file": "DejaVuSansMono-Bold.ttf",
+      "sha256": "2964f6dac8e6e9d71613928340f17bf868e9ea51692cca333c79e74962f02233"
+    },
+    {
+      "file": "DejaVuSansMono.ttf",
+      "sha256": "0f5db4f1749979d961019838b160bec74abdf7f9eca69553fe1aa856bbff49a4"
+    },
+    {
+      "file": "DejaVuSerif-Bold.ttf",
+      "sha256": "e2fd85eba2de65ac270d1cdb1685e252eb827f600850cf62af2d20c41b22e945"
+    },
+    {
+      "file": "DejaVuSerif.ttf",
+      "sha256": "13e61509f5c81d7c3132810f4f903e3523df89c802bf6e0674621e8f659cdfe1"
+    }
+  ],
+  "calculation_mode": "automatic",
+  "evaluation_time": "2026-09-06T10:50:11Z",
+  "recalculation": {
+    "outcome": "passed",
+    "checks": [
+      {
+        "locator": "Valuation!E8:G8",
+        "expected": "94.7",
+        "observed": "94.7",
+        "difference": "0",
+        "passed": true
+      }
+    ]
+  },
+  "files": [
+    {
+      "path": "analysis-valuation.xlsx",
+      "sha256": "f29d53e28728b932286f2db6586b19a950ffd2ada0aad19d9bc7f03a801e6cfa",
+      "bytes": 27028
+    },
+    {
+      "path": "analysis-valuation.pdf",
+      "sha256": "0e74db0b37ebde27bc4668a81ae5e31218c870b1f05154a75ff73053cd60fba5",
+      "bytes": 45439
+    }
+  ],
+  "pages": [
+    {
+      "page": 1,
+      "image": "reader-page-1.png",
+      "text": "DEAL CONTROL / OVERVIEW\nWorkbook development acceptance\nRevision 24b8a4ec-7bba-465d-bb2f-0bf6b3728627\nInternal valuation review | Named Individual Banker\nINTERNAL | SYNTHETIC | No external-use authorization\nControl\nExact value\nPurpose\nInternal valuation review\nAudience\nNamed Individual Banker\nCalculation engine\nLibreOffice 7.4.7.2 40(Build:2)\nTemplate\nanalysis-valuation-1.0.0\nCalculation mode\nAutomatic; recalculated on exact delivered bytes\nEvaluation time\n2026-09-06T10:50:11Z\nScope\nControlled EV-to-equity models and scenarios only\nReadiness\nInspect current Review/QC; generation never establishes readiness\nOffice compatibility\nDevelopment LibreOffice profile; Microsoft Excel not verified\nExternal use\nNot authorized\nLimitations\nCash Fact uses the existing controlled synthetic CSV fixture; this is not production parser or financial advice evidence. | Synthetic development acceptance only. LibreOffice \nCalc is the declared supported application. Windows Excel compatibility and cloud KMS custody are unverified. External use is unauthorized.\n",
+      "width": 1190.5511474609375,
+      "height": 841.8897705078125
+    },
+    {
+      "page": 2,
+      "image": "reader-page-2.png",
+      "text": "DEAL CONTROL / INPUTS\nWorkbook development acceptance\nRevision 24b8a4ec-7bba-465d-bb2f-0bf6b3728627\nInternal valuation review | Named Individual Banker\nINTERNAL | SYNTHETIC | No external-use authorization\nDefinition\nValue\nPeriod\nUnit / currency\nSign / precision\nActual / forecast\nSource locator\nAuthority\ncash\n4.7 FY2025E\nUSD million / USD\npositive / 1\nforecast\n{\"kind\": \"csv_row\", \n\"row\": 4}\n24f92e29-3e46-475e-\nb91e-800890b8cdc4\n",
+      "width": 1190.5511474609375,
+      "height": 841.8897705078125
+    },
+    {
+      "page": 3,
+      "image": "reader-page-3.png",
+      "text": "DEAL CONTROL / ASSUMPTIONS\nWorkbook development acceptance\nRevision 24b8a4ec-7bba-465d-bb2f-0bf6b3728627\nInternal valuation review | Named Individual Banker\nINTERNAL | SYNTHETIC | No external-use authorization\nDefinition\nValue\nPeriod\nUnit / currency\nSign / precision\nActual / forecast\nSource locator\nAuthority\nenterprise_value\n100.0 FY2025E\nUSD million / USD\npositive / 1\nforecast\ndebt\n10.0 FY2025E\nUSD million / USD\npositive / 1\nforecast\n{\"decision_id\": \n\"fca51162-07f5-468e-\nb492-4e5b9b14c0d9\", \n\"kind\": \n\"banker_assumption\"}\nc27b535f-fb9f-4a9a-\nadda-8968098670cb\n{\"decision_id\": \n\"5a815492-d031-47c9-\naeab-42887a5d3add\", \n\"kind\": \n\"banker_assumption\"}\ncc8fff15-3000-4b6d-\n928f-b232186baaea\n",
+      "width": 1190.5511474609375,
+      "height": 841.8897705078125
+    },
+    {
+      "page": 4,
+      "image": "reader-page-4.png",
+      "text": "DEAL CONTROL / VALUATION\nWorkbook development acceptance\nRevision 24b8a4ec-7bba-465d-bb2f-0bf6b3728627\nInternal valuation review | Named Individual Banker\nINTERNAL | SYNTHETIC | No external-use authorization\nScenario\nEnterprise value\nCash\nDebt\nEquity value\nExpected equity\nTie-out difference\nUnits / period\nBase case \u2014 synthetic\n100.0\n4.7\n10.0\n94.7\n94.7\n0.0 USD million / FY2025E\n",
+      "width": 1190.5511474609375,
+      "height": 841.8897705078125
+    },
+    {
+      "page": 5,
+      "image": "reader-page-5.png",
+      "text": "DEAL CONTROL / SCENARIOS\nWorkbook development acceptance\nRevision 24b8a4ec-7bba-465d-bb2f-0bf6b3728627\nInternal valuation review | Named Individual Banker\nINTERNAL | SYNTHETIC | No external-use authorization\nScenario\nEquity value\nRun / exact model\nAssumption scope\nBase case \u2014 synthetic\n94.7 41dce42c-a128-4e40-\na890-5ed27b199542 / \n3466775f-95dc-4ac8-\na517-86e1170005b3\nAssumptions remain \nassumptions; scenario is \nnot a prediction.\nBase case \u2014 synthetic\n0.0\n10.0\n20.0\n30.0\n40.0\n50.0\n60.0\n70.0\n80.0\n90.0\n100.0\nEquity value by controlled scenario\nEquity value\nUSD million\n",
+      "width": 1190.5511474609375,
+      "height": 841.8897705078125
+    },
+    {
+      "page": 6,
+      "image": "reader-page-6.png",
+      "text": "DEAL CONTROL / LINEAGE\nWorkbook development acceptance\nRevision 24b8a4ec-7bba-465d-bb2f-0bf6b3728627\nInternal valuation review | Named Individual Banker\nINTERNAL | SYNTHETIC | No external-use authorization\nNative region\nSource record\nRepresentation\nSource SHA-256\nSource locator\nFact / assumption\nDecision\nNot applicable\nNot applicable\nNot applicable\nInputs!B8 -> Valuation!B8:G8\nNot applicable\nNot applicable\nNot applicable\nRun / model / \nscenario\nAssumptions!B8 -> Valuation!\nB8:G8\n{\"decision_id\": \n\"fca51162-07f5-468e-\nb492-4e5b9b14c0d9\", \n\"kind\": \n\"banker_assumption\"}\nc27b535f-fb9f-4a9a-\nadda-8968098670cb\nfca51162-07f5-468e-\nb492-4e5b9b14c0d9\n41dce42c-a128-4e40-\na890-5ed27b199542 / \n3466775f-95dc-4ac8-\na517-86e1170005b3 / \na2237c8d-2f0b-46a7-\n87ac-7084a4b5118a\n48f0c306-3015-42b5-\na6a0-41f7ef4c272d\n749bc377-78f8-4a62-\naaf6-5dac3bf9d46e\nbf9c5f12dad07d99a76d\nea14ec41baa51b7baeb\n4861b07be3736316b0d\n2e1820\n{\"kind\": \"csv_row\", \n\"row\": 4}\n24f92e29-3e46-475e-\nb91e-800890b8cdc4\nf56cfa28-7ebf-4de7-\na263-1598b9c46ca5\n41dce42c-a128-4e40-\na890-5ed27b199542 / \n3466775f-95dc-4ac8-\na517-86e1170005b3 / \na2237c8d-2f0b-46a7-\n87ac-7084a4b5118a\nAssumptions!B9 -> Valuation!\nB8:G8\n{\"decision_id\": \n\"5a815492-d031-47c9-\naeab-42887a5d3add\", \n\"kind\": \n\"banker_assumption\"}\ncc8fff15-3000-4b6d-\n928f-b232186baaea\n5a815492-d031-47c9-\naeab-42887a5d3add\n41dce42c-a128-4e40-\na890-5ed27b199542 / \n3466775f-95dc-4ac8-\na517-86e1170005b3 / \na2237c8d-2f0b-46a7-\n87ac-7084a4b5118a\n",
+      "width": 1190.5511474609375,
+      "height": 841.8897705078125
+    },
+    {
+      "page": 7,
+      "image": "reader-page-7.png",
+      "text": "DEAL CONTROL / BANKER NOTES\nWorkbook development acceptance\nRevision 24b8a4ec-7bba-465d-bb2f-0bf6b3728627\nInternal valuation review | Named Individual Banker\nINTERNAL | SYNTHETIC | No external-use authorization\nOwnership\nNotes\nBanker-owned\nBanker-owned notes; retained on supported save/reopen paths.\n",
+      "width": 1190.5511474609375,
+      "height": 841.8897705078125
+    }
+  ],
+  "native_pages": [
+    {
+      "sheet": "Overview",
+      "page": 1,
+      "image": "native-page-1.png",
+      "range": "A1:H18",
+      "render_basis": "exact_xlsx_cell_selection"
+    },
+    {
+      "sheet": "Inputs",
+      "page": 1,
+      "image": "native-page-2.png",
+      "range": "A1:H18",
+      "render_basis": "exact_xlsx_cell_selection"
+    },
+    {
+      "sheet": "Assumptions",
+      "page": 1,
+      "image": "native-page-3.png",
+      "range": "A1:H18",
+      "render_basis": "exact_xlsx_cell_selection"
+    },
+    {
+      "sheet": "Valuation",
+      "page": 1,
+      "image": "native-page-4.png",
+      "range": "A1:H18",
+      "render_basis": "exact_xlsx_cell_selection"
+    },
+    {
+      "sheet": "Scenarios",
+      "page": 1,
+      "image": "native-page-5.png",
+      "range": "A1:H31",
+      "render_basis": "exact_xlsx_cell_selection"
+    },
+    {
+      "sheet": "Lineage",
+      "page": 1,
+      "image": "native-page-6.png",
+      "range": "A1:H18",
+      "render_basis": "exact_xlsx_cell_selection"
+    },
+    {
+      "sheet": "Banker Notes",
+      "page": 1,
+      "image": "native-page-7.png",
+      "range": "A1:H18",
+      "render_basis": "exact_xlsx_cell_selection"
+    }
+  ],
+  "cells": [
+    {
+      "sheet": "Overview",
+      "cells": [
+        {
+          "cell": "A1",
+          "formula": null,
+          "value": "DEAL CONTROL / OVERVIEW",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "A2",
+          "formula": null,
+          "value": "Workbook development acceptance",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "A3",
+          "formula": null,
+          "value": "Revision 24b8a4ec-7bba-465d-bb2f-0bf6b3728627",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "A4",
+          "formula": null,
+          "value": "Internal valuation review | Named Individual Banker",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "A5",
+          "formula": null,
+          "value": "INTERNAL | SYNTHETIC | No external-use authorization",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "A7",
+          "formula": null,
+          "value": "Control",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "B7",
+          "formula": null,
+          "value": "Exact value",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "A8",
+          "formula": null,
+          "value": "Purpose",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "B8",
+          "formula": null,
+          "value": "Internal valuation review",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "A9",
+          "formula": null,
+          "value": "Audience",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "B9",
+          "formula": null,
+          "value": "Named Individual Banker",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "A10",
+          "formula": null,
+          "value": "Calculation engine",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "B10",
+          "formula": null,
+          "value": "LibreOffice 7.4.7.2 40(Build:2)",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "A11",
+          "formula": null,
+          "value": "Template",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "B11",
+          "formula": null,
+          "value": "analysis-valuation-1.0.0",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "A12",
+          "formula": null,
+          "value": "Calculation mode",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "B12",
+          "formula": null,
+          "value": "Automatic; recalculated on exact delivered bytes",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "A13",
+          "formula": null,
+          "value": "Evaluation time",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "B13",
+          "formula": null,
+          "value": "2026-09-06T10:50:11Z",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "A14",
+          "formula": null,
+          "value": "Scope",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "B14",
+          "formula": null,
+          "value": "Controlled EV-to-equity models and scenarios only",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "A15",
+          "formula": null,
+          "value": "Readiness",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "B15",
+          "formula": null,
+          "value": "Inspect current Review/QC; generation never establishes readiness",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "A16",
+          "formula": null,
+          "value": "Office compatibility",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "B16",
+          "formula": null,
+          "value": "Development LibreOffice profile; Microsoft Excel not verified",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "A17",
+          "formula": null,
+          "value": "External use",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "B17",
+          "formula": null,
+          "value": "Not authorized",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "A18",
+          "formula": null,
+          "value": "Limitations",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "B18",
+          "formula": null,
+          "value": "Cash Fact uses the existing controlled synthetic CSV fixture; this is not production parser or financial advice evidence. | Synthetic development acceptance only. LibreOffice Calc is the declared supported application. Windows Excel compatibility and cloud KMS custody are unverified. External use is unauthorized.",
+          "number_format": "General",
+          "comment": null
+        }
+      ]
+    },
+    {
+      "sheet": "Inputs",
+      "cells": [
+        {
+          "cell": "A1",
+          "formula": null,
+          "value": "DEAL CONTROL / INPUTS",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "A2",
+          "formula": null,
+          "value": "Workbook development acceptance",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "A3",
+          "formula": null,
+          "value": "Revision 24b8a4ec-7bba-465d-bb2f-0bf6b3728627",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "A4",
+          "formula": null,
+          "value": "Internal valuation review | Named Individual Banker",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "A5",
+          "formula": null,
+          "value": "INTERNAL | SYNTHETIC | No external-use authorization",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "A7",
+          "formula": null,
+          "value": "Definition",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "B7",
+          "formula": null,
+          "value": "Value",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "C7",
+          "formula": null,
+          "value": "Period",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "D7",
+          "formula": null,
+          "value": "Unit / currency",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "E7",
+          "formula": null,
+          "value": "Sign / precision",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "F7",
+          "formula": null,
+          "value": "Actual / forecast",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "G7",
+          "formula": null,
+          "value": "Source locator",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "H7",
+          "formula": null,
+          "value": "Authority",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "A8",
+          "formula": null,
+          "value": "cash",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "B8",
+          "formula": null,
+          "value": 4.7,
+          "number_format": "0.0",
+          "comment": "Source 48f0c306-3015-42b5-a6a0-41f7ef4c272d | {\"kind\": \"csv_row\", \"row\": 4} | Decision f56cfa28-7ebf-4de7-a263-1598b9c46ca5"
+        },
+        {
+          "cell": "C8",
+          "formula": null,
+          "value": "FY2025E",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "D8",
+          "formula": null,
+          "value": "USD million / USD",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "E8",
+          "formula": null,
+          "value": "positive / 1",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "F8",
+          "formula": null,
+          "value": "forecast",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "G8",
+          "formula": null,
+          "value": "{\"kind\": \"csv_row\", \"row\": 4}",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "H8",
+          "formula": null,
+          "value": "24f92e29-3e46-475e-b91e-800890b8cdc4",
+          "number_format": "General",
+          "comment": null
+        }
+      ]
+    },
+    {
+      "sheet": "Assumptions",
+      "cells": [
+        {
+          "cell": "A1",
+          "formula": null,
+          "value": "DEAL CONTROL / ASSUMPTIONS",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "A2",
+          "formula": null,
+          "value": "Workbook development acceptance",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "A3",
+          "formula": null,
+          "value": "Revision 24b8a4ec-7bba-465d-bb2f-0bf6b3728627",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "A4",
+          "formula": null,
+          "value": "Internal valuation review | Named Individual Banker",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "A5",
+          "formula": null,
+          "value": "INTERNAL | SYNTHETIC | No external-use authorization",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "A7",
+          "formula": null,
+          "value": "Definition",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "B7",
+          "formula": null,
+          "value": "Value",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "C7",
+          "formula": null,
+          "value": "Period",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "D7",
+          "formula": null,
+          "value": "Unit / currency",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "E7",
+          "formula": null,
+          "value": "Sign / precision",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "F7",
+          "formula": null,
+          "value": "Actual / forecast",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "G7",
+          "formula": null,
+          "value": "Source locator",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "H7",
+          "formula": null,
+          "value": "Authority",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "A8",
+          "formula": null,
+          "value": "enterprise_value",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "B8",
+          "formula": null,
+          "value": 100,
+          "number_format": "0.0",
+          "comment": "Source None | {\"decision_id\": \"fca51162-07f5-468e-b492-4e5b9b14c0d9\", \"kind\": \"banker_assumption\"} | Decision fca51162-07f5-468e-b492-4e5b9b14c0d9"
+        },
+        {
+          "cell": "C8",
+          "formula": null,
+          "value": "FY2025E",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "D8",
+          "formula": null,
+          "value": "USD million / USD",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "E8",
+          "formula": null,
+          "value": "positive / 1",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "F8",
+          "formula": null,
+          "value": "forecast",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "G8",
+          "formula": null,
+          "value": "{\"decision_id\": \"fca51162-07f5-468e-b492-4e5b9b14c0d9\", \"kind\": \"banker_assumption\"}",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "H8",
+          "formula": null,
+          "value": "c27b535f-fb9f-4a9a-adda-8968098670cb",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "A9",
+          "formula": null,
+          "value": "debt",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "B9",
+          "formula": null,
+          "value": 10,
+          "number_format": "0.0",
+          "comment": "Source None | {\"decision_id\": \"5a815492-d031-47c9-aeab-42887a5d3add\", \"kind\": \"banker_assumption\"} | Decision 5a815492-d031-47c9-aeab-42887a5d3add"
+        },
+        {
+          "cell": "C9",
+          "formula": null,
+          "value": "FY2025E",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "D9",
+          "formula": null,
+          "value": "USD million / USD",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "E9",
+          "formula": null,
+          "value": "positive / 1",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "F9",
+          "formula": null,
+          "value": "forecast",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "G9",
+          "formula": null,
+          "value": "{\"decision_id\": \"5a815492-d031-47c9-aeab-42887a5d3add\", \"kind\": \"banker_assumption\"}",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "H9",
+          "formula": null,
+          "value": "cc8fff15-3000-4b6d-928f-b232186baaea",
+          "number_format": "General",
+          "comment": null
+        }
+      ]
+    },
+    {
+      "sheet": "Valuation",
+      "cells": [
+        {
+          "cell": "A1",
+          "formula": null,
+          "value": "DEAL CONTROL / VALUATION",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "A2",
+          "formula": null,
+          "value": "Workbook development acceptance",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "A3",
+          "formula": null,
+          "value": "Revision 24b8a4ec-7bba-465d-bb2f-0bf6b3728627",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "A4",
+          "formula": null,
+          "value": "Internal valuation review | Named Individual Banker",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "A5",
+          "formula": null,
+          "value": "INTERNAL | SYNTHETIC | No external-use authorization",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "A7",
+          "formula": null,
+          "value": "Scenario",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "B7",
+          "formula": null,
+          "value": "Enterprise value",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "C7",
+          "formula": null,
+          "value": "Cash",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "D7",
+          "formula": null,
+          "value": "Debt",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "E7",
+          "formula": null,
+          "value": "Equity value",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "F7",
+          "formula": null,
+          "value": "Expected equity",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "G7",
+          "formula": null,
+          "value": "Tie-out difference",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "H7",
+          "formula": null,
+          "value": "Units / period",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "A8",
+          "formula": null,
+          "value": "Base case \u2014 synthetic",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "B8",
+          "formula": "=EV_1",
+          "value": 100,
+          "number_format": "0.0#########",
+          "comment": null
+        },
+        {
+          "cell": "C8",
+          "formula": "=Cash_1",
+          "value": 4.7,
+          "number_format": "0.0#########",
+          "comment": null
+        },
+        {
+          "cell": "D8",
+          "formula": "=Debt_1",
+          "value": 10,
+          "number_format": "0.0#########",
+          "comment": null
+        },
+        {
+          "cell": "E8",
+          "formula": "=ROUND(EV_1+Cash_1-Debt_1,1)",
+          "value": 94.7,
+          "number_format": "0.0#########",
+          "comment": null
+        },
+        {
+          "cell": "F8",
+          "formula": null,
+          "value": 94.7,
+          "number_format": "0.0#########",
+          "comment": null
+        },
+        {
+          "cell": "G8",
+          "formula": "=ROUND(E8-F8,1)",
+          "value": 0,
+          "number_format": "0.0#########",
+          "comment": null
+        },
+        {
+          "cell": "H8",
+          "formula": null,
+          "value": "USD million / FY2025E",
+          "number_format": "General",
+          "comment": null
+        }
+      ]
+    },
+    {
+      "sheet": "Scenarios",
+      "cells": [
+        {
+          "cell": "A1",
+          "formula": null,
+          "value": "DEAL CONTROL / SCENARIOS",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "A2",
+          "formula": null,
+          "value": "Workbook development acceptance",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "A3",
+          "formula": null,
+          "value": "Revision 24b8a4ec-7bba-465d-bb2f-0bf6b3728627",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "A4",
+          "formula": null,
+          "value": "Internal valuation review | Named Individual Banker",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "A5",
+          "formula": null,
+          "value": "INTERNAL | SYNTHETIC | No external-use authorization",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "A7",
+          "formula": null,
+          "value": "Scenario",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "B7",
+          "formula": null,
+          "value": "Equity value",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "C7",
+          "formula": null,
+          "value": "Run / exact model",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "D7",
+          "formula": null,
+          "value": "Assumption scope",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "A8",
+          "formula": null,
+          "value": "Base case \u2014 synthetic",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "B8",
+          "formula": "=Valuation!E8",
+          "value": 94.7,
+          "number_format": "0.0#########",
+          "comment": null
+        },
+        {
+          "cell": "C8",
+          "formula": null,
+          "value": "41dce42c-a128-4e40-a890-5ed27b199542 / 3466775f-95dc-4ac8-a517-86e1170005b3",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "D8",
+          "formula": null,
+          "value": "Assumptions remain assumptions; scenario is not a prediction.",
+          "number_format": "General",
+          "comment": null
+        }
+      ]
+    },
+    {
+      "sheet": "Lineage",
+      "cells": [
+        {
+          "cell": "A1",
+          "formula": null,
+          "value": "DEAL CONTROL / LINEAGE",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "A2",
+          "formula": null,
+          "value": "Workbook development acceptance",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "A3",
+          "formula": null,
+          "value": "Revision 24b8a4ec-7bba-465d-bb2f-0bf6b3728627",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "A4",
+          "formula": null,
+          "value": "Internal valuation review | Named Individual Banker",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "A5",
+          "formula": null,
+          "value": "INTERNAL | SYNTHETIC | No external-use authorization",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "A7",
+          "formula": null,
+          "value": "Native region",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "B7",
+          "formula": null,
+          "value": "Source record",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "C7",
+          "formula": null,
+          "value": "Representation",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "D7",
+          "formula": null,
+          "value": "Source SHA-256",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "E7",
+          "formula": null,
+          "value": "Source locator",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "F7",
+          "formula": null,
+          "value": "Fact / assumption",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "G7",
+          "formula": null,
+          "value": "Decision",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "H7",
+          "formula": null,
+          "value": "Run / model / scenario",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "A8",
+          "formula": null,
+          "value": "Assumptions!B8 -> Valuation!B8:G8",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "B8",
+          "formula": null,
+          "value": "Not applicable",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "C8",
+          "formula": null,
+          "value": "Not applicable",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "D8",
+          "formula": null,
+          "value": "Not applicable",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "E8",
+          "formula": null,
+          "value": "{\"decision_id\": \"fca51162-07f5-468e-b492-4e5b9b14c0d9\", \"kind\": \"banker_assumption\"}",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "F8",
+          "formula": null,
+          "value": "c27b535f-fb9f-4a9a-adda-8968098670cb",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "G8",
+          "formula": null,
+          "value": "fca51162-07f5-468e-b492-4e5b9b14c0d9",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "H8",
+          "formula": null,
+          "value": "41dce42c-a128-4e40-a890-5ed27b199542 / 3466775f-95dc-4ac8-a517-86e1170005b3 / a2237c8d-2f0b-46a7-87ac-7084a4b5118a",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "A9",
+          "formula": null,
+          "value": "Inputs!B8 -> Valuation!B8:G8",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "B9",
+          "formula": null,
+          "value": "48f0c306-3015-42b5-a6a0-41f7ef4c272d",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "C9",
+          "formula": null,
+          "value": "749bc377-78f8-4a62-aaf6-5dac3bf9d46e",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "D9",
+          "formula": null,
+          "value": "bf9c5f12dad07d99a76dea14ec41baa51b7baeb4861b07be3736316b0d2e1820",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "E9",
+          "formula": null,
+          "value": "{\"kind\": \"csv_row\", \"row\": 4}",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "F9",
+          "formula": null,
+          "value": "24f92e29-3e46-475e-b91e-800890b8cdc4",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "G9",
+          "formula": null,
+          "value": "f56cfa28-7ebf-4de7-a263-1598b9c46ca5",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "H9",
+          "formula": null,
+          "value": "41dce42c-a128-4e40-a890-5ed27b199542 / 3466775f-95dc-4ac8-a517-86e1170005b3 / a2237c8d-2f0b-46a7-87ac-7084a4b5118a",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "A10",
+          "formula": null,
+          "value": "Assumptions!B9 -> Valuation!B8:G8",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "B10",
+          "formula": null,
+          "value": "Not applicable",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "C10",
+          "formula": null,
+          "value": "Not applicable",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "D10",
+          "formula": null,
+          "value": "Not applicable",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "E10",
+          "formula": null,
+          "value": "{\"decision_id\": \"5a815492-d031-47c9-aeab-42887a5d3add\", \"kind\": \"banker_assumption\"}",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "F10",
+          "formula": null,
+          "value": "cc8fff15-3000-4b6d-928f-b232186baaea",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "G10",
+          "formula": null,
+          "value": "5a815492-d031-47c9-aeab-42887a5d3add",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "H10",
+          "formula": null,
+          "value": "41dce42c-a128-4e40-a890-5ed27b199542 / 3466775f-95dc-4ac8-a517-86e1170005b3 / a2237c8d-2f0b-46a7-87ac-7084a4b5118a",
+          "number_format": "General",
+          "comment": null
+        }
+      ]
+    },
+    {
+      "sheet": "Banker Notes",
+      "cells": [
+        {
+          "cell": "A1",
+          "formula": null,
+          "value": "DEAL CONTROL / BANKER NOTES",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "A2",
+          "formula": null,
+          "value": "Workbook development acceptance",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "A3",
+          "formula": null,
+          "value": "Revision 24b8a4ec-7bba-465d-bb2f-0bf6b3728627",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "A4",
+          "formula": null,
+          "value": "Internal valuation review | Named Individual Banker",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "A5",
+          "formula": null,
+          "value": "INTERNAL | SYNTHETIC | No external-use authorization",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "A7",
+          "formula": null,
+          "value": "Ownership",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "B7",
+          "formula": null,
+          "value": "Notes",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "A8",
+          "formula": null,
+          "value": "Banker-owned",
+          "number_format": "General",
+          "comment": null
+        },
+        {
+          "cell": "B8",
+          "formula": null,
+          "value": "Banker-owned notes; retained on supported save/reopen paths.",
+          "number_format": "General",
+          "comment": "Banker content must never be silently overwritten."
+        }
+      ]
+    }
+  ],
+  "lineage": [
+    {
+      "key": "enterprise_value",
+      "sign": "positive",
+      "unit": "USD million",
+      "value": "100.0",
+      "period": "FY2025E",
+      "fact_id": null,
+      "locator": {
+        "kind": "banker_assumption",
+        "decision_id": "fca51162-07f5-468e-b492-4e5b9b14c0d9"
+      },
+      "currency": "USD",
+      "precision": 1,
+      "definition": "enterprise_value",
+      "decision_id": "fca51162-07f5-468e-b492-4e5b9b14c0d9",
+      "assumption_id": "c27b535f-fb9f-4a9a-adda-8968098670cb",
+      "source_digest": null,
+      "actual_forecast": "forecast",
+      "source_record_id": null,
+      "representation_id": null,
+      "native_sheet": "Assumptions",
+      "native_range": "B8",
+      "output_sheet": "Valuation",
+      "output_range": "B8:G8",
+      "revision_id": "24b8a4ec-7bba-465d-bb2f-0bf6b3728627",
+      "run_id": "41dce42c-a128-4e40-a890-5ed27b199542",
+      "calculation_version_id": "f8cde8e1-793d-42b6-9b28-96ae757d45de",
+      "model_version_id": "3466775f-95dc-4ac8-a517-86e1170005b3",
+      "scenario_version_id": "a2237c8d-2f0b-46a7-87ac-7084a4b5118a",
+      "reader_pages": [
+        3,
+        4,
+        5,
+        6
+      ]
+    },
+    {
+      "key": "cash",
+      "sign": "positive",
+      "unit": "USD million",
+      "value": "4.7",
+      "period": "FY2025E",
+      "fact_id": "24f92e29-3e46-475e-b91e-800890b8cdc4",
+      "locator": {
+        "row": 4,
+        "kind": "csv_row"
+      },
+      "currency": "USD",
+      "precision": 1,
+      "definition": "cash",
+      "decision_id": "f56cfa28-7ebf-4de7-a263-1598b9c46ca5",
+      "assumption_id": null,
+      "source_digest": "bf9c5f12dad07d99a76dea14ec41baa51b7baeb4861b07be3736316b0d2e1820",
+      "actual_forecast": "forecast",
+      "source_record_id": "48f0c306-3015-42b5-a6a0-41f7ef4c272d",
+      "representation_id": "749bc377-78f8-4a62-aaf6-5dac3bf9d46e",
+      "native_sheet": "Inputs",
+      "native_range": "B8",
+      "output_sheet": "Valuation",
+      "output_range": "B8:G8",
+      "revision_id": "24b8a4ec-7bba-465d-bb2f-0bf6b3728627",
+      "run_id": "41dce42c-a128-4e40-a890-5ed27b199542",
+      "calculation_version_id": "f8cde8e1-793d-42b6-9b28-96ae757d45de",
+      "model_version_id": "3466775f-95dc-4ac8-a517-86e1170005b3",
+      "scenario_version_id": "a2237c8d-2f0b-46a7-87ac-7084a4b5118a",
+      "reader_pages": [
+        2,
+        4,
+        5,
+        6
+      ]
+    },
+    {
+      "key": "debt",
+      "sign": "positive",
+      "unit": "USD million",
+      "value": "10.0",
+      "period": "FY2025E",
+      "fact_id": null,
+      "locator": {
+        "kind": "banker_assumption",
+        "decision_id": "5a815492-d031-47c9-aeab-42887a5d3add"
+      },
+      "currency": "USD",
+      "precision": 1,
+      "definition": "debt",
+      "decision_id": "5a815492-d031-47c9-aeab-42887a5d3add",
+      "assumption_id": "cc8fff15-3000-4b6d-928f-b232186baaea",
+      "source_digest": null,
+      "actual_forecast": "forecast",
+      "source_record_id": null,
+      "representation_id": null,
+      "native_sheet": "Assumptions",
+      "native_range": "B9",
+      "output_sheet": "Valuation",
+      "output_range": "B8:G8",
+      "revision_id": "24b8a4ec-7bba-465d-bb2f-0bf6b3728627",
+      "run_id": "41dce42c-a128-4e40-a890-5ed27b199542",
+      "calculation_version_id": "f8cde8e1-793d-42b6-9b28-96ae757d45de",
+      "model_version_id": "3466775f-95dc-4ac8-a517-86e1170005b3",
+      "scenario_version_id": "a2237c8d-2f0b-46a7-87ac-7084a4b5118a",
+      "reader_pages": [
+        3,
+        4,
+        5,
+        6
+      ]
+    }
+  ],
+  "limitations": [
+    "Development LibreOffice profile; Microsoft Excel compatibility is not established.",
+    "Native worksheet images are exported directly from the exact XLSX selection; Reader images are rasterized independently from the PDF."
+  ],
+  "container_digest": "sha256:c195fa00da8dd1a252982d53c4a72bdc0668088342fa4b06d2d4eacb369fea36"
+}

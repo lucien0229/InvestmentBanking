@@ -1,0 +1,72 @@
+{
+  "schema_version": "1.0.0",
+  "revision_id": "24b8a4ec-7bba-465d-bb2f-0bf6b3728627",
+  "acceptance_profile": "development_foss_v1",
+  "observed_at": "2026-09-06T10:56:09.000018+00:00",
+  "method": "Direct visual inspection of all seven independently exported Native worksheet images and seven PDF-rasterized Reader pages from exact protected stored artifacts. Independent file observer and actual Calc round-trip supply separate structural proof.",
+  "native_sha256": "f29d53e28728b932286f2db6586b19a950ffd2ada0aad19d9bc7f03a801e6cfa",
+  "reader_sha256": "0e74db0b37ebde27bc4668a81ae5e31218c870b1f05154a75ff73053cd60fba5",
+  "outcome": "passed",
+  "pages": [
+    {
+      "sheet": "Overview",
+      "reader_page": 1,
+      "native_preview_sha256": "631932aed97ebd49144e8310d86ea811a30a6ea0fc42fc9cd2fbf77ae0974c74",
+      "reader_preview_sha256": "d8c0054ded9161322000ad37f69a50b90eef99c8916d0dcdd8f068be8649df24",
+      "observation": "Revision, scope, engine, limitations and confidentiality match; full text visible.",
+      "outcome": "passed"
+    },
+    {
+      "sheet": "Inputs",
+      "reader_page": 2,
+      "native_preview_sha256": "c6da18d1d1be018711858e1b4eaef258e6eebe0a11d508ecfdd4b173a25c91ca",
+      "reader_preview_sha256": "e1f09b37f58a0d6ed230e26e95eab8335dfc10b3b09d789e7698dd663faac106",
+      "observation": "Cash 4.7, FY2025E, USD million, forecast posture, CSV row 4 and Fact identity match; PDF annotations do not cover values.",
+      "outcome": "passed"
+    },
+    {
+      "sheet": "Assumptions",
+      "reader_page": 3,
+      "native_preview_sha256": "112853e6e388d231c18caae1a3d8c61964a0ffec7576a8ac6682726efe08537f",
+      "reader_preview_sha256": "4fccb3117af15e437ba49bd01b022d8a97852b9d1f1c261966c494053958db27",
+      "observation": "EV 100.0 and Debt 10.0 remain assumptions; full decision locators visible after actual Calc row sizing.",
+      "outcome": "passed"
+    },
+    {
+      "sheet": "Valuation",
+      "reader_page": 4,
+      "native_preview_sha256": "a97997f5e44df1bed6db958dfc800191e7961ec6c66c20f1228a518efe9c62cb",
+      "reader_preview_sha256": "a40f0a62816e8dede25e5d422d827435a52eb36b077e3adbc1cf99d61010f9ef",
+      "observation": "EV 100.0 + Cash 4.7 - Debt 10.0 = Equity 94.7; expected 94.7 and difference 0; all eight columns match.",
+      "outcome": "passed"
+    },
+    {
+      "sheet": "Scenarios",
+      "reader_page": 5,
+      "native_preview_sha256": "0b4e7e62fa19654a69b9518275bda355e63d700620f55bb86e2d6300d582d9aa",
+      "reader_preview_sha256": "57ce5bbc0e8b40254dbcb6c5b03a63a633cbc148bab95d010d6a14364887a1d5",
+      "observation": "Single Base case synthetic chart: 94.7, USD million axis, legend and exact model/run identities match and are visible.",
+      "outcome": "passed"
+    },
+    {
+      "sheet": "Lineage",
+      "reader_page": 6,
+      "native_preview_sha256": "e961203045e3a4f5c6b94e5207c589f72647eadca9bfc573f1d758ea4afa4338",
+      "reader_preview_sha256": "00614f8b5d3f6c3e7452ade75e1a3c85b0d0dccd60bc4f2b136b81b7612deca4",
+      "observation": "All three source/assumption paths map to exact cells and outputs, including full Source SHA and Decision/run/model/scenario identities.",
+      "outcome": "passed"
+    },
+    {
+      "sheet": "Banker Notes",
+      "reader_page": 7,
+      "native_preview_sha256": "097ddf6b797b338493c588c7f4247ad3124ccd7eed518c9f2e0e7e8682e2b9f9",
+      "reader_preview_sha256": "3c80357cdf6155293685f4e4ba9ea40586d0fae54d90a7b30eb461bf2abaa7e2",
+      "observation": "Banker-owned note text and ownership match; actual saved edit is independently checked in Office lab.",
+      "outcome": "passed"
+    }
+  ],
+  "limitations": [
+    "Only the synthetic internal valuation review for Named Individual Banker. No Windows Excel compatibility, cloud KMS custody or external-use authorization.",
+    "Native selection geometry and PDF page margins differ; material content and readable labels are compared, not pixel equality."
+  ]
+}

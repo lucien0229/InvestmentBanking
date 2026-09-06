@@ -1,0 +1,16 @@
+TAP version 13
+# Subtest: Workbook HTTP commands are authenticated, scoped, idempotent and version guarded
+ok 1 - Workbook HTTP commands are authenticated, scoped, idempotent and version guarded
+  ---
+  duration_ms: 1235.876188
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2006.757478

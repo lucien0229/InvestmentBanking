@@ -1,0 +1,14 @@
+[
+  {
+    "run_id": "aecaf4e7-9482-4c5a-b252-305f02a160a6",
+    "affected_scope": "The banker_notes native-to-reader semantic parity comparison in the supplied current revision manifest.",
+    "reason_codes": [
+      "coverage_incomplete",
+      "locator_unresolved"
+    ],
+    "missing_inputs": [
+      "reader_pages mapping for the banker_notes manifest region"
+    ],
+    "smallest_recovery_action": "Add the reader_pages list for the banker_notes region to the current revision manifest, using the reader rendering only if it is confirmed as the matching region."
+  }
+]

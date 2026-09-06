@@ -1,0 +1,47 @@
+{
+  "id": "f37fa471-e75d-43f8-952e-81321a9058fd",
+  "revision_id": "24b8a4ec-7bba-465d-bb2f-0bf6b3728627",
+  "checks": [
+    {
+      "code": "native_structure",
+      "detail": "Native formula, defined-name, chart, revision and calculation-mode checks",
+      "locator": {},
+      "outcome": "passed"
+    },
+    {
+      "code": "recalculation",
+      "detail": "Exact stored Native reopened and recalculated by the declared engine; independent decimals compared with stored caches and chart data",
+      "locator": {},
+      "outcome": "passed"
+    },
+    {
+      "code": "lineage",
+      "detail": "Input authority, source locator and exact native cell checked independently",
+      "locator": {},
+      "outcome": "passed"
+    },
+    {
+      "code": "clean_copy",
+      "detail": "Reader Copy checked for evaluation marks and clean output",
+      "locator": {},
+      "outcome": "passed"
+    },
+    {
+      "code": "native_reader_parity",
+      "detail": "Sheet order/content, revision, numbers, confidentiality, embedded fonts and PDF active content checked; visual review remains explicit",
+      "locator": {},
+      "outcome": "passed"
+    },
+    {
+      "code": "controlled_inputs",
+      "detail": "Exact controlled inputs and explicit assumptions are pinned",
+      "outcome": "passed"
+    },
+    {
+      "code": "signed_manifest",
+      "detail": "Exact stored bytes and canonical signature independently verified",
+      "outcome": "passed"
+    }
+  ],
+  "created_at": "2026-09-06 11:02:19.064198+00"
+}

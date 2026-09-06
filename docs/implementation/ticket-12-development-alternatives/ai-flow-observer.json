@@ -1,0 +1,116 @@
+{
+  "observed_at": "2026-09-06T11:25:59.695084+00:00",
+  "revision_id": "24b8a4ec-7bba-465d-bb2f-0bf6b3728627",
+  "source": "Hosted jobs.job, ai.run, ai.run_validation, ai.proposal and ai.provider_request_evidence",
+  "runs": [
+    {
+      "job_id": "6f10aa95-3b12-46f1-a990-874932f968d1",
+      "state": "completed",
+      "problem": null,
+      "run_id": "0032e871-ab14-44c9-b58a-410b947ef2b6",
+      "task_definition": "deliverable_semantic_qc",
+      "status_code": "completed",
+      "outcome_class": "succeeded",
+      "model_code": "gpt-5.6-sol",
+      "latency_ms": 457129,
+      "completed_at": "2026-09-06 11:19:07.957708+00",
+      "parameter_identity": {
+        "model": "gpt-5.6-sol",
+        "provider": "hellox",
+        "reasoning_effort": "xhigh"
+      },
+      "protected_request_records": 2,
+      "proposal_count": 3,
+      "validations": [
+        {
+          "code": "passed",
+          "stage": "schema",
+          "outcome": "passed"
+        },
+        {
+          "code": "preissued_fragment_ids",
+          "stage": "locator",
+          "outcome": "passed"
+        },
+        {
+          "code": "proposal_only",
+          "stage": "permission",
+          "outcome": "passed"
+        }
+      ]
+    },
+    {
+      "job_id": "bf3c3c25-83b1-4312-a710-b58ad567426a",
+      "state": "completed",
+      "problem": null,
+      "run_id": "aecaf4e7-9482-4c5a-b252-305f02a160a6",
+      "task_definition": "native_reader_semantic_parity_review",
+      "status_code": "abstained",
+      "outcome_class": "business_abstention",
+      "model_code": "gpt-5.6-sol",
+      "latency_ms": 213852,
+      "completed_at": "2026-09-06 11:11:58.57699+00",
+      "parameter_identity": {
+        "model": "gpt-5.6-sol",
+        "provider": "hellox",
+        "reasoning_effort": "xhigh"
+      },
+      "protected_request_records": 2,
+      "proposal_count": 0,
+      "validations": [
+        {
+          "code": "passed",
+          "stage": "schema",
+          "outcome": "passed"
+        },
+        {
+          "code": "preissued_fragment_ids",
+          "stage": "locator",
+          "outcome": "passed"
+        },
+        {
+          "code": "proposal_only",
+          "stage": "permission",
+          "outcome": "passed"
+        }
+      ]
+    },
+    {
+      "job_id": "1c08a1e0-1889-425a-9a80-73b1bd577e46",
+      "state": "completed",
+      "problem": null,
+      "run_id": "d80ffc68-e4d0-4f7b-bfe7-69fb8a874dc3",
+      "task_definition": "workbook_commentary_draft",
+      "status_code": "completed",
+      "outcome_class": "succeeded",
+      "model_code": "gpt-5.6-sol",
+      "latency_ms": 218570,
+      "completed_at": "2026-09-06 10:56:59.523902+00",
+      "parameter_identity": {
+        "model": "gpt-5.6-sol",
+        "provider": "hellox",
+        "reasoning_effort": "xhigh"
+      },
+      "protected_request_records": 2,
+      "proposal_count": 1,
+      "validations": [
+        {
+          "code": "passed",
+          "stage": "schema",
+          "outcome": "passed"
+        },
+        {
+          "code": "preissued_fragment_ids",
+          "stage": "locator",
+          "outcome": "passed"
+        },
+        {
+          "code": "proposal_only",
+          "stage": "permission",
+          "outcome": "passed"
+        }
+      ]
+    }
+  ],
+  "parity_boundary": "Contract-valid business abstention: banker_notes region has no pre-issued reader_pages mapping. Independent manual exact-file parity review is separate."
+}

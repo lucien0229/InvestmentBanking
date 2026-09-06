@@ -1,0 +1,102 @@
+
+> hellox-investment-banking-v1@0.1.0 web:build
+> next build apps/web
+
+   ▲ Next.js 15.5.24
+
+   Creating an optimized production build ...
+<w> [webpack.cache.PackFileCacheStrategy] Skipped not serializable cache item 'Compilation/modules|/app/node_modules/next/dist/build/webpack/loaders/css-loader/src/index.js??ruleSet[1].rules[14].oneOf[10].use[2]!/app/node_modules/next/dist/build/webpack/loaders/postcss-loader/src/index.js??ruleSet[1].rules[14].oneOf[10].use[3]!/app/apps/web/app/globals.css': No serializer registered for Warning
+<w> while serializing webpack/lib/cache/PackFileCacheStrategy.PackContentItems -> webpack/lib/NormalModule -> Array { 3 items } -> webpack/lib/ModuleWarning -> Warning
+ ⚠ Compiled with warnings in 3.7s
+
+./app/globals.css.webpack[javascript/auto]!=!../../node_modules/next/dist/build/webpack/loaders/css-loader/src/index.js??ruleSet[1].rules[14].oneOf[10].use[2]!../../node_modules/next/dist/build/webpack/loaders/postcss-loader/src/index.js??ruleSet[1].rules[14].oneOf[10].use[3]!./app/globals.css
+Warning
+
+(357:98) autoprefixer: end value has mixed support, consider using flex-end instead
+
+Import trace for requested module:
+./app/globals.css.webpack[javascript/auto]!=!../../node_modules/next/dist/build/webpack/loaders/css-loader/src/index.js??ruleSet[1].rules[14].oneOf[10].use[2]!../../node_modules/next/dist/build/webpack/loaders/postcss-loader/src/index.js??ruleSet[1].rules[14].oneOf[10].use[3]!./app/globals.css
+./app/globals.css
+
+./app/globals.css.webpack[javascript/auto]!=!../../node_modules/next/dist/build/webpack/loaders/css-loader/src/index.js??ruleSet[1].rules[14].oneOf[10].use[2]!../../node_modules/next/dist/build/webpack/loaders/postcss-loader/src/index.js??ruleSet[1].rules[14].oneOf[10].use[3]!./app/globals.css
+Warning
+
+(359:65) autoprefixer: start value has mixed support, consider using flex-start instead
+
+Import trace for requested module:
+./app/globals.css.webpack[javascript/auto]!=!../../node_modules/next/dist/build/webpack/loaders/css-loader/src/index.js??ruleSet[1].rules[14].oneOf[10].use[2]!../../node_modules/next/dist/build/webpack/loaders/postcss-loader/src/index.js??ruleSet[1].rules[14].oneOf[10].use[3]!./app/globals.css
+./app/globals.css
+
+./app/globals.css.webpack[javascript/auto]!=!../../node_modules/next/dist/build/webpack/loaders/css-loader/src/index.js??ruleSet[1].rules[14].oneOf[10].use[2]!../../node_modules/next/dist/build/webpack/loaders/postcss-loader/src/index.js??ruleSet[1].rules[14].oneOf[10].use[3]!./app/globals.css
+Warning
+
+(364:58) autoprefixer: start value has mixed support, consider using flex-start instead
+
+Import trace for requested module:
+./app/globals.css.webpack[javascript/auto]!=!../../node_modules/next/dist/build/webpack/loaders/css-loader/src/index.js??ruleSet[1].rules[14].oneOf[10].use[2]!../../node_modules/next/dist/build/webpack/loaders/postcss-loader/src/index.js??ruleSet[1].rules[14].oneOf[10].use[3]!./app/globals.css
+./app/globals.css
+
+ ✓ Compiled successfully in 9.3s
+   Linting and checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/23) ...
+   Generating static pages (5/23)
+   Generating static pages (11/23)
+   Generating static pages (17/23)
+ ✓ Generating static pages (23/23)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                                Size  First Load JS
+┌ ○ /                                                     177 B         166 kB
+├ ○ /_not-found                                           989 B         104 kB
+├ ○ /account-access                                     2.27 kB         168 kB
+├ ƒ /account-access/[...state]                          2.27 kB         168 kB
+├ ○ /app                                                1.64 kB         168 kB
+├ ƒ /app/account/[[...slug]]                              173 B         210 kB
+├ ○ /app/account/usage-plan                             1.47 kB         104 kB
+├ ○ /app/account/usage-plan/cancellation                  124 B         103 kB
+├ ○ /app/deals                                          1.64 kB         168 kB
+├ ƒ /app/deals/[deal_id]/[[...slug]]                      174 B         210 kB
+├ ƒ /app/deals/[deal_id]/controls/preflight             2.21 kB         168 kB
+├ ƒ /app/deals/[deal_id]/execution-package/templates    2.38 kB         168 kB
+├ ƒ /app/deals/[deal_id]/guide                           1.9 kB         168 kB
+├ ƒ /app/deals/[deal_id]/setup                          2.17 kB         168 kB
+├ ƒ /app/deals/[deal_id]/sources                           5 kB         176 kB
+├ ƒ /app/deals/[deal_id]/sources/add                    6.26 kB         172 kB
+├ ○ /app/deals/new                                      4.01 kB         170 kB
+├ ƒ /app/deals/project-northstar/actions/jobs/[job_id]  2.11 kB         105 kB
+├ ○ /app/deals/project-northstar/overview               1.73 kB         104 kB
+├ ○ /auth/callback                                        980 B         163 kB
+├ ○ /capability-manifest                                  177 B         166 kB
+├ ○ /checkout/confirmation                              2.36 kB         168 kB
+├ ○ /checkout/order                                     1.86 kB         168 kB
+├ ○ /checkout/payment                                   1.89 kB         168 kB
+├ ○ /checkout/recovery                                    167 B         166 kB
+├ ○ /checkout/terms                                     2.25 kB         168 kB
+├ ƒ /deletion-status/[[...slug]]                          174 B         210 kB
+├ ƒ /how-it-works/[[...slug]]                             184 B         210 kB
+├ ○ /icon.svg                                               0 B            0 B
+├ ○ /pricing                                              177 B         166 kB
+├ ○ /project-northstar                                    119 B         108 kB
+├ ƒ /project-northstar/[proof-state]                      120 B         108 kB
+├ ○ /qualification                                      1.91 kB         168 kB
+├ ƒ /recipient-access/[[...slug]]                         180 B         210 kB
+├ ƒ /resources/[[...slug]]                                184 B         210 kB
+├ ○ /resources/recorded-walkthrough                       166 B         166 kB
+├ ƒ /security-data/[[...slug]]                            184 B         210 kB
+└ ƒ /triggers/[[...slug]]                                 184 B         210 kB
++ First Load JS shared by all                            103 kB
+  ├ chunks/18-51732c0e3a66e117.js                       46.4 kB
+  ├ chunks/87c73c54-24122e7b92478d00.js                 54.2 kB
+  └ other shared chunks (total)                         1.92 kB
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
+npm notice
+npm notice New major version of npm available! 10.9.8 -> 12.0.2
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.0.2
+npm notice To update run: npm install -g npm@12.0.2
+npm notice

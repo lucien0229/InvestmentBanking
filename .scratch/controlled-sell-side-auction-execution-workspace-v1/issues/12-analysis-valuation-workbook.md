@@ -4,16 +4,19 @@
 
 **Blocked by:** 04 — Run one Banker-visible Reference Deal operation as a durable Job; 11 — Produce replayable financial Analysis from controlled inputs.
 
-**Status:** needs-info
+**Status:** resolved
+
+Resolution scope: authorized synthetic `development_foss_v1` under ADR 0043;
+production Windows Excel and cloud KMS requirements are not satisfied by it.
 
 - [x] The workbook preserves native formulas, defined names, input/Assumption separation, periods, units, currency, signs, actual/forecast posture, scenarios, charts, calculation mode, and exact source-to-cell/range lineage.
 - [x] `workbook_commentary_draft`, `deliverable_semantic_qc`, and `native_reader_semantic_parity_review` run through governed proposal-only contracts and cannot create authoritative readiness.
 - [x] The exact delivered workbook recalculates in the declared engine; stored calculation state matches rendered and downstream values.
-- [ ] Native XLSX and Reader PDF share one exact Revision identity and pass material order, text, number, chart, table, citation, font, legend, confidentiality, and qualification comparisons.
-- [ ] The signed manifest binds exact native/reader bytes, hashes, source/model dependencies, template/renderer/engine versions, lineage, QC, purpose, audience, and limitations without claiming correctness or approval.
-- [ ] Declared supported Office paths complete open, inspect, edit, save, reopen, and reimport smoke tasks without corruption, flattening, formula loss, or protected Banker-content loss.
+- [x] Native XLSX and Reader PDF share one exact Revision identity and pass material order, text, number, chart, table, citation, font, legend, confidentiality, and qualification comparisons.
+- [x] The signed manifest binds exact native/reader bytes, hashes, source/model dependencies, template/renderer/engine versions, lineage, QC, purpose, audience, and limitations without claiming correctness or approval.
+- [x] Declared supported Office paths complete open, inspect, edit, save, reopen, and reimport smoke tasks without corruption, flattening, formula loss, or protected Banker-content loss.
 - [x] Material formula failure, corrupt/flattened artifact, wrong locator, or native/reader mismatch creates a Critical Finding and blocks circulation; a passing check clears only its exact blocker.
-- [ ] Black-box artifact observers and independent file checks satisfy AC-051 through AC-059.
+- [x] Black-box artifact observers and independent file checks satisfy AC-051 through AC-059.
 
 ## Comments
 
@@ -68,3 +71,22 @@ requested alternatives. ADR 0043 declares an exact synthetic Revision-only
 LibreOffice / isolated development Ed25519 / actual Calc round-trip profile.
 It does not claim Windows Excel or cloud KMS evidence. All other AC gates remain.
 Final status changes only after hosted exact-artifact and UI validation.
+
+### 2026-09-06 development resolution
+
+Resolved on `develop` for ADR 0043's exact synthetic development profile after
+real server, native/Reader, independent signer, Calc round-trip and desktop/
+mobile UI acceptance. Revision 05 has all 12 readiness requirements passed,
+seven independent QC checks passed, and external use remains unauthorized.
+Final runtime: `20260906-ticket12-final-beab2e8`. Full fresh server suite:
+86 passed, zero failed, three environment-gated skips; final Office tests 3/3.
+Real commentary and Semantic QC succeeded. AI Parity returned a contract-valid
+abstention for the unmapped Banker Notes region; delegated exact-file visual
+review independently passed. Three minor Semantic QC proposals were reviewed
+and retained as non-blocking synthetic-metadata/comment-wording limitations.
+Temporary acceptance session was revoked; replay returned 401.
+
+See [final alternative acceptance and exact artifacts](../../../docs/implementation/ticket-12-development-alternatives-2026-09-06.md).
+No additional license, Google identity or Windows machine is required for this
+profile. No later ticket was implemented. Original failures and production
+requirements remain explicit and are not relabeled as successful evidence.

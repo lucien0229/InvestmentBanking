@@ -1,0 +1,27 @@
+{
+  "revision_id": "24b8a4ec-7bba-465d-bb2f-0bf6b3728627",
+  "profile": "development_foss_v1",
+  "observed_at": "2026-09-06T11:09:04.585991+00:00",
+  "surface": "Real deployed frontend/API through SSH loopback proxy with synthetic acceptance session; not physical Passkey proof",
+  "desktop_width": 1440,
+  "mobile_width": 390,
+  "document_scroll_width_desktop": 1440,
+  "document_scroll_width_mobile": 390,
+  "observations": [
+    "Native/Reader actual images load, remain stable across background polling, and change when worksheet selection changes.",
+    "Inputs, Assumptions, Scenarios, Lineage and Banker Notes protected previews observed loaded with exact image hashes; all seven sheet pairs independently inspected as files.",
+    "390px tabs wrap; read-only viewport notice hides generation/Review commands; context and navigation have disclosure buttons.",
+    "Source reverse trace returns both Native and Reader Inputs!B8 to Valuation!B8:G8 and the exact CSV row 4.",
+    "All twelve scoped Review/QC requirements display Passed with development profile and external use Blocked.",
+    "Manifest displays exact digest and development signing key, and explains integrity does not prove correctness or approval.",
+    "Historical failed AI runs remain visible; they do not become successful after a later run.",
+    "Final beab2e8 Manifest explicitly displays Signing key version and development/artifact/20260906/versions/1; execution jobs show Completed."
+  ],
+  "visual_basis": "Confirmed prototypes/deal-control-high-fidelity; existing shell, tokens, spacing, type, green active-tab underline and responsive control boundaries retained.",
+  "limitations": [
+    "No Windows Excel claim",
+    "No cloud KMS claim",
+    "Only synthetic internal valuation fixture"
+  ],
+  "final_manifest_check_at": "2026-09-06T11:25:59.693788+00:00"
+}
