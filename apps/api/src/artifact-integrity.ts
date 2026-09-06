@@ -46,6 +46,7 @@ export type ManifestInput = {
     container_digest?: string;
     renderer_version?: string;
     font_manifest?: unknown;
+    acceptance_profile?: string;
   };
   limitations: string[];
   members: Array<{ id: string; role: string; path: string; bytes: Buffer }>;
@@ -135,6 +136,7 @@ function crc32c(bytes: Buffer): string {
   return String((crc ^ 0xffffffff) >>> 0);
 }
 export type ArtifactSignature = {
+  custody?: "google_cloud_kms" | "development_host_service";
   key_version: string;
   algorithm: "EC_SIGN_ED25519";
   signature: string;

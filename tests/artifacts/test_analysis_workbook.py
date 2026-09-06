@@ -1,5 +1,6 @@
 """Independent observers of the renderer's public file interface."""
 import json
+import os
 import copy
 from pathlib import Path
 import subprocess
@@ -13,12 +14,13 @@ import zipfile
 import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[2]
+RENDERER = 'libreoffice_workbook.py' if os.environ.get('OFFICE_ENGINE')=='libreoffice' else 'analysis_workbook.py'
 
 
 class AnalysisWorkbookFiles(unittest.TestCase):
     def test_delivered_native_preserves_formula_and_recalculated_value(self):
         with tempfile.TemporaryDirectory() as directory:
-            result = subprocess.run([sys.executable, str(ROOT / 'services/office/analysis_workbook.py'),
+            result = subprocess.run([sys.executable, str(ROOT / 'services/office' / RENDERER),
                                      str(ROOT / 'tests/fixtures/analysis-workbook.json'), directory],
                                     capture_output=True, text=True, timeout=90)
             self.assertEqual(result.returncode, 0, result.stderr)
@@ -51,7 +53,7 @@ class AnalysisWorkbookFiles(unittest.TestCase):
             page.insert_text((40,40),'Evaluation time: 2026-09-05. Aspose.Cells Python via .NET 26.8.0')
             document.save(ordinary);document.close()
             self.assertEqual(inspect_file(native,ordinary)['clean_copy'],'passed')
-            self.assertEqual(baseline['clean_copy'],'failed')
+            self.assertEqual(baseline['clean_copy'],'passed' if os.environ.get('OFFICE_ENGINE')=='libreoffice' else 'failed')
             for mutation,expected in [('flattened','native_structure'),('wrong_cache','recalculation'),('wrong_locator','lineage'),('wrong_chart_series','native_structure')]:
                 with self.subTest(mutation=mutation):
                     changed=Path(directory)/f'{mutation}.xlsx'
@@ -121,7 +123,7 @@ class AnalysisWorkbookFiles(unittest.TestCase):
                 next(m for m in run['measures'] if m['key']=='debt')['value']=debt
                 run['expected_equity_value']=str(Decimal('104.7')-Decimal(debt));data['calculations'].append(run)
             fixture=root/'input.json';fixture.write_text(json.dumps(data))
-            built=subprocess.run([sys.executable,str(ROOT/'services/office/analysis_workbook.py'),str(fixture),directory],capture_output=True,text=True,timeout=90)
+            built=subprocess.run([sys.executable,str(ROOT/'services/office'/RENDERER),str(fixture),directory],capture_output=True,text=True,timeout=90)
             self.assertEqual(built.returncode,0,built.stderr)
             inspected=subprocess.run([sys.executable,str(ROOT/'services/office/inspect_workbook.py'),str(fixture),str(root/'analysis-valuation.xlsx'),str(root/'analysis-valuation.pdf'),str(root/'inspection.json')],capture_output=True,text=True,timeout=90)
             self.assertEqual(inspected.returncode,0,inspected.stderr)

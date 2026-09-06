@@ -1,0 +1,30 @@
+[Unit]
+Description=Investment Banking development Artifact signer
+After=local-fs.target
+
+[Service]
+Type=simple
+User=ib-artifact-sign
+Group=ib-artifact-sign
+Environment=APP_ENV=development
+EnvironmentFile=/opt/cells/investmentbanking/dev/shared/artifact-signer.env
+ExecStart=/bin/node /opt/cells/investmentbanking/dev/artifact-signer/server.mjs
+Restart=on-failure
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_UNIX
+IPAddressDeny=any
+CapabilityBoundingSet=
+ReadWritePaths=/opt/cells/investmentbanking/dev/artifact-signer/socket
+UMask=0077
+MemoryMax=128M
+TasksMax=32
+
+[Install]
+WantedBy=multi-user.target

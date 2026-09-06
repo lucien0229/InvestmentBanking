@@ -1,7 +1,11 @@
 import json
 from pathlib import Path
 import sys
-from analysis_workbook import build
+import os
+if os.environ.get("OFFICE_ENGINE") == "libreoffice":
+    from libreoffice_workbook import build
+else:
+    from analysis_workbook import build
 from inspect_workbook import inspect
 
 input_path, output = Path(sys.argv[1]), Path(sys.argv[2])

@@ -47,6 +47,8 @@ type Requirement = {
   recovery: string;
 };
 type Readiness = {
+  acceptance_profile?: string;
+  limitations?: string[];
   posture: string;
   requirements: Requirement[];
   blockers: Requirement[];
@@ -91,7 +93,7 @@ type Lineage = {
   };
 };
 type Report = {
-  native_pages: Array<{ sheet: string; page: number; image: string }>;
+  native_pages: Array<{ sheet: string; page: number; image: string; render_basis?: string; range?: string }>;
   pages: Array<{ page: number; image: string; text: string }>;
   cells: Array<{
     sheet: string;
@@ -560,10 +562,11 @@ export function WorkbookSurface({
   }
   const nativePages =
     report?.native_pages.filter((p) => p.sheet === sheet) ?? [];
-  const nativePage = nativePages[page - 1];
-  const readerPage = report?.pages.filter((p) =>
+  const nativePage = nativePages[page - 1] ?? (nativePages[0]?.render_basis === "exact_xlsx_cell_selection" ? nativePages[0] : undefined);
+  const readerPages = report?.pages.filter((p) =>
     p.text.includes(`DEAL CONTROL / ${sheet.toUpperCase()}`),
-  )[page - 1];
+  ) ?? [];
+  const readerPage = readerPages[page - 1];
   const artifacts = revision?.artifacts ?? [];
   return (
     <div className="dc-workbook-screen">
@@ -622,6 +625,11 @@ export function WorkbookSurface({
           )
         }
       />
+      {readiness?.acceptance_profile === "development_foss_v1" ? (
+        <StatePanel tone="warning" label="Development acceptance" title="LibreOffice development acceptance profile">
+          <p>This synthetic Revision uses the declared LibreOffice build and a separate development signing service. Windows Excel compatibility and cloud KMS custody are unverified. External use remains unauthorized.</p>
+        </StatePanel>
+      ) : null}
       {error ? <ErrorPanel message={error} /> : null}
       {notice ? (
         <StatePanel tone="success" label="Recorded" title={notice} />
@@ -1148,7 +1156,7 @@ export function WorkbookSurface({
                           onChange={(e) => setPage(Number(e.target.value))}
                         >
                           {Array.from(
-                            { length: Math.max(nativePages.length, 1) },
+                            { length: Math.max(nativePages.length, readerPages.length, 1) },
                             (_, i) => (
                               <option key={i} value={i + 1}>
                                 {i + 1}
@@ -1179,7 +1187,7 @@ export function WorkbookSurface({
                         artifact={artifacts.find(
                           (a) => a.path_label === nativePage?.image,
                         )}
-                        caption={`Native Artifact · ${sheet} · page ${page}`}
+                        caption={nativePage?.render_basis === "exact_xlsx_cell_selection" ? `Native Artifact · ${sheet} · worksheet ${nativePage.range}` : `Native Artifact · ${sheet} · page ${page}`}
                       />
                       <Preview
                         dealId={dealId}

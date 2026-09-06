@@ -58,3 +58,13 @@ loop, alternative intake, responsive/keyboard UI and durable logout are recorded
 in [final predecessor acceptance](../../../docs/implementation/tickets-01-11-repair-acceptance-2026-09-05.md).
 This closes the predecessor audit findings, not the three deferred exact Office/
 signer/Windows acceptance requirements above. Ticket 12 remains `needs-info`.
+
+
+### 2026-09-06 authorized alternative development acceptance
+
+Reclaimed the remaining validation on `develop` from `2311e31` after the user
+confirmed they have none of the three external configurations and explicitly
+requested alternatives. ADR 0043 declares an exact synthetic Revision-only
+LibreOffice / isolated development Ed25519 / actual Calc round-trip profile.
+It does not claim Windows Excel or cloud KMS evidence. All other AC gates remain.
+Final status changes only after hosted exact-artifact and UI validation.

@@ -199,6 +199,19 @@ test("Workbook HTTP commands are authenticated, scoped, idempotent and version g
     },
   });
   assert.equal(accepted.statusCode, 202, accepted.body);
+  const profileReadinessUrl = `${url}/${id}/revisions/${accepted.json().data.revision_id}/readiness?purpose=${encodeURIComponent(body.purpose)}&audience=${encodeURIComponent(body.audience)}`;
+  const productionReadiness = await api.inject({method:"GET",url:profileReadinessUrl,headers:{cookie}});
+  assert.equal(productionReadiness.statusCode,200,productionReadiness.body);
+  assert.equal(productionReadiness.json().data.acceptance_profile,"production_v1");
+  await assert.rejects(database.pool.query("INSERT INTO deliverable.development_acceptance_scope(account_id,deal_id,revision_id,profile,reason) VALUES($1,$2,$3,'development_foss_v1','Synthetic authorized acceptance')",[actor.account_id,deal,accepted.json().data.revision_id]),/permission denied/);
+  await database.ownerPool.query("INSERT INTO deliverable.development_acceptance_scope(account_id,deal_id,revision_id,profile,reason) VALUES($1,$2,$3,'development_foss_v1','Synthetic authorized acceptance')",[actor.account_id,deal,accepted.json().data.revision_id]);
+  const developmentReadiness = await api.inject({method:"GET",url:profileReadinessUrl,headers:{cookie}});
+  assert.equal(developmentReadiness.json().data.acceptance_profile,"development_foss_v1");
+  assert.equal(developmentReadiness.json().data.external_use_authorized,false);
+  assert.notEqual(developmentReadiness.json().data.posture,"circulation_candidate");
+  assert.equal(developmentReadiness.json().data.requirements.find((r:{code:string})=>r.code==="office_roundtrip").outcome,"missing");
+  await assert.rejects(database.ownerPool.query("DELETE FROM deliverable.development_acceptance_scope WHERE revision_id=$1",[accepted.json().data.revision_id]),/immutable/);
+
   const exact = await api.inject({
     method: "GET",
     url: `${url}/${id}/revisions/${accepted.json().data.revision_id}`,

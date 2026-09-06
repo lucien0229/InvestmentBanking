@@ -22,8 +22,19 @@ import {
   type AiStartCommand,
 } from "./ai-source-proposals.js";
 
+import { DevelopmentArtifactSigner } from "./development-artifact-signer.js";
+
+function configuredArtifactSigner(): ArtifactSigner {
+  if (process.env.ARTIFACT_ACCEPTANCE_PROFILE === "development_foss_v1") {
+    if (process.env.APP_ENV !== "development") throw new Error("artifact_signer_development_only");
+    return new DevelopmentArtifactSigner();
+  }
+  return new GoogleKmsArtifactSigner();
+}
+
 type WorkbookInput = {
   revision_id: string;
+  provenance?: string;
   purpose: string;
   audience: string;
   calculations: unknown[];
@@ -181,7 +192,7 @@ export class WorkbookRuntime {
   private active: Promise<void> | null = null;
   constructor(
     private readonly renderer: OfficeRenderer = new SocketOfficeRenderer(),
-    private readonly signer: ArtifactSigner = new GoogleKmsArtifactSigner(),
+    private readonly signer: ArtifactSigner = configuredArtifactSigner(),
   ) {
     const ca = process.env.DATABASE_SSL_CA_FILE;
     const ssl = ca ? { ca: fs.readFileSync(ca, "utf8") } : undefined;
@@ -390,6 +401,16 @@ export class WorkbookRuntime {
             rendered.files.length
         )
           throw new Error("artifact_worker_output_invalid");
+        const profile = process.env.ARTIFACT_ACCEPTANCE_PROFILE ?? "production_v1";
+        if (profile === "development_foss_v1") {
+          if (process.env.APP_ENV !== "development" || scoped.input.provenance !== "synthetic"
+            || rendered.report.engine !== "libreoffice.calc"
+            || rendered.report.acceptance_profile !== profile)
+            throw new Error("artifact_development_scope_invalid");
+        } else if (profile !== "production_v1" || rendered.report.engine !== "aspose.cells.python.net"
+          || (rendered.report.acceptance_profile ?? "production_v1") !== profile) {
+          throw new Error("artifact_renderer_profile_mismatch");
+        }
         report = rendered.report;
         checks = rendered.checks;
         if (
@@ -432,7 +453,8 @@ export class WorkbookRuntime {
           audience: scoped.input.audience,
           dependencies: scoped.input.calculations,
           engine: {
-            name: "aspose.cells.python.net",
+            name: String(report.engine),
+            acceptance_profile: String(report.acceptance_profile ?? "production_v1"),
             version: String(report.engine_version),
             template: String(report.template_version),
             container_digest: String(report.container_digest),
@@ -479,7 +501,7 @@ export class WorkbookRuntime {
             code: "signed_manifest",
             outcome: "passed",
             detail:
-              "KMS Ed25519 signature verified against exact canonical bytes and members",
+              "Ed25519 signature verified against exact canonical bytes and members",
           });
         } catch (error) {
           const code =

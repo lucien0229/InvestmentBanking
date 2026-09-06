@@ -32,6 +32,8 @@ for role_file in "$DISPATCHER_ENV_FILE" "$REFERENCE_WORKER_ENV_FILE" "$SOURCE_WO
 export PROTECTED_VOLUME_PATH="${protected_volume}"
 export DATABASE_SSL_CA_HOST_PATH="${ca_file}"
 export OFFICE_SOCKET_DIRECTORY="${CELL_ROOT}/office/socket"
+export ARTIFACT_SIGNER_SOCKET_DIRECTORY="${CELL_ROOT}/artifact-signer/socket"
+export ARTIFACT_SIGNER_GID="$(id -g ib-artifact-sign)"
 export ARTIFACT_IDENTITY_DIRECTORY="${CELL_ROOT}/shared/artifact-identity"
 mkdir -p "${ARTIFACT_IDENTITY_DIRECTORY}"
 test -S "${PUBLIC_FETCH_SOCKET_DIRECTORY}/fetch.sock"

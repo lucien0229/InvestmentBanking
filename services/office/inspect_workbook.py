@@ -7,7 +7,7 @@ from pathlib import Path
 import sys
 import zipfile
 import openpyxl
-import aspose.cells as cells
+import os
 import pymupdf
 
 SHEETS = ['Overview', 'Inputs', 'Assumptions', 'Valuation', 'Scenarios', 'Lineage', 'Banker Notes']
@@ -23,7 +23,16 @@ def valuation_rows_match(pages, runs):
         heading=next((w for w in words if w[4]=='Scenario'),None)
         if not heading:return False
         columns=sorted([d['rect'] for d in page.get_drawings() if d.get('fill') and d['rect'].y0<=heading[1]<d['rect'].y1 and d['rect'].width>30],key=lambda r:r.x0)
-        if len(columns)!=8:return False
+        if len(columns)!=8:
+            # Calc coalesces equal header fills. Recover boundaries from the eight
+            # actual column headings, retaining position-sensitive number checks.
+            labels=['Scenario','Enterprise','Cash','Debt','Equity','Expected','Tie-out','Units']
+            headings=[next((w for w in words if w[4]==label and abs(w[1]-heading[1])<3),None) for label in labels]
+            if any(w is None for w in headings):return False
+            bounds=[w[0]-1 for w in headings]
+            if bounds!=sorted(set(bounds)):return False
+            bottom=max(w[3] for w in headings)
+            columns=[pymupdf.Rect(left,heading[1],bounds[i+1] if i<7 else page.rect.width,bottom) for i,left in enumerate(bounds)]
         anchors=sorted([w for w in words if columns[1].x0<=w[0]<columns[1].x1 and w[1]>columns[1].y1 and number(w[4]) is not None],key=lambda w:w[1])
         for index,anchor in enumerate(anchors):
             bottom=anchors[index+1][1]-2 if index+1<len(anchors) else page.rect.height-40
@@ -39,7 +48,7 @@ def valuation_rows_match(pages, runs):
         measures={m['key']:m for m in run['measures']}
         expected=[Decimal(measures[key]['value']) for key,_ in KEYS]+[Decimal(run['expected_equity_value'])]*2+[Decimal(0)]
         if values!=expected or ' '.join(run['scenario'].split()) not in texts[0]:return False
-        if not all(measures['cash'][key] in texts[1] for key in ['unit','period']):return False
+        if not all(re.sub(r'\s+','',measures['cash'][key]) in re.sub(r'\s+','',texts[1]) for key in ['unit','period']):return False
     return True
 
 def chart_matches(pages,runs):
@@ -99,7 +108,11 @@ def inspect(data, native, reader):
         structure = all(name in workbook.sheetnames for name in SHEETS) and props.get('revision_id') == data['revision_id']
         structure &= len(workbook['Scenarios']._charts) == 1 and workbook.calculation.calcMode in (None, 'auto')
         series=workbook['Scenarios']._charts[0].series
-        reference=lambda value: value.replace('$','').replace("'",'')
+        def reference(value):
+            normalized=value.replace('$','').replace("'",'')
+            # A one-cell series has equivalent A8 and A8:A8 OOXML forms.
+            if ':' not in normalized:normalized+=':'+normalized.rsplit('!',1)[-1]
+            return normalized
         structure &= len(series)==1 and reference(series[0].val.numRef.f)==f'Scenarios!B8:B{7+len(data["calculations"])}'
         category=series[0].cat.strRef or series[0].cat.numRef
         structure &= reference(category.f)==f'Scenarios!A8:A{7+len(data["calculations"])}'
@@ -131,15 +144,21 @@ def inspect(data, native, reader):
                 lineage_pass &= workbook[sheet].cell(input_cell.row, 7).value == locator
                 lineage_pass &= Decimal(str(input_cell.value)) == Decimal(measure['value'])
                 structure &= sheet == ('Assumptions' if measure['assumption_id'] else 'Inputs')
-        license_path=Path('/run/secrets/aspose-license')
-        if license_path.is_file():
-            cells.License().set_license(str(license_path))
-        recalculated=cells.Workbook(str(native))
-        recalculated.calculate_formula()
-        for index,run in enumerate(data['calculations'],8):
-            cache_pass &= Decimal(str(recalculated.worksheets.get('Valuation').cells.get(f'E{index}').double_value)) == Decimal(str(cached['Valuation'][f'E{index}'].value))
+        if os.environ.get('OFFICE_ENGINE') == 'libreoffice':
+            from calc_engine import recalculate_values
+            values = recalculate_values(native, range(8, 8+len(data['calculations'])))
+        else:
+            import aspose.cells as cells
+            license_path=Path('/run/secrets/aspose-license')
+            if license_path.is_file():
+                cells.License().set_license(str(license_path))
+            recalculated=cells.Workbook(str(native))
+            recalculated.calculate_formula()
+            values=[recalculated.worksheets.get('Valuation').cells.get(f'E{row}').double_value for row in range(8,8+len(data['calculations']))]
+        for row,value in enumerate(values,8):
+            cache_pass &= Decimal(str(value)) == Decimal(str(cached['Valuation'][f'E{row}'].value))
         record('native_structure', bool(structure), 'Native formula, defined-name, chart, revision and calculation-mode checks')
-        record('recalculation', bool(cache_pass), 'Exact stored Native reopened and recalculated by Aspose; independent decimals compared with stored caches and chart data')
+        record('recalculation', bool(cache_pass), 'Exact stored Native reopened and recalculated by the declared engine; independent decimals compared with stored caches and chart data')
         record('lineage', bool(lineage_pass), 'Input authority, source locator and exact native cell checked independently')
     except Exception as error:
         record('native_structure', False, f'Native Artifact inspection failed: {type(error).__name__}')
