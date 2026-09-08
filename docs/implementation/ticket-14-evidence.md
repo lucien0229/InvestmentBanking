@@ -1,6 +1,6 @@
 # Ticket 14 development evidence
 
-Status: resolved for the authorized development boundary on `develop`.
+Status: partial implementation evidence for the authorized development boundary on `develop`.
 
 ## Implementation
 
@@ -21,5 +21,7 @@ Status: resolved for the authorized development boundary on `develop`.
 - HTTPS checks: protected Impact API route returns the expected `401 application/problem+json` without a session; Impact route UI returns `200 text/html` and the responsive application shell loads in the real browser.
 
 ## Evidence limits
+
+The ticket is not marked resolved. Code review found unresolved acceptance gaps: no governed `semantic_change_impact_proposal` task/schema, incomplete cells/ranges and Reader Copy coverage, no bound External-Use Decision invalidation, mutable completed assessment status, and no authenticated fixture proof for AC-003/004/005/039/042/062. The UI now records one exact disposition at a time, but Revision creation still requires the existing deliverable command surface.
 
 The local full HTTP suite could not run because the local Docker PostgreSQL image could not be pulled (`ECONNREFUSED`/Docker registry access). Remote authenticated Banker interaction requires the configured Supabase Magic Link/Passkey session and was not fabricated. Existing remote Cell Office/signing/worker services remain on the authorized development profile; production, external-use, and Ticket 15 native reimport are outside this ticket.
