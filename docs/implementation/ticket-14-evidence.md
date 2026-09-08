@@ -1,6 +1,6 @@
 # Ticket 14 development evidence
 
-Status: resolved for the authorized development implementation boundary on `develop`; local implementation and fresh-migration verification are complete. The public development boundary remains available for release verification.
+Status: resolved for the authorized development implementation boundary on `develop`; local implementation, fresh-migration verification, and the public development release are complete.
 
 ## Implementation
 
@@ -13,14 +13,14 @@ Status: resolved for the authorized development implementation boundary on `deve
 ## Verification
 
 - `npm run contracts:check` passed.
-- `npm run domain:naming` passed.
-- `npm run db:validate` passed: 95 ordered migrations.
+- `npm run db:validate` passed: 98 ordered migrations.
 - `npx tsc --noEmit` passed.
 - `npm run web:build` passed with the canonical dynamic Impact route.
-- Fresh PostgreSQL 18 clusters were created from zero and migrated through `20260908155142`; `npm run db:seed` passed.
-- On the fresh migrated database, 20 HTTP/contract tests passed, including authenticated Evidence/Fact/Decision, Claim correction, Workbook Revision scope, public proof, AI semantic closure validation and AI RLS boundaries.
-- Public development probes returned `200` for the web shell and Impact route, and unauthenticated `GET /api/v1/session` returned `401 application/problem+json` at `https://dev-banking.aptoren.com`.
+- Fresh PostgreSQL 18 cluster `55450` was created from zero, migrated and seeded through `20260908170012` plus the native artifact migration; the focused authenticated material-impact HTTP test passed (`1/1`).
+- `npm run contracts:check`, `npx tsc --noEmit` and `npm run web:build` passed. `npm run domain:naming` is currently blocked by unrelated uncommitted Ticket 15 UI text in `apps/web/components/deal-control/surfaces.tsx`; the Ticket 14 migration paths use delivery-neutral names.
+- Release `20260909-ticket14-v4` is running on the development Cell. Remote migration verification reports `20260908170011` and `20260908170012`, the `calculation_version` trigger constraint, and the completed-assessment immutable error branch.
+- Public development probes returned `200` for the web shell and Impact route, and unauthenticated `GET /api/v1/session` returned `401 application/problem+json` at `https://dev-banking.aptoren.com`. Playwright also verified the Impact heading, prototype receipt, five independent groups and dependency closure rows.
 
 ## Boundary
 
-This ticket implements prospective authorization invalidation through `analysis.prospective_authorization_block` and `authorization_scope_matches`; a separate persisted External-Use Decision workflow remains outside Ticket 14 and is not fabricated here. Authenticated browser acceptance could not be repeated while the local Mac was locked; no authenticated session evidence is claimed from that unavailable UI run. The development host already has the Ticket 14 release shell and public boundary checks; a final release switch for this commit remains a deployment operation.
+This ticket implements prospective authorization invalidation through `analysis.prospective_authorization_block` and `authorization_scope_matches`; a separate persisted External-Use Decision workflow remains outside Ticket 14 and is not fabricated here. Authenticated browser acceptance could not be repeated while the local Mac was locked; no authenticated session evidence is claimed from that unavailable UI run. The public development release and anonymous UI acceptance are complete; authenticated browser acceptance remains the only outstanding manual verification.
