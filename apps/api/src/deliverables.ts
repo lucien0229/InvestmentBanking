@@ -39,6 +39,26 @@ export const auctionControlBody = z
     confidentiality: z.enum(["public", "internal", "confidential", "restricted"]),
   })
   .strict();
+export const teaserBody = z.object({
+  title: text,
+  purpose: text,
+  audience: text,
+  confidentiality: z.enum(["public", "internal", "confidential", "restricted"]),
+  stage_required: z.boolean().default(true),
+}).strict();
+export const teaserDraft = z.object({
+  task_definition: z.literal("teaser_content_draft"),
+  status: z.literal("proposal_only"),
+  approved_disclosure_set: z.array(z.string().min(1).max(240)).min(1).max(100),
+  output_ceiling: z.object({ max_slides: z.number().int().min(1).max(12) }).strict(),
+  sections: z.array(z.object({
+    section_key: z.string().min(1).max(80), title: text, body: z.string().min(1).max(2000),
+    claim_key: z.string().min(1).max(120).optional(), citations: z.array(z.string().min(1).max(240)).min(1).max(30),
+    source_refs: z.array(z.string().uuid()).max(30).default([]),
+    table_rows: z.array(z.array(z.string().max(240)).min(1).max(8)).max(20).optional(),
+    chart: z.object({ categories: z.array(z.string().min(1).max(80)).min(1).max(12), values: z.array(z.number()).min(1).max(12), series_name: z.string().min(1).max(80).optional() }).strict().optional(),
+  }).strict()).min(1).max(12),
+}).strict();
 export const revisionBody = z
   .object({
     basis: z
@@ -144,6 +164,8 @@ function failure(error: unknown, request: FastifyRequest, reply: FastifyReply) {
       "impact_assessment_not_found",
       "impact_disposition_required",
       "change_reason_required",
+      "teaser_content_contract_invalid",
+      "teaser_citation_required",
     ].includes(code)
   )
     return problem(reply, 409, code, request.url);
@@ -310,6 +332,26 @@ export function registerDeliverableRoutes(
       },
       { command: true, status: 201 },
     ),
+  );
+  api.get(
+    `${root}/teasers`,
+    scoped((client) => query(client, "SELECT coalesce(jsonb_agg(to_jsonb(d)||jsonb_build_object('current_revision_ordinal',(SELECT ordinal FROM deliverable.deliverable_revision WHERE id=d.current_revision_id),'reader_available',EXISTS(SELECT 1 FROM deliverable.artifact WHERE revision_id=d.current_revision_id AND role='reader')) ORDER BY d.created_at DESC),'[]') AS data FROM deliverable.deliverable d WHERE d.deliverable_type='teaser_presentation'")),
+  );
+  api.post(
+    `${root}/teasers`,
+    scoped((client, request) => { const body = teaserBody.parse(request.body); return query(client, "SELECT deliverable.create_teaser_deliverable($1,$2,$3) AS data", [...commandArgs(request, body), body]); }, { command: true, status: 201 }),
+  );
+  api.post(
+    `${root}/teasers/:deliverable_id/revisions`,
+    async (request, reply) => {
+      const match = String(request.headers["if-match"] ?? "").match(/^"([1-9]\d*)"$/);
+      if (!match) return problem(reply, 428, "if_match_required", request.url);
+      return scoped((client, req) => { const body = z.object({ draft: teaserDraft, limitations: z.array(z.string().min(1).max(500)).max(20).default([]) }).strict().parse(req.body); return query(client, "SELECT deliverable.create_teaser_revision($1,$2,$3,$4,$5,$6,$7) AS data", [uuid.parse((req.params as Record<string,string>).deliverable_id), Number(match[1]), ...commandArgs(req, body), JSON.stringify(body.draft), JSON.stringify(body.limitations), process.env.RELEASE_ID ?? "local-development"]); }, { command: true, status: 202 })(request, reply);
+    },
+  );
+  api.get(
+    `${root}/teasers/:deliverable_id/revisions/:revision_id/lineage`,
+    scoped((client, request) => { const p=request.params as Record<string,string>; return query(client, "SELECT coalesce(jsonb_agg(to_jsonb(l) ORDER BY l.section_key,l.claim_key),'[]') AS data FROM deliverable.teaser_lineage l JOIN deliverable.deliverable_revision r ON r.id=l.revision_id AND r.deliverable_id=$1 WHERE l.revision_id=$2", [uuid.parse(p.deliverable_id),uuid.parse(p.revision_id)]); }),
   );
   api.get(
     `${root}/auction-control-workbooks`,

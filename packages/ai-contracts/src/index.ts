@@ -17,6 +17,7 @@ export const taskDefinitions = [
   "sell_side_analysis_draft",
   "valuation_commentary_draft",
   "workbook_commentary_draft",
+  "teaser_content_draft",
   "deliverable_semantic_qc",
   "native_reader_semantic_parity_review",
   "semantic_change_impact_proposal",
@@ -323,6 +324,12 @@ export const nativeReaderParityPayload = z.object({revision_id:z.string().uuid()
  native_locator:z.object({sheet:z.string().min(1).max(31),range:z.string().regex(/^[A-Z]{1,3}[1-9]\d{0,6}(?::[A-Z]{1,3}[1-9]\d{0,6})?$/)}).strict(),reader_locator:z.object({page:z.number().int().min(1).max(1000),region_label:z.string().min(1).max(160)}).strict(),
  category:semanticCategory,severity_proposal:z.enum(["critical","major","minor"]),observed_condition:boundedText,expected_contract:boundedText,remediation_proposal:boundedText}).strict();
 
+export const teaserContentPayload = z.object({
+ revision_id:z.string().uuid(), section_key:regionKey, title:z.string().min(1).max(240), body:boundedText,
+ citations:z.array(z.string().min(1).max(240)).min(1).max(30), qualification:z.string().min(1).max(1000),
+ approved_disclosure_set:z.array(z.string().min(1).max(240)).min(1).max(100),
+}).strict();
+
 const taskPayloads: Record<TaskDefinition, z.ZodType<Record<string, unknown>>> = {
   source_claim_extraction: sourceClaimPayload as z.ZodType<Record<string, unknown>>,
   claim_evidence_linking: evidenceLinkPayload as z.ZodType<Record<string, unknown>>,
@@ -333,6 +340,7 @@ const taskPayloads: Record<TaskDefinition, z.ZodType<Record<string, unknown>>> =
   sell_side_analysis_draft: sellSideDraftPayload as z.ZodType<Record<string, unknown>>,
   valuation_commentary_draft: valuationCommentaryPayload as z.ZodType<Record<string, unknown>>,
   workbook_commentary_draft: workbookCommentaryPayload,
+  teaser_content_draft: teaserContentPayload as z.ZodType<Record<string, unknown>>,
   deliverable_semantic_qc: deliverableQcPayload,
   native_reader_semantic_parity_review: nativeReaderParityPayload,
   semantic_change_impact_proposal: semanticChangeImpactPayload,

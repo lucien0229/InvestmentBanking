@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { PageHeader, StatePanel, StatusBadge } from "./ui";
+const dealBase = (dealId: string) => `/app/deals/${dealId}`;
 
 type Deliverable = {
   id: string;
@@ -12,6 +13,7 @@ type Deliverable = {
   row_version: number;
   current_revision_ordinal: number | null;
   reader_available: boolean;
+  stage_applicability?: string;
 };
 type Artifact = {
   id: string;
@@ -326,6 +328,13 @@ function Preview({
       )}
     </figure>
   );
+}
+
+export function TeaserSurface({ dealId }: { dealId: string }) {
+  const [items, setItems] = useState<Deliverable[]>([]);
+  useEffect(() => { fetch(`/api/v1/deals/${dealId}/teasers`, { credentials: "same-origin", cache: "no-store" }).then(r => r.ok ? r.json() : null).then(p => setItems(Array.isArray(p?.data) ? p.data : [])).catch(() => undefined); }, [dealId]);
+  const current = items[0];
+  return <div data-od-id="teaser-surface"><PageHeader eyebrow="Deal workspace · Teaser" title="Teaser" description="A stage-required, proposal-only presentation generated from the approved disclosure set. Native PPTX and Reader PDF share one exact Revision." actions={<><StatusBadge tone="warning">Review required</StatusBadge><span className="dc-mono">teaser-1.0.0</span></>} /><div className="dc-grid-three"><article className="dc-surface-card"><span className="dc-eyebrow">Native Artifact</span><h2>PPTX</h2><p>Editable text, tables, charts and source zones</p><StatusBadge tone={current?.reader_available ? "success" : "warning"}>{current?.reader_available ? "Paired" : "Pending"}</StatusBadge></article><article className="dc-surface-card"><span className="dc-eyebrow">Reader Copy</span><h2>PDF</h2><p>Exact slide selection, fonts, citations and confidentiality</p><StatusBadge tone="info">Reader</StatusBadge></article><article className="dc-surface-card"><span className="dc-eyebrow">Applicability</span><h2>{current?.stage_applicability === "not_stage_required" ? "Not stage-required" : "Preparation"}</h2><p>{current?.stage_applicability === "not_stage_required" ? "Not missing and does not block Package Readiness." : "Approved disclosure set required before circulation."}</p><StatusBadge tone="warning">{current?.stage_applicability === "not_stage_required" ? "No blocker" : "Proposal-only"}</StatusBadge></article></div><section className="dc-surface-card"><h2>Content draft and lineage</h2><div className="dc-grid-two"><p>Every material claim, table and chart resolves to a point-of-use citation and exact source or Fact/Assumption reference.</p><p>Semantic QC, native/Reader parity, Review and Readiness remain independent controls. A mismatch blocks circulation for this Revision only.</p></div><div className="dc-page-actions"><a className="dc-button dc-button-secondary" href={`${dealBase(dealId)}/execution-package`}>Return to Execution Package</a><a className="dc-button dc-button-secondary" href={`${dealBase(dealId)}/auction-control-workbook`}>Open Auction Control</a></div></section></div>;
 }
 
 export function AuctionControlWorkbookSurface({ dealId }: { dealId: string }) {

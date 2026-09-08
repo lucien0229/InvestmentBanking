@@ -4,7 +4,12 @@ import sys
 import os
 input_path, output = Path(sys.argv[1]), Path(sys.argv[2])
 data = json.loads(input_path.read_text())
-if data.get("template_version") == "auction-control-1.0.0":
+if data.get("template_version") == "teaser-1.0.0":
+    from teaser_presentation import build
+    from inspect_teaser_presentation import inspect
+    build(data, output)
+    result = inspect(data, output/'teaser.pptx', output/'teaser.pdf')
+elif data.get("template_version") == "auction-control-1.0.0":
     from auction_control_workbook import build
     from inspect_auction_workbook import inspect
     build(data, output)

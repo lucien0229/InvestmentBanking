@@ -59,13 +59,13 @@ export interface OfficeRenderer {
 export class SocketOfficeRenderer implements OfficeRenderer {
   async render(input: WorkbookInput): Promise<RenderedWorkbook> {
     return this.call({
-      operation: input.template_version === "auction-control-1.0.0" ? "build_auction_control_workbook" : "build_analysis_workbook",
+      operation: input.template_version === "auction-control-1.0.0" ? "build_auction_control_workbook" : input.template_version === "teaser-1.0.0" ? "build_teaser_presentation" : "build_analysis_workbook",
       input,
     }) as Promise<RenderedWorkbook>;
   }
   async inspect(input: WorkbookInput, native: Buffer, reader: Buffer) {
     return this.call({
-      operation: input.template_version === "auction-control-1.0.0" ? "inspect_auction_control_workbook" : "inspect_analysis_workbook",
+      operation: input.template_version === "auction-control-1.0.0" ? "inspect_auction_control_workbook" : input.template_version === "teaser-1.0.0" ? "inspect_teaser_presentation" : "inspect_analysis_workbook",
       input,
       native: native.toString("base64"),
       reader: reader.toString("base64"),
@@ -77,7 +77,7 @@ export class SocketOfficeRenderer implements OfficeRenderer {
     const body = JSON.stringify(payload);
     if (
       Buffer.byteLength(body) >
-      (payload.operation === "build_analysis_workbook" || payload.operation === "build_auction_control_workbook"
+      (payload.operation === "build_analysis_workbook" || payload.operation === "build_auction_control_workbook" || payload.operation === "build_teaser_presentation"
         ? 250000
         : 64 * 1024 * 1024)
     )
@@ -129,6 +129,9 @@ export class SocketOfficeRenderer implements OfficeRenderer {
   }
 }
 function classify(path: string) {
+  if (path === "teaser.pptx")
+    return { role: "native", media: "application/vnd.openxmlformats-officedocument.presentationml.presentation" };
+  if (path === "teaser.pdf") return { role: "reader", media: "application/pdf" };
   if (path === "auction-control.xlsx")
     return { role: "native", media: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" };
   if (path === "auction-control.pdf") return { role: "reader", media: "application/pdf" };
@@ -409,7 +412,7 @@ export class WorkbookRuntime {
         const profile = process.env.ARTIFACT_ACCEPTANCE_PROFILE ?? "production_v1";
         if (profile === "development_foss_v1") {
           if (process.env.APP_ENV !== "development" || scoped.input.provenance !== "synthetic"
-            || rendered.report.engine !== "libreoffice.calc"
+            || !["libreoffice.calc", "libreoffice.impress"].includes(String(rendered.report.engine))
             || rendered.report.acceptance_profile !== profile)
             throw new Error("artifact_development_scope_invalid");
         } else if (profile !== "production_v1" || rendered.report.engine !== "aspose.cells.python.net"
