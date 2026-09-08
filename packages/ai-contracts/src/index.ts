@@ -328,6 +328,7 @@ export const teaserContentPayload = z.object({
  revision_id:z.string().uuid(), section_key:regionKey, title:z.string().min(1).max(240), body:boundedText,
  citations:z.array(z.string().min(1).max(240)).min(1).max(30), qualification:z.string().min(1).max(1000),
  approved_disclosure_set:z.array(z.string().min(1).max(240)).min(1).max(100),
+ evidence_refs:z.array(z.string().uuid()).min(1).max(30), fact_refs:z.array(z.string().uuid()).max(30).default([]), assumption_refs:z.array(z.string().uuid()).max(30).default([]),
 }).strict();
 
 const taskPayloads: Record<TaskDefinition, z.ZodType<Record<string, unknown>>> = {

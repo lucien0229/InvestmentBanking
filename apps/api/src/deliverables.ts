@@ -40,25 +40,54 @@ export const auctionControlBody = z
   })
   .strict();
 export const teaserBody = z.object({
+  work_objective_id: uuid,
   title: text,
   purpose: text,
   audience: text,
   confidentiality: z.enum(["public", "internal", "confidential", "restricted"]),
   stage_required: z.boolean().default(true),
 }).strict();
+const teaserEvidence = z.object({
+  id: uuid,
+  source_record_id: uuid,
+  locator: z.record(z.string(), z.unknown()).optional(),
+}).strict();
+const teaserControlledBasis = z.object({
+  id: uuid,
+  kind: z.enum(["fact", "assumption"]),
+  status: z.string().min(1).max(80),
+}).strict();
 export const teaserDraft = z.object({
   task_definition: z.literal("teaser_content_draft"),
   status: z.literal("proposal_only"),
   approved_disclosure_set: z.array(z.string().min(1).max(240)).min(1).max(100),
+  evidence: z.array(teaserEvidence).min(1).max(200),
+  facts_assumptions: z.array(teaserControlledBasis).min(1).max(200),
   output_ceiling: z.object({ max_slides: z.number().int().min(1).max(12) }).strict(),
   sections: z.array(z.object({
     section_key: z.string().min(1).max(80), title: text, body: z.string().min(1).max(2000),
     claim_key: z.string().min(1).max(120).optional(), citations: z.array(z.string().min(1).max(240)).min(1).max(30),
-    source_refs: z.array(z.string().uuid()).max(30).default([]),
+    qualification: z.string().min(1).max(1000),
+    evidence_refs: z.array(uuid).min(1).max(30),
+    fact_refs: z.array(uuid).max(30).default([]),
+    assumption_refs: z.array(uuid).max(30).default([]),
+    source_refs: z.array(uuid).min(1).max(30),
     table_rows: z.array(z.array(z.string().max(240)).min(1).max(8)).max(20).optional(),
     chart: z.object({ categories: z.array(z.string().min(1).max(80)).min(1).max(12), values: z.array(z.number()).min(1).max(12), series_name: z.string().min(1).max(80).optional() }).strict().optional(),
   }).strict()).min(1).max(12),
-}).strict();
+}).strict().superRefine((draft, ctx) => {
+  if (draft.sections.length + 1 > draft.output_ceiling.max_slides) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["sections"], message: "sections_exceed_output_ceiling" });
+  const disclosure = new Set(draft.approved_disclosure_set);
+  const evidence = new Map(draft.evidence.map((item) => [item.id, item.source_record_id]));
+  const basis = new Map(draft.facts_assumptions.map((item) => [item.id, item.kind]));
+  draft.sections.forEach((section, index) => {
+    section.citations.forEach((citation) => { if (!disclosure.has(citation)) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["sections", index, "citations"], message: "citation_not_in_approved_disclosure_set" }); });
+    section.evidence_refs.forEach((id) => { if (!evidence.has(id)) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["sections", index, "evidence_refs"], message: "evidence_reference_not_in_input" }); });
+    section.source_refs.forEach((id) => { if (![...evidence.values()].includes(id)) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["sections", index, "source_refs"], message: "source_reference_not_in_input" }); });
+    section.fact_refs.forEach((id) => { if (basis.get(id) !== "fact") ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["sections", index, "fact_refs"], message: "fact_reference_not_in_input" }); });
+    section.assumption_refs.forEach((id) => { if (basis.get(id) !== "assumption") ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["sections", index, "assumption_refs"], message: "assumption_reference_not_in_input" }); });
+  });
+});
 export const revisionBody = z
   .object({
     basis: z
