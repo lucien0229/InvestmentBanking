@@ -23,6 +23,7 @@ import { registerSourcePacketRoutes } from "./source-packet-routes.js";
 import { registerAiSourceProposalRoutes, type AiProvider } from "./ai-source-proposals.js";
 import { registerEvidenceFactDecisionRoutes } from "./evidence-fact-decision.js";
 import { registerAnalysisRoutes } from "./analysis.js";
+import { registerImpactRoutes } from "./impact.js";
 
 const dealIdSchema = z.string().uuid();
 const emailSchema = z.string().email().max(320);
@@ -347,6 +348,7 @@ export async function buildApi(options: BuildApiOptions = {}): Promise<FastifyIn
   registerSourcePacketRoutes(api, database, { requireBanker, commandKey });
   registerEvidenceFactDecisionRoutes(api, database, { requireBanker, commandKey });
   registerAnalysisRoutes(api, database, { requireBanker, commandKey });
+  registerImpactRoutes(api, database, { requireBanker, commandKey });
   registerDeliverableRoutes(api, database, { requireBanker, commandKey });
   registerControlledExportRoutes(api, database, { requireBanker, commandKey, auth, authMode });
   if (process.env.APP_ENV === "production" && !options.aiProvider) throw new Error("live HelloX AI provider is required in production");

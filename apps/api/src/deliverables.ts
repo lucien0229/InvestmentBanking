@@ -46,6 +46,8 @@ export const revisionBody = z
       .min(1)
       .max(24),
     limitations: z.array(z.string().min(1).max(500)).max(20),
+    impact_assessment_id: uuid.nullable().optional(),
+    change_reason: z.string().min(20).max(2000).optional(),
   })
   .strict();
 export const reviewBody = z
@@ -131,6 +133,9 @@ function failure(error: unknown, request: FastifyRequest, reply: FastifyReply) {
       "artifact_job_not_cancelable",
       "ai_artifact_scope_invalid",
       "ai_packet_scope_mismatch",
+      "impact_assessment_not_found",
+      "impact_disposition_required",
+      "change_reason_required",
     ].includes(code)
   )
     return problem(reply, 409, code, request.url);
@@ -332,7 +337,7 @@ export function registerDeliverableRoutes(
           const body = revisionBody.parse(req.body);
           return query(
             client,
-            "SELECT deliverable.create_revision($1,$2,$3,$4,$5,$6,$7) AS data",
+            "SELECT deliverable.create_revision($1,$2,$3,$4,$5,$6,$7,$8,$9) AS data",
             [
               uuid.parse((req.params as Record<string, string>).deliverable_id),
               Number(match[1]),
@@ -340,6 +345,8 @@ export function registerDeliverableRoutes(
               JSON.stringify(body.basis),
               JSON.stringify(body.limitations),
               process.env.RELEASE_ID ?? "local-development",
+              body.impact_assessment_id ?? null,
+              body.change_reason ?? null,
             ],
           );
         },

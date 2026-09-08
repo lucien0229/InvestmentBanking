@@ -26,6 +26,8 @@ Ticket 09 is resolved for the authorized development boundary: the real authenti
 - Ticket 09 is resolved for the authorized development boundary: see [09-ai-source-proposal-loop.md](issues/09-ai-source-proposal-loop.md) and [ticket-09-evidence.md](../../docs/implementation/ticket-09-evidence.md); authenticated AI proposal execution, HelloX/provider boundaries, protected payloads, idempotent replay, and UI evidence are recorded, while production-shaped parser/worker/provider/recovery evidence remains deferred.
 - Development evidence is explicitly separated from live Stripe collection, live tax/invoice behavior, production provider configuration, and production recovery evidence.
 
+- Ticket 14 is resolved for the authorized development environment: [ticket](issues/14-change-impact-revision-loop.md) and [acceptance evidence](../../docs/implementation/ticket-14-evidence.md). Deterministic material-change closure, exact Impact dispositions, immutable Revision lineage, and the prototype-aligned Analysis Impact surface are live on `20260908-ticket14-v2`; no downstream ticket is advanced.
+
 ## Fog
 
 - Production Stripe mode and tax/invoice/refund/renewal behavior remain deferred; provider-side current-object lookup, independent outbox consumer, and INT-DEF-003 raw replay posture remain deferred. Review follow-ups include binding qualification to checkout, explicit payment-failure/recovery states, and the checkout-session projection/header conformance. Stripe Test Mode Checkout and the endpoint-specific Webhook secret are configured for development.
