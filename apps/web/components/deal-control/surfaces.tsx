@@ -1,4 +1,6 @@
 "use client";
+import { GuideWorkspace, GuideInspection, GuideEntry } from "./guide-workspace";
+import { ExportWorkspace } from "./export-workspace";
 import { SourceWorkspace } from "./source-workspace";
 import { JobWorkspace } from "./job-workspace";
 import { TemplateWorkspace } from "./template-workspace";
@@ -142,6 +144,13 @@ function AnalysisDetailSurface({ dealId }: { dealId: string }) {
 
 export default function DealSurfacePage({ dealId, slug }: { dealId: string; slug: string[] }) {
   const path = slug.join("/");
+  if (/^[0-9a-f-]{36}$/i.test(dealId) && dealId !== "00000000-0000-0000-0000-000000000000") {
+    if (!path) return <GuideEntry dealId={dealId} />;
+    if (path === "overview") return <GuideWorkspace dealId={dealId} mode="overview" />;
+    if (path === "guide/inspect") return <GuideInspection dealId={dealId} />;
+    if (path === "guide/completion") return <GuideWorkspace dealId={dealId} mode="completion" />;
+    if (path === "history-portability" || path === "history-portability/internal-export") return <ExportWorkspace dealId={dealId} reviewMode={path.endsWith("internal-export")} />;
+  }
   if (/^[0-9a-f-]{36}$/i.test(dealId) && ["source-records", "source-packets"].includes(slug[0])) return <SourceWorkspace key={`${dealId}:${path}`} dealId={dealId} sourceRecordId={slug[0] === "source-records" ? slug[1] : undefined} packetId={slug[0] === "source-packets" ? slug[1] : undefined} />;
   if (/^[0-9a-f-]{36}$/i.test(dealId) && dealId !== "00000000-0000-0000-0000-000000000000" && (path === "execution-package" || path === "review-readiness" || slug[0] === "deliverables")) return <WorkbookSurface dealId={dealId} slug={slug} />;
   if (/^[0-9a-f-]{36}$/i.test(dealId) && ["evidence-decisions", "claims", "human-decisions"].includes(slug[0])) return <EvidenceWorkspace key={`${dealId}:${path}`} dealId={dealId} slug={slug} />;

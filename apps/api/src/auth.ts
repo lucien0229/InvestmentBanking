@@ -9,6 +9,7 @@ export interface AuthAdapter {
   verifyMagicLink(token: string): Promise<{ sessionToken: string }>;
   registerPasskey(sessionToken: string, providerToken?: string): Promise<void>;
   authenticatePasskey(sessionToken: string, providerToken?: string): Promise<void>;
+  verifySensitiveSession(sessionToken: string, providerToken?: string): Promise<void>;
 }
 
 export class LocalAuthAdapter implements AuthAdapter {
@@ -35,6 +36,14 @@ export class LocalAuthAdapter implements AuthAdapter {
   async authenticatePasskey(sessionToken: string, _providerToken?: string) {
     const result = await this.database.pool.query<{ authenticate_passkey: boolean }>("SELECT app.authenticate_passkey($1)", [hashToken(sessionToken)]);
     if (result.rows[0]?.authenticate_passkey !== true) throw new AuthError("passkey_required", "Register the mandatory Passkey before ordinary product access.");
+    await this.verifySensitiveSession(sessionToken);
+  }
+
+  async verifySensitiveSession(sessionToken: string) {
+    if (process.env.APP_ENV === "production") throw new AuthError("passkey_required", "Local authentication is unavailable.");
+    await this.database.withContext(sessionToken, null, async (client) => {
+      await client.query("SELECT app.record_passkey_evidence($1,$2,$3)", [hashToken(sessionToken), new Date().toISOString(), `local-test:${hashToken(sessionToken)}`]);
+    });
   }
 }
 
@@ -89,6 +98,20 @@ export class SupabaseAuthAdapter implements AuthAdapter {
       [hashToken(sessionToken), identity.subject],
     );
     if (result.rows[0]?.authenticate_external_passkey !== true) throw new AuthError("authentication_required", "The authentication identity is not eligible for this workspace.");
+    if (identity.passkeyTime && identity.providerSessionId) await this.database.withContext(sessionToken, null, async (client) => {
+      await client.query("SELECT app.record_passkey_evidence($1,$2,$3)", [hashToken(sessionToken), identity.passkeyTime, identity.providerSessionId]);
+    });
+  }
+
+  async verifySensitiveSession(sessionToken: string, providerToken?: string) {
+    if (!providerToken) throw new AuthError("passkey_fresh_required", "Verify your Passkey to resume this exact action.");
+    const identity = await this.identityFromToken(providerToken);
+    if (!identity.passkeyTime || !identity.providerSessionId || Date.now() - Date.parse(identity.passkeyTime) > 300000) {
+      throw new AuthError("passkey_fresh_required", "A Passkey ceremony no older than five minutes is required.");
+    }
+    // The existing authentication function verifies the product Actor against
+    // the verified provider subject before any evidence can be recorded.
+    await this.authenticatePasskey(sessionToken, providerToken);
   }
 
   private async identityFromToken(providerToken: string) {
@@ -101,7 +124,15 @@ export class SupabaseAuthAdapter implements AuthAdapter {
       const method = typeof entry === "string" ? entry : entry && typeof entry === "object" && "method" in entry ? entry.method : undefined;
       return method === "passkey" || method === "webauthn";
     });
-    return { subject: data.user.id, email: data.user.email, passkeyAssured };
+    const timestamps: number[] = [];
+    if (Array.isArray(amr)) for (const entry of amr) {
+      if (entry && typeof entry === "object" && entry.method === "passkey" && typeof entry.timestamp === "number" && Number.isFinite(entry.timestamp) && entry.timestamp * 1000 <= Date.now()) timestamps.push(entry.timestamp);
+    }
+    const latest = timestamps.sort((a, b) => b - a)[0];
+    const sessionId = claims.data?.claims?.session_id;
+    return { subject: data.user.id, email: data.user.email, passkeyAssured,
+      passkeyTime: latest ? new Date(latest * 1000).toISOString() : null,
+      providerSessionId: typeof sessionId === "string" && sessionId.length >= 8 ? sessionId : null };
   }
 }
 

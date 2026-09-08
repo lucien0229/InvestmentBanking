@@ -9,6 +9,7 @@ test("Supabase callback exchanges a bearer access token and keeps the pending po
   let verifiedToken = "";
   let registeredProviderToken = "";
   const auth: AuthAdapter = {
+    verifySensitiveSession: async () => { throw new Error("Fresh provider evidence is outside this callback fixture."); },
     requestMagicLink: async () => ({ status: "magic_link_sent" }),
     verifyMagicLink: async (token) => {
       verifiedToken = token;

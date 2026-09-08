@@ -1,3 +1,4 @@
+import { SensitiveReauthentication } from "../../../components/deal-control/sensitive-return";
 import { notFound } from "next/navigation";
 import AccountAccessPage from "../page";
 
@@ -14,6 +15,7 @@ const states: Record<string, { title: string; detail: string; tone: "info" | "wa
 export default async function AccountAccessStatePage({ params }: { params: Promise<{ state: string[] }> }) {
   const { state } = await params;
   const key = state.join("/");
+  if (key === "reauthenticate") return <SensitiveReauthentication />;
   if (key === "passkey/register") return <AccountAccessPage initialStep="register" />;
   if (key === "passkey/sign-in") return <AccountAccessPage initialStep="signin" />;
   if (key === "email-sent") return <AccountAccessPage initialStep="sent" />;

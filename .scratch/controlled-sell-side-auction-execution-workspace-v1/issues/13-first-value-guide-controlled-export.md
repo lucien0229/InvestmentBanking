@@ -4,7 +4,7 @@
 
 **Blocked by:** 05 — Create an exact Deal and complete Paid Preflight; 12 — Generate the Analysis and Valuation Workbook as a circulation candidate.
 
-**Status:** ready-for-agent
+**Status:** claimed
 
 - [ ] The resumable First Deal Guide shows authoritative completion and blockers for Source, Evidence, Decision, deterministic work, artifact, QC/readiness, and export rather than a disconnected setup checklist.
 - [ ] First Unmistakable Value is recorded only after the same Deal completes the confirmed controlled loop and exposes the exact resulting native/reader artifacts and control evidence.
@@ -15,3 +15,15 @@
 - [ ] Successful graduation preserves guide/history access but moves continuing work into the persistent Overview and nine-domain Execution Desk rather than recreating a second Workspace.
 - [ ] Failure and resume paths preserve accepted work and produce the smallest safe recovery action; duplicate export commands produce one material export identity.
 - [ ] Browser, HTTP, file, manifest, history, Audit, and privacy-safe measurement observers prove AC-002, AC-006, AC-064, and the First Unmistakable Value contract.
+
+## Comments
+
+### 2026-09-06 implementation claim
+
+Claimed on `develop` from `900ea71` after the user's explicit confirmation.
+Scope is Ticket 13 only, with the accepted ADR 0043 synthetic development
+profile and existing Docker/Supabase configuration. Verification uses public
+authenticated HTTP and browser interfaces, independently inspected exported
+files/manifests, and history/Audit/measurement observers. The user delegates
+manual verification and routine acceptance decisions. Final review compares
+only this ticket's changes with `900ea71`; unrelated untracked work is preserved.

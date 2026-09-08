@@ -25,8 +25,17 @@ const server = http.createServer(async (request, response) => {
     const input = JSON.parse(Buffer.concat(chunks).toString('utf8'));
     if (typeof input.canonical_payload !== 'string' || Object.keys(input).length !== 1) throw new Error('invalid_contract');
     const manifest = JSON.parse(input.canonical_payload);
-    if (manifest.schema_version !== '1.0.0' || manifest.engine?.name !== 'libreoffice.calc' || manifest.engine?.acceptance_profile !== 'development_foss_v1' || !Array.isArray(manifest.members)
-      || manifest.claims?.deployment_origin_and_integrity_only !== true || manifest.claims?.external_use_authorization !== false) throw new Error('invalid_manifest');
+    const workbook = manifest.schema_version === '1.0.0' && manifest.engine?.name === 'libreoffice.calc'
+      && manifest.engine?.acceptance_profile === 'development_foss_v1'
+      && manifest.claims?.deployment_origin_and_integrity_only === true && manifest.claims?.external_use_authorization === false;
+    const internalExport = manifest.schema_version === 'internal-controlled-export-1.0.0'
+      && manifest.revision_id === manifest.scope?.revision?.id
+      && manifest.scope?.readiness?.acceptance_profile === 'development_foss_v1'
+      && JSON.parse(manifest.scope?.manifest?.canonical_payload ?? '{}').engine?.acceptance_profile === 'development_foss_v1'
+      && manifest.external_use_authorized === false && manifest.scope?.external_use_authorized === false
+      && ['inspection','native_editing','backup','controlled_reimport'].includes(manifest.purpose)
+      && Array.isArray(manifest.scope?.hard_blockers) && manifest.scope.hard_blockers.length === 0;
+    if ((!workbook && !internalExport) || !Array.isArray(manifest.members) || manifest.members.length === 0) throw new Error('invalid_manifest');
     const bytes = Buffer.from(input.canonical_payload);
     response.writeHead(200, {'content-type':'application/json'}).end(JSON.stringify({
       key_version:keyVersion, algorithm:'EC_SIGN_ED25519', custody:'development_host_service',

@@ -1,4 +1,5 @@
 import { registerDeliverableRoutes } from "./deliverables.js";
+import { registerControlledExportRoutes } from "./controlled-export.js";
 import crypto from "node:crypto";
 import { Readable } from "node:stream";
 import { setTimeout as pause } from "node:timers/promises";
@@ -251,7 +252,7 @@ export async function buildApi(options: BuildApiOptions = {}): Promise<FastifyIn
       // A returning Banker authenticates directly with their registered Passkey.
       // The provider token is verified again by the adapter before promotion.
       const providerToken = bearerToken(request);
-      const pending = cookieValue(request, "__Host-pending_passkey") ??
+      const pending = cookieValue(request, "__Host-pending_passkey") ?? cookieValue(request, "__Host-banker_session") ??
         (authMode === "supabase" && providerToken ? (await auth.verifyMagicLink(providerToken)).sessionToken : undefined);
       if (!pending) return problem(reply, 401, "authentication_required", "Authenticate with your Passkey to continue.", "authenticate", request.url);
       await auth.authenticatePasskey(pending, bearerToken(request));
@@ -347,6 +348,7 @@ export async function buildApi(options: BuildApiOptions = {}): Promise<FastifyIn
   registerEvidenceFactDecisionRoutes(api, database, { requireBanker, commandKey });
   registerAnalysisRoutes(api, database, { requireBanker, commandKey });
   registerDeliverableRoutes(api, database, { requireBanker, commandKey });
+  registerControlledExportRoutes(api, database, { requireBanker, commandKey, auth, authMode });
   if (process.env.APP_ENV === "production" && !options.aiProvider) throw new Error("live HelloX AI provider is required in production");
   registerAiSourceProposalRoutes(api, database, { requireBanker, commandKey }, { provider: options.aiProvider });
 
@@ -525,18 +527,6 @@ export async function buildApi(options: BuildApiOptions = {}): Promise<FastifyIn
     } catch (error) {
       return sendDealLifecycleError(error, request, reply);
     }
-  });
-
-  api.get<{ Params: { deal_id: string } }>("/api/v1/deals/:deal_id/guide", async (request, reply) => {
-    const dealId = dealIdSchema.parse(request.params.deal_id);
-    const session = await requireBanker(request, reply);
-    if (!session) return;
-    const result = await database.withContext(session, dealId, async (client, context) => await dealProjection(client, context.accountId, context.actorId, dealId));
-    if (result.kind === "invalid") return problem(reply, 401, "session_expired", "The session is no longer valid.", "reauthenticate", request.url);
-    if (result.kind === "passkey_required") return problem(reply, 403, "passkey_required", "A Passkey-backed session is required for First Deal Guide.", "register_passkey", request.url);
-    if (result.kind === "not_found" || result.value === null) return problem(reply, 404, "resource_not_found", "The requested resource is not available.", "return_to_safe_parent", request.url);
-    const projection = result.value as { data: { first_deal_guide: Record<string, unknown> } };
-    return reply.code(200).send({ data: projection.data.first_deal_guide });
   });
 
   api.post<{ Params: { deal_id: string } }>("/api/v1/deals/:deal_id/substantive-processing", async (request, reply) => {

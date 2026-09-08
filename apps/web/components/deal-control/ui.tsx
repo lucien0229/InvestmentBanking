@@ -1,5 +1,6 @@
 "use client";
 
+import { GuideRail } from "./guide-workspace";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { supabaseBrowserClient } from "../../lib/supabase-browser";
@@ -113,7 +114,7 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
         <div className="dc-sidebar-foot"><span className="dc-mono">V1 · DEVELOPMENT</span><p>Protected actions stay scoped to the current Account and Deal.</p></div>
       </aside>
       <div id="main-content" className="dc-workspace-content">{children}</div>
-      <aside className="dc-workspace-inspector" id={hasWorkspacePanels?"workbook-context":undefined} data-open={workbookPanel==="context"||undefined} aria-label="Deal context inspector">{hasWorkspacePanels?<button className="dc-workbook-shell-close" onClick={closeWorkbookPanel}>Close context inspector</button>:null}<p className="dc-nav-label">Context inspector</p><section className="dc-inspector-card"><span className="dc-eyebrow">Current workspace</span><h2>{isSynthetic ? "Project Northstar" : "Current Deal"}</h2><dl><dt>Deal identity</dt><dd className="dc-mono">{activeDealId ?? "Not selected"}</dd><dt>Review scope</dt><dd>Exact Revision, purpose and audience</dd></dl><StatusBadge tone="warning">External use blocked</StatusBadge><p>Review readiness, QC and exact authorization remain separate checkpoints.</p><a className="dc-inline-button" href={`${activeBase}/review-readiness`}>Inspect readiness →</a></section></aside>
+      <aside className="dc-workspace-inspector" id={hasWorkspacePanels?"workbook-context":undefined} data-open={workbookPanel==="context"||undefined} aria-label="Deal context inspector">{hasWorkspacePanels?<button className="dc-workbook-shell-close" onClick={closeWorkbookPanel}>Close context inspector</button>:null}{hasWorkspacePanels && activeDealId ? <GuideRail key={pathname} dealId={activeDealId} /> : null}<p className="dc-nav-label">Context inspector</p><section className="dc-inspector-card"><span className="dc-eyebrow">Current workspace</span><h2>{isSynthetic ? "Project Northstar" : "Current Deal"}</h2><dl><dt>Deal identity</dt><dd className="dc-mono">{activeDealId ?? "Not selected"}</dd><dt>Review scope</dt><dd>Exact Revision, purpose and audience</dd></dl><StatusBadge tone="warning">External use blocked</StatusBadge><p>Review readiness, QC and exact authorization remain separate checkpoints.</p><a className="dc-inline-button" href={`${activeBase}/review-readiness`}>Inspect readiness →</a></section></aside>
     </div>
   </div>;
 }
