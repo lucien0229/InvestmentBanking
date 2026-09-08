@@ -6,7 +6,7 @@ import { z } from "zod";
 import { Database } from "./database.js";
 import { AuthError, type AuthAdapter, type AuthMode } from "./auth.js";
 import { canonicalDigest } from "./commerce.js";
-import { decryptProtected, protectedPath } from "./sources.js";
+import { decryptProtected, protectedPath, deriveProtectedGrantToken } from "./sources.js";
 import { sha256 } from "./artifact-integrity.js";
 
 type Dependencies = {
@@ -80,8 +80,8 @@ export function registerControlledExportRoutes(api: FastifyInstance, database: D
   api.post(`${root}/internal-controlled-exports/:export_id/object-grants`, scoped(async (client, request, session) => {
     const body = downloadCommand.parse(request.body);
     if (body.export_id !== (request.params as { export_id: string }).export_id) throw new Error("export_scope_unavailable");
-    const token = crypto.randomBytes(32).toString("base64url");
     const dealId = (request.params as { deal_id: string }).deal_id;
+    const token = deriveProtectedGrantToken("internal_export_retrieval", canonicalDigest({ deal_id: dealId, export_id: body.export_id, session_hash: Database.hashToken(session), idempotency_hash: Database.hashToken(String(request.headers["idempotency-key"])) }));
     const result = await query(client, "SELECT external_use.create_stream_grant($1,$2,$3,$4,$5,$6,$7) AS data", [body.export_id, Database.hashToken(session), Database.hashToken(String(request.headers["sensitive-action-grant"] ?? "")), Database.hashToken(token), exportCommandDigest(dealId, "export_object_retrieval", body), dependencyHeader(request), Database.hashToken(String(request.headers["idempotency-key"]))]);
     return { ...(result as object), grant_token: token };
   }, 201));

@@ -1,0 +1,76 @@
+{
+  "environment": "development",
+  "release": "20260908-controlled-export-v5",
+  "profile": "development_foss_v1",
+  "fixture": "synthetic",
+  "verification_date": "2026-09-08",
+  "deal_id": "290c3734-3b1a-442d-beab-89ce0f8b5e99",
+  "revision_id": "24b8a4ec-7bba-465d-bb2f-0bf6b3728627",
+  "export_id": "cac90594-dbba-4d1c-876e-85cc912e0598",
+  "job_id": "94e0c946-9302-4b63-96a6-021b31c7639b",
+  "archive_sha256": "200c72837c21ce3b0c3ab7688d8b4458733ecb398ad315227b27aa40749b92d9",
+  "byte_length": 286324,
+  "members": [
+    {
+      "byte_length": 2346,
+      "path": "index.html",
+      "sha256": "d9b10f801ba317c48094c4fc0ab422cd0bc5834100ba6eb0d91bbd8658d66dd5"
+    },
+    {
+      "byte_length": 4679,
+      "path": "controls/lineage.json",
+      "sha256": "a140d524e58346f52e118c100d6e7b4a8c7da17ad63e3ba048c97b09d2c0fa1a"
+    },
+    {
+      "byte_length": 3340,
+      "path": "controls/decisions.json",
+      "sha256": "d2ae3420452c08ff3e83ed8f53f5b9760babde43be82f1484bbf7f835d87e74d"
+    },
+    {
+      "byte_length": 1844,
+      "path": "controls/evidence.json",
+      "sha256": "419edb19baa1f0408c3702ff2c748130fc2b4a91bbabfb3bcef5ce33ba7c2132"
+    },
+    {
+      "byte_length": 74994,
+      "path": "controls/validation-qc-review.json",
+      "sha256": "337f8d260015987463559f71fddce43c7027f8f1d42e29150ce81ee1beb06abe"
+    },
+    {
+      "byte_length": 894,
+      "path": "controls/scope-and-exclusions.json",
+      "sha256": "6745ba4cf58996982cdedef9f526b0c5c78052b42ba68bdda079a884d4e17887"
+    },
+    {
+      "byte_length": 12481,
+      "path": "controls/artifact-manifest.json",
+      "sha256": "7327858e9d5f31f4bf707134e9032b3da2b02343ca434e4fc092f8c80db05e8a"
+    },
+    {
+      "byte_length": 45439,
+      "path": "artifacts/analysis-valuation.pdf",
+      "sha256": "0e74db0b37ebde27bc4668a81ae5e31218c870b1f05154a75ff73053cd60fba5"
+    },
+    {
+      "byte_length": 27028,
+      "path": "artifacts/analysis-valuation.xlsx",
+      "sha256": "f29d53e28728b932286f2db6586b19a950ffd2ada0aad19d9bc7f03a801e6cfa"
+    }
+  ],
+  "canonical_sha256": "0d2b68ca7d536c1c7c75f9e75e8fca36294a6a0ffa815544c1a516d9583d8c55",
+  "signature": "ij3L3H9/ljjnMOJLL24CCjnmL8CHSphrMUzXVrNyh3rhF83gcxhkIlw7iKl83ZW/GxoCoqWDvVLY3RqmDMOeDw==",
+  "public_key_pem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEA5kDWvSXOOjby1bMRVCXjiV+J5rua/On9bup32PRV6/8=\n-----END PUBLIC KEY-----\n",
+  "key_version": "development/artifact/20260906/versions/1",
+  "external_use_authorized": false,
+  "first_value_id": "53d786b8-5c9a-4af0-ac13-76b4352878be",
+  "graduation_id": "818ad099-73a3-4a04-9bde-b61e330636ee",
+  "migration_count": 92,
+  "runtime_attempt_outcome": "succeeded",
+  "scope_retired": true,
+  "mobile_download_sha256": "200c72837c21ce3b0c3ab7688d8b4458733ecb398ad315227b27aa40749b92d9",
+  "mobile_passkey_reauthenticated": true,
+  "native_reader_original_hashes_match": true,
+  "member_hashes_and_lengths_verified": true,
+  "independent_zip_crc_verified": true,
+  "ed25519_signature_verified": true
+}

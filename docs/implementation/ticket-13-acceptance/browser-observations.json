@@ -1,0 +1,114 @@
+{
+  "responsive-review-final": [
+    {
+      "viewport": 1440,
+      "documentWidth": 1440,
+      "accent": "oklch(58% 0.16 145)",
+      "creationDisabled": false
+    },
+    {
+      "viewport": 1280,
+      "documentWidth": 1280,
+      "accent": "oklch(58% 0.16 145)",
+      "creationDisabled": false
+    },
+    {
+      "viewport": 1024,
+      "documentWidth": 1024,
+      "accent": "oklch(58% 0.16 145)",
+      "creationDisabled": false
+    },
+    {
+      "viewport": 390,
+      "documentWidth": 390,
+      "accent": "oklch(58% 0.16 145)",
+      "creationDisabled": true
+    }
+  ],
+  "revision-scope-verification": {
+    "reviewUrl": "https://dev-banking.aptoren.com/app/deals/290c3734-3b1a-442d-beab-89ce0f8b5e99/history-portability/internal-export?revision_id=2940f6de-46de-4812-86b8-47705e143415&review_id=67d853db-2766-4417-9dec-0ba043634031",
+    "inspectedUrl": "https://dev-banking.aptoren.com/app/deals/290c3734-3b1a-442d-beab-89ce0f8b5e99/guide/inspect?revision_id=2940f6de-46de-4812-86b8-47705e143415&review_id=67d853db-2766-4417-9dec-0ba043634031",
+    "returnedExactReview": true
+  },
+  "graduation-verification": {
+    "firstValue": "53d786b8-5c9a-4af0-ac13-76b4352878be",
+    "firstExport": "cac90594-dbba-4d1c-876e-85cc912e0598",
+    "graduation": "818ad099-73a3-4a04-9bde-b61e330636ee",
+    "mode": "execution_desk",
+    "checkpoints": [
+      {
+        "code": "preflight",
+        "status": "completed"
+      },
+      {
+        "code": "source_perimeter",
+        "status": "completed"
+      },
+      {
+        "code": "packet_objective",
+        "status": "completed"
+      },
+      {
+        "code": "processing",
+        "status": "completed"
+      },
+      {
+        "code": "evidence",
+        "status": "completed"
+      },
+      {
+        "code": "decision",
+        "status": "completed"
+      },
+      {
+        "code": "deterministic",
+        "status": "completed"
+      },
+      {
+        "code": "artifacts",
+        "status": "completed"
+      },
+      {
+        "code": "readiness",
+        "status": "completed"
+      },
+      {
+        "code": "internal_export",
+        "status": "completed"
+      },
+      {
+        "code": "graduation",
+        "status": "completed"
+      }
+    ],
+    "domains": [
+      "Overview",
+      "Action Center",
+      "Sources",
+      "Evidence & Decisions",
+      "Analysis",
+      "Auction Process",
+      "Execution Package",
+      "Review & Readiness",
+      "History & Portability"
+    ],
+    "persistentEntry": true,
+    "guidePreserved": true
+  },
+  "mobile-download-verification": {
+    "width": 390,
+    "downloadAvailable": true,
+    "reauthenticated": true,
+    "file": "internal-export-cac90594-dbba-4d1c-876e-85cc912e0598.zip"
+  },
+  "final-artifact-inspection": [
+    {
+      "artifact": "native",
+      "renderedPages": 7
+    },
+    {
+      "artifact": "reader",
+      "renderedPages": 7
+    }
+  ]
+}

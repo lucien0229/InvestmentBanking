@@ -441,38 +441,42 @@ test("Workbook HTTP commands are authenticated, scoped, idempotent and version g
       .data.find(
         (f: { finding_code: string }) => f.finding_code === "clean_copy",
       );
-    assert.ok(
-      finding,
-      "Evaluation artifact must retain a Critical clean-copy Finding",
-    );
-    const waived = await api.inject({
-      method: "POST",
-      url: `/api/v1/deals/${deal}/qc-findings/${finding.id}/dispositions`,
-      headers: { cookie, "idempotency-key": crypto.randomUUID() },
-      payload: {
-        disposition: "accepted_limitation",
-        purpose: "Internal valuation review",
-        rationale: "Attempt to waive a critical licensing failure",
-      },
-    });
-    assert.equal(waived.statusCode, 409, waived.body);
-    const retest = await api.inject({
-      method: "POST",
-      url: `/api/v1/deals/${deal}/qc-findings/${finding.id}/retests`,
-      headers: { cookie, "idempotency-key": crypto.randomUUID() },
-      payload: {
-        revision_id: accepted.json().data.revision_id,
-        ruleset: "analysis-workbook-qc-1.0.0",
-      },
-    });
-    assert.equal(retest.statusCode, 202, retest.body);
-    await runtime.runOnce();
-    const retested = await api.inject({
-      method: "GET",
-      url: `/api/v1/deals/${deal}/qc-findings/${finding.id}/retests`,
-      headers: { cookie },
-    });
-    assert.equal(retested.json().data[0]?.outcome, "failed", retested.body);
+    if (process.env.ARTIFACT_ACCEPTANCE_PROFILE === "development_foss_v1") {
+      assert.equal(finding, undefined, "The accepted LibreOffice profile must not fabricate an Aspose evaluation-watermark Finding");
+    } else {
+      assert.ok(
+        finding,
+        "Evaluation artifact must retain a Critical clean-copy Finding",
+      );
+      const waived = await api.inject({
+        method: "POST",
+        url: `/api/v1/deals/${deal}/qc-findings/${finding.id}/dispositions`,
+        headers: { cookie, "idempotency-key": crypto.randomUUID() },
+        payload: {
+          disposition: "accepted_limitation",
+          purpose: "Internal valuation review",
+          rationale: "Attempt to waive a critical licensing failure",
+        },
+      });
+      assert.equal(waived.statusCode, 409, waived.body);
+      const retest = await api.inject({
+        method: "POST",
+        url: `/api/v1/deals/${deal}/qc-findings/${finding.id}/retests`,
+        headers: { cookie, "idempotency-key": crypto.randomUUID() },
+        payload: {
+          revision_id: accepted.json().data.revision_id,
+          ruleset: "analysis-workbook-qc-1.0.0",
+        },
+      });
+      assert.equal(retest.statusCode, 202, retest.body);
+      await runtime.runOnce();
+      const retested = await api.inject({
+        method: "GET",
+        url: `/api/v1/deals/${deal}/qc-findings/${finding.id}/retests`,
+        headers: { cookie },
+      });
+      assert.equal(retested.json().data[0]?.outcome, "failed", retested.body);
+    }
     if (process.env.WORKBOOK_LIVE_AI === "true") {
       for (const task of [
         "workbook_commentary_draft",

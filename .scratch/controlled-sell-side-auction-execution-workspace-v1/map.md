@@ -14,6 +14,8 @@ Ticket 09 is resolved for the authorized development boundary: the real authenti
 
 ## Decisions-so-far
 
+- Ticket 13 is resolved for the authorized development environment: [ticket](issues/13-first-value-guide-controlled-export.md) and [acceptance evidence](../../docs/implementation/ticket-13-evidence.md). Real Supabase Passkey return, exact signed internal export, independent First Value/export/graduation records, failure recovery and prototype-based responsive UI pass on release `20260908-controlled-export-v5`. The ADR 0043 synthetic profile remains explicit; no later ticket is advanced.
+
 - Ticket 12 is resolved for ADR 0043's authorized synthetic `development_foss_v1` profile: [ticket](issues/12-analysis-valuation-workbook.md) and [exact alternative acceptance](../../docs/implementation/ticket-12-development-alternatives-2026-09-06.md). Final server Revision 05 passes all twelve readiness requirements; LibreOffice, isolated development signing and actual Calc round-trip replace the three unavailable dependencies for development only. Windows Excel, cloud KMS and external-use authorization remain unverified. No later ticket is advanced.
 - Ticket 03 development resolution: see [03-qualified-checkout-entitlement.md](issues/03-qualified-checkout-entitlement.md).
 - Ticket 04 development resolution: see [04-durable-reference-job.md](issues/04-durable-reference-job.md).

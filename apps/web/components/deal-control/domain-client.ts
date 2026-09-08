@@ -5,7 +5,11 @@ import { useRef } from "react";
 export async function readDomain<T>(url: string, signal?: AbortSignal): Promise<T> {
   const response = await fetch(url, { cache: "no-store", signal });
   const body = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(body.detail ?? "The requested records could not be loaded.");
+  if (!response.ok) {
+    const error = new Error(body.detail ?? "The requested records could not be loaded.");
+    Object.assign(error, { code: body.code, status: response.status });
+    throw error;
+  }
   return body.data as T;
 }
 

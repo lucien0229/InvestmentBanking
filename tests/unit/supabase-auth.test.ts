@@ -9,7 +9,14 @@ test("Supabase Auth identity is mapped to one product actor and requires passkey
   const fakeClient = {
     auth: {
       getUser: async (token: string) => ({ data: { user: { id: "supabase-user-01", email: "banker-a@example.test" } }, error: null, token }),
-      getClaims: async (token: string) => ({ data: { claims: { amr: token === "passkey-token" ? [{ method: "passkey" }] : [{ method: "otp" }] } }, error: null }),
+      getClaims: async (token: string) => ({ data: { claims: {
+        iat: Math.floor(Date.now()/1000),
+        session_id: token === "missing-session" ? undefined : "provider-session-for-test",
+        amr: token === "magic-link-access-token" ? [{ method: "otp" }] : [{
+          method: token === "webauthn-token" ? "webauthn" : "passkey",
+          timestamp: token === "passkey-token" ? undefined : Math.floor(Date.now()/1000) + (token === "future-token" ? 60 : token === "stale-token" ? -301 : 0),
+        }],
+      } }, error: null }),
     },
   } as unknown as SupabaseClient;
   process.env.SUPABASE_URL = "https://example.supabase.co";
@@ -20,6 +27,10 @@ test("Supabase Auth identity is mapped to one product actor and requires passkey
     await adapter.registerPasskey(sessionToken, "magic-link-access-token");
     await assert.rejects(() => adapter.authenticatePasskey(sessionToken, "magic-link-access-token"), { code: "passkey_required" });
     await adapter.authenticatePasskey(sessionToken, "passkey-token");
+    for (const token of ["magic-link-access-token", "passkey-token", "webauthn-token", "stale-token", "future-token", "missing-session"]) {
+      await assert.rejects(() => adapter.verifySensitiveSession(sessionToken, token), { code: "passkey_fresh_required" });
+    }
+    await adapter.verifySensitiveSession(sessionToken, "fresh-passkey-token");
     const result = await database.withContext(sessionToken, "00000000-0000-4000-8000-000000000101", async (client) => {
       const overview = await client.query<{ name: string }>("SELECT name FROM app.deal WHERE id = $1", ["00000000-0000-4000-8000-000000000101"]);
       return overview.rows[0]?.name;

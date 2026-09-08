@@ -252,8 +252,8 @@ export async function buildApi(options: BuildApiOptions = {}): Promise<FastifyIn
       // A returning Banker authenticates directly with their registered Passkey.
       // The provider token is verified again by the adapter before promotion.
       const providerToken = bearerToken(request);
-      const pending = cookieValue(request, "__Host-pending_passkey") ?? cookieValue(request, "__Host-banker_session") ??
-        (authMode === "supabase" && providerToken ? (await auth.verifyMagicLink(providerToken)).sessionToken : undefined);
+      let pending = cookieValue(request, "__Host-pending_passkey") ?? cookieValue(request, "__Host-banker_session");
+      if (authMode === "supabase" && providerToken && (!pending || !(await database.withPendingSession(pending, async () => true)))) pending = (await auth.verifyMagicLink(providerToken)).sessionToken;
       if (!pending) return problem(reply, 401, "authentication_required", "Authenticate with your Passkey to continue.", "authenticate", request.url);
       await auth.authenticatePasskey(pending, bearerToken(request));
       setSessionCookie(reply, "__Host-banker_session", pending);

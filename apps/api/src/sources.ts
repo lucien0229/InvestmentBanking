@@ -70,6 +70,11 @@ function keyMaterial() {
   return crypto.createHash("sha256").update("source-development-envelope-key-v1").digest();
 }
 
+/** Domain-separated recovery of one already-issued protected capability. */
+export function deriveProtectedGrantToken(purpose: string, identityDigest: string) {
+  return crypto.createHmac("sha256", keyMaterial()).update(`protected-grant:${purpose}:v1\0${identityDigest}`).digest("base64url");
+}
+
 type EnvelopeHeader = {
   magic: "IBPO1";
   envelope_version: string;

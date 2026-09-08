@@ -1,0 +1,377 @@
+{
+  "environment": "development server, isolated Postgres 17",
+  "method": "one full suite; affected files rerun after runner/profile fixes; final export runtime rerun after hard-gate changes",
+  "passed": 89,
+  "skipped": 3,
+  "failed": 0,
+  "cases": [
+    {
+      "name": "Stripe checkout session evidence accepts nullable subscription fields",
+      "status": "passed"
+    },
+    {
+      "name": "StripeCheckoutAdapter creates a subscription Checkout Session with the confirmed price and metadata",
+      "status": "passed"
+    },
+    {
+      "name": "Commerce exposes one public offer and non-confidential qualification result",
+      "status": "passed"
+    },
+    {
+      "name": "Commerce reconciles a monthly purchase exactly once and keeps provider status non-authoritative",
+      "status": "passed"
+    },
+    {
+      "name": "Commerce keeps annual pricing, invalid signatures, ambiguous events, and persistence failures fail closed",
+      "status": "passed"
+    },
+    {
+      "name": "Commerce applies an explicit add-on only to its product-owned capacity ledger",
+      "status": "passed"
+    },
+    {
+      "name": "generated API contract declares the Reference Deal seam and stable problem media type",
+      "status": "passed"
+    },
+    {
+      "name": "generated API contract declares the isolated Project Northstar synthetic proof seam",
+      "status": "passed"
+    },
+    {
+      "name": "generated API contract declares source intake protected Source intake and Object Gateway seams",
+      "status": "passed"
+    },
+    {
+      "name": "public Web retrieval creates immutable observations and lowers posture when snapshot rights are unavailable",
+      "status": "passed"
+    },
+    {
+      "name": "Account template remains quarantined until compatibility preflight and cannot cross Account or accept live Deal material",
+      "status": "passed"
+    },
+    {
+      "name": "full encrypted AI wire request is committed before transport and survives provider failure",
+      "status": "passed"
+    },
+    {
+      "name": "all three Source proposal families complete against the configured HelloX provider",
+      "status": "skipped"
+    },
+    {
+      "name": "Analysis API creates a pinned Calculation Version, deterministic Run, and validation receipt",
+      "status": "passed"
+    },
+    {
+      "name": "Exact controlled loop exports real Office files with one leased identity and independent graduation",
+      "status": "passed"
+    },
+    {
+      "name": "First Deal Guide derives incomplete work and cannot graduate from unrelated seeded objects",
+      "status": "passed"
+    },
+    {
+      "name": "product Deal lifecycle creates an identity-complete Deal atomically with a reserved slot and guide checkpoint",
+      "status": "passed"
+    },
+    {
+      "name": "product Deal lifecycle preflight returns blocked and recovers after source replacement and narrowed use",
+      "status": "passed"
+    },
+    {
+      "name": "product Deal lifecycle enforces two-slot capacity under concurrent creates and keeps cross-Deal reads non-enumerating",
+      "status": "passed"
+    },
+    {
+      "name": "product Deal lifecycle exposes limited-proceed acceptance and blocks restricted AI before egress",
+      "status": "passed"
+    },
+    {
+      "name": "product Deal lifecycle creates a linked Deal for identity change and preserves the original",
+      "status": "passed"
+    },
+    {
+      "name": "Evidence Inspector accepts exact source Evidence and exposes independent dimensions",
+      "status": "passed"
+    },
+    {
+      "name": "Evidence acceptance rejects a locator that is not an eligible Source fragment",
+      "status": "passed"
+    },
+    {
+      "name": "Claim promotion requires accepted Evidence and a typed Banker Decision; Assumption approval stays an Assumption",
+      "status": "passed"
+    },
+    {
+      "name": "Fact acceptance preserves conflicts and rejects stale concurrent control reviews",
+      "status": "passed"
+    },
+    {
+      "name": "Knowledge projections do not enumerate another Deal",
+      "status": "passed"
+    },
+    {
+      "name": "Claim correction is append-only and exposes every dependent candidate",
+      "status": "passed"
+    },
+    {
+      "name": "Evidence binds the selected Claim even when proposition wording is identical",
+      "status": "passed"
+    },
+    {
+      "name": "independent PGMQ workers survive process loss, preserve checkpoints and meet AC-071",
+      "status": "skipped"
+    },
+    {
+      "name": "anonymous browser completes the resumable synthetic Project Northstar control loop",
+      "status": "passed"
+    },
+    {
+      "name": "proof completion is gated to one resumable session and real upload paths stay unreachable",
+      "status": "passed"
+    },
+    {
+      "name": "synthetic commands reject overwrite/average and public payloads do not expose production or raw-byte authority",
+      "status": "passed"
+    },
+    {
+      "name": "HTTP black-box: bootstrap, Passkey posture, overview and privacy-safe Audit",
+      "status": "passed"
+    },
+    {
+      "name": "HTTP black-box: cross-Account/cross-Deal and absent resources are indistinguishable",
+      "status": "passed"
+    },
+    {
+      "name": "Banker starts one durable Reference Deal Job and can read its authoritative snapshot",
+      "status": "passed"
+    },
+    {
+      "name": "accepted asynchronous command becomes completed through the default dispatcher/worker within the visibility bound",
+      "status": "passed"
+    },
+    {
+      "name": "duplicate commands replay one Job and one allowance effect",
+      "status": "passed"
+    },
+    {
+      "name": "Reference worker completes from checkpoints with one committed allowance and a replayable SSE history",
+      "status": "passed"
+    },
+    {
+      "name": "worker termination at each material checkpoint is retryable and preserves accepted inputs",
+      "status": "passed"
+    },
+    {
+      "name": "lease loss becomes visible and resumes only after an explicit retry",
+      "status": "passed"
+    },
+    {
+      "name": "cancellation releases unused allowance exactly once and cross-Account Job reads remain hidden",
+      "status": "passed"
+    },
+    {
+      "name": "Job controls preserve the Passkey boundary and reject malformed SSE cursors",
+      "status": "passed"
+    },
+    {
+      "name": "stale Job Scope cannot commit after the Workspace posture version advances",
+      "status": "passed"
+    },
+    {
+      "name": "live SSE delivers new durable events and closes when its session is revoked",
+      "status": "passed"
+    },
+    {
+      "name": "source intake binds resumable upload to exact Deal scope and keeps TUS headers non-secret",
+      "status": "passed"
+    },
+    {
+      "name": "source intake binds uploads to the current operation preview and uses versioned cancellation",
+      "status": "passed"
+    },
+    {
+      "name": "source intake quarantines unsafe packages before acceptance and keeps accepted bytes encrypted",
+      "status": "passed"
+    },
+    {
+      "name": "source intake preserves immutable source history and denies cross-account object or record access",
+      "status": "passed"
+    },
+    {
+      "name": "isolated Source processing retains original bytes and returns exact CSV fragments after a durable task",
+      "status": "skipped"
+    },
+    {
+      "name": "Source Packet binds exact Source Record version and rejects stale concurrent changes",
+      "status": "passed"
+    },
+    {
+      "name": "rights blocking creates an impact candidate, removes prospective circulation, and caps worker operations",
+      "status": "passed"
+    },
+    {
+      "name": "Supabase callback exchanges a bearer access token and keeps the pending posture",
+      "status": "passed"
+    },
+    {
+      "name": "Workbook HTTP commands are authenticated, scoped, idempotent and version guarded",
+      "status": "passed"
+    },
+    {
+      "name": "a new Individual Banker completes Magic Link + mandatory Passkey and reads Project Northstar",
+      "status": "passed"
+    },
+    {
+      "name": "cross-Account and cross-Deal reads return the same non-enumerating 404 problem",
+      "status": "passed"
+    },
+    {
+      "name": "ordinary Deal access is denied until the current session has a registered Passkey",
+      "status": "passed"
+    },
+    {
+      "name": "product account-template migration declares immutable public observations and Account template quarantine boundaries",
+      "status": "passed"
+    },
+    {
+      "name": "AI source proposal migration declares strict contracts, protected payloads, and no authority promotion",
+      "status": "passed"
+    },
+    {
+      "name": "AI source proposal tables are forced RLS and runtime cannot write them",
+      "status": "passed"
+    },
+    {
+      "name": "deployment controls can suspend and restore AI policy without runtime configuration writes",
+      "status": "passed"
+    },
+    {
+      "name": "AI input envelope binds exact packet, versions, fragment locators and canonical digest",
+      "status": "passed"
+    },
+    {
+      "name": "confidential and restricted material require verified HelloX processing evidence",
+      "status": "passed"
+    },
+    {
+      "name": "strict result validation rejects invented locators and authority fields",
+      "status": "passed"
+    },
+    {
+      "name": "one repair is structure-only and semantic changes reject the response",
+      "status": "passed"
+    },
+    {
+      "name": "each concrete task ships a versioned strict output contract and synthetic evaluation manifest",
+      "status": "passed"
+    },
+    {
+      "name": "financial inputs retain the selected accepted native Evidence location and reject missing or foreign relationships",
+      "status": "passed"
+    },
+    {
+      "name": "manifest binds exact bytes and rejects a substituted member",
+      "status": "passed"
+    },
+    {
+      "name": "an independent ZIP reader sees the exact index, unchanged bytes and verifiable signed manifest",
+      "status": "passed"
+    },
+    {
+      "name": "product Deal lifecycle Deal Setup and Paid Preflight authority tables are forced-RLS and write through definer functions",
+      "status": "passed"
+    },
+    {
+      "name": "deterministic Analysis persists typed, immutable and isolated lineage",
+      "status": "passed"
+    },
+    {
+      "name": "separate development signer binds exact manifest bytes and cannot be selected in production",
+      "status": "passed"
+    },
+    {
+      "name": "Knowledge authority tables are forced-RLS and runtime write-denied",
+      "status": "passed"
+    },
+    {
+      "name": "financial AI tasks accept decimal, lineage-bearing proposals only",
+      "status": "passed"
+    },
+    {
+      "name": "analysis drafts cannot smuggle authority fields or foreign source locators",
+      "status": "passed"
+    },
+    {
+      "name": "complete AI output cannot silently omit every result",
+      "status": "passed"
+    },
+    {
+      "name": "financial proposals reject a value whose lexical scale disagrees with precision",
+      "status": "passed"
+    },
+    {
+      "name": "financial values use exact decimal arithmetic and preserve precision",
+      "status": "passed"
+    },
+    {
+      "name": "EV-to-equity tie-out records deterministic checks and replays identically",
+      "status": "passed"
+    },
+    {
+      "name": "financial normalization rejects exponent notation and sign/precision mismatches",
+      "status": "passed"
+    },
+    {
+      "name": "dedicated worker and dispatcher pools load the configured database CA",
+      "status": "passed"
+    },
+    {
+      "name": "worker and dispatcher principals cannot query tenant tables directly",
+      "status": "passed"
+    },
+    {
+      "name": "runtime role and tenant tables enforce the forced-RLS boundary",
+      "status": "passed"
+    },
+    {
+      "name": "durable Job tables are forced-RLS and worker procedures are the only write seam",
+      "status": "passed"
+    },
+    {
+      "name": "database policy cannot be redirected to a different Deal by a caller-supplied object identity",
+      "status": "passed"
+    },
+    {
+      "name": "commerce authority tables are forced-RLS and provider evidence has no raw payload column",
+      "status": "passed"
+    },
+    {
+      "name": "source intake source and protected-object tables are forced-RLS and write through a non-login definer",
+      "status": "passed"
+    },
+    {
+      "name": "source packet migration declares immutable packet, objective, ceiling, and condition boundaries",
+      "status": "passed"
+    },
+    {
+      "name": "Supabase Auth identity is mapped to one product actor and requires passkey assurance",
+      "status": "passed"
+    },
+    {
+      "name": "workbook AI findings stay proposals on the exact delivered pair",
+      "status": "passed"
+    },
+    {
+      "name": "workbook commentary keeps current fragment citations separate from calculation and stale IDs",
+      "status": "passed"
+    },
+    {
+      "name": "Workbook provider streaming preserves split Unicode, content, identity and usage",
+      "status": "passed"
+    },
+    {
+      "name": "Incomplete and failed provider streams cannot become accepted output",
+      "status": "passed"
+    }
+  ]
+}

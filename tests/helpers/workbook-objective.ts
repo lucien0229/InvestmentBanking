@@ -152,7 +152,7 @@ export async function prepareWorkbookObjective(
       purpose_code: "internal_deal_execution",
       scope_statement:
         "Synthetic valuation basis for exact artifact acceptance",
-      change_reason: "Ticket 12 development acceptance",
+      change_reason: "Workbook development acceptance",
       selected_source_records: sources.map((source) => ({
         source_record_id: source,
         reason: "Disclosed synthetic CSV basis",

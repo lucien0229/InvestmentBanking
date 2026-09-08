@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import crypto from "node:crypto";
+import fs from "node:fs/promises";
+import pg from "pg";
 import { buildApi } from "../../apps/api/src/app.js";
 import { createTestDatabase } from "../../apps/api/src/test-database.js";
 import { hashToken } from "../../apps/api/src/database.js";
@@ -11,6 +13,7 @@ import { WorkbookRuntime } from "../../apps/api/src/workbook-runtime.js";
 import { ExportRuntime } from "../../apps/api/src/export-worker.js";
 import { LocalAuthAdapter } from "../../apps/api/src/auth.js";
 import { canonicalJson, sha256 } from "../../apps/api/src/artifact-integrity.js";
+import { encryptProtected, protectedPath } from "../../apps/api/src/sources.js";
 
 test("Exact controlled loop exports real Office files with one leased identity and independent graduation", {skip: !process.env.OFFICE_RENDERER_SOCKET}, async (t) => {
   const database = await createTestDatabase();
@@ -193,6 +196,9 @@ test("Exact controlled loop exports real Office files with one leased identity a
   const downloadKey=crypto.randomUUID(),downloadBody={export_id:receipt.id,purpose:'internal_export_download'};
   const downloadGrant=await api.inject({method:'POST',url:'/api/v1/sensitive-action-grants',headers:{cookie},payload:{deal_id:deal,action:'export_object_retrieval',resource_id:receipt.id,dependency_digest:receipt.archive.sha256,idempotency_key:downloadKey,command:downloadBody}});assert.equal(downloadGrant.statusCode,201,downloadGrant.body);
   const objectGrant=await api.inject({method:'POST',url:root+`/internal-controlled-exports/${receipt.id}/object-grants`,headers:{cookie,'idempotency-key':downloadKey,'if-match':`"${receipt.archive.sha256}"`,'sensitive-action-grant':downloadGrant.json().data.grant_token},payload:downloadBody});assert.equal(objectGrant.statusCode,201,objectGrant.body);
+  const replayDownload=await api.inject({method:'POST',url:root+`/internal-controlled-exports/${receipt.id}/object-grants`,headers:{cookie,'idempotency-key':downloadKey,'if-match':`"${receipt.archive.sha256}"`},payload:downloadBody});assert.equal(replayDownload.statusCode,201,replayDownload.body);
+  assert.equal(replayDownload.json().data.id,objectGrant.json().data.id);assert.equal(replayDownload.json().data.grant_token,objectGrant.json().data.grant_token);assert.equal(replayDownload.json().data.expires_at,objectGrant.json().data.expires_at);
+  const downloadCollision=await api.inject({method:'POST',url:root+`/internal-controlled-exports/${receipt.id}/object-grants`,headers:{cookie,'idempotency-key':downloadKey,'if-match':`"${'0'.repeat(64)}"`},payload:downloadBody});assert.equal(downloadCollision.statusCode,409,downloadCollision.body);
   const zip=await api.inject({url:root+`/internal-controlled-exports/${receipt.id}/content`,headers:{cookie,authorization:`ObjectGrant ${objectGrant.json().data.grant_token}`}});assert.equal(zip.statusCode,200,zip.body.slice(0,200));assert.equal(sha256(zip.rawPayload),receipt.archive.sha256);
   const guide=await read('/guide');assert.equal(guide.first_value.id,firstValue.first_value.id);assert.equal(guide.graduation,null);
   const graduation=await api.inject({method:'POST',url:root+'/guide/graduations',headers:{cookie,'idempotency-key':crypto.randomUUID(),'if-match':`"${guide.etag}"`},payload:{intent:'enter_deal_execution_desk'}});assert.equal(graduation.statusCode,201,graduation.body);
@@ -207,10 +213,35 @@ test("Exact controlled loop exports real Office files with one leased identity a
   const secondId=second.json().data.export_id;
   const operate=async(action:string)=>{const current=await read(`/internal-controlled-exports/${secondId}`);const r=await api.inject({method:'POST',url:root+`/internal-controlled-exports/${secondId}/controls`,headers:{cookie,'idempotency-key':crypto.randomUUID(),'if-match':`"${current.row_version}"`},payload:{action}});assert.equal(r.statusCode,201,r.body);return r.json().data;};
   assert.equal((await operate('cancel')).state,'canceled');assert.equal((await operate('retry')).state,'queued');
+  const worker=new pg.Pool({connectionString:process.env.JOB_WORKER_DATABASE_URL});const dispatcher=new pg.Pool({connectionString:process.env.JOB_DISPATCHER_DATABASE_URL});t.after(()=>worker.end());t.after(()=>dispatcher.end());
+  const lease=(await dispatcher.query('SELECT external_use.dispatch_export() AS data')).rows[0].data;
+  assert.equal(lease.job_id,second.json().data.id);await worker.query('SELECT external_use.begin_export($1,$2)',[lease.job_id,lease.lease_token]);
+  const stagingId=crypto.randomUUID();await worker.query('SELECT external_use.reserve_export_output($1,$2,$3)',[lease.job_id,lease.lease_token,stagingId]);
+  const staged=await encryptProtected(Buffer.from('Failed synthetic staging output'),'application/zip',stagingId);
+  await database.ownerPool.query('UPDATE jobs.job_scope SET revoked_at=clock_timestamp() WHERE id=(SELECT active_scope_id FROM external_use.export_job WHERE job_id=$1)',[lease.job_id]);
+  await assert.rejects(worker.query("SELECT external_use.finish_export($1,$2,'{}','{}',NULL)",[lease.job_id,lease.lease_token]),/export_worker_scope_invalid/);
+  assert.equal((await read(`/internal-controlled-exports/${secondId}`)).archive,null);
+  await operate('cancel');await runtime.runOnce();await assert.rejects(fs.access(protectedPath(staged.storageKey)),/ENOENT/);
+  const committedObject=(await database.ownerPool.query('SELECT p.storage_key FROM object_store.protected_object p JOIN external_use.internal_export_object o ON o.protected_object_id=p.id WHERE o.export_id=$1',[receipt.id])).rows[0];await fs.access(protectedPath(committedObject.storage_key));
+  assert.ok((await database.ownerPool.query('SELECT cleaned_at FROM external_use.export_staging_object WHERE object_id=$1',[stagingId])).rows[0].cleaned_at);
+  await operate('retry');
   const failingRuntime=new ExportRuntime({signer:{async sign(){throw new Error('export_signer_unavailable');}}});t.after(()=>failingRuntime.close());await failingRuntime.runOnce();
   assert.equal((await read(`/internal-controlled-exports/${secondId}`)).state,'failed_retryable');
   await operate('retry');await runtime.runOnce();assert.equal((await read(`/internal-controlled-exports/${secondId}`)).state,'completed');
   assert.equal((await read('/internal-controlled-exports')).length,2,'Cancel/failure/resume preserve one identity for each accepted command');
   const preserved=await read('/guide');assert.equal(preserved.first_value.id,firstValue.first_value.id);assert.equal(preserved.graduation.id,graduated.graduation.id);
   const scopes=await database.ownerPool.query("SELECT s.operation_code,s.revoked_at,a.outcome FROM jobs.job_scope s JOIN jobs.job_attempt a ON a.id=s.attempt_id WHERE s.job_id=$1",[exported.id]);assert.equal(scopes.rows[0].operation_code,'internal_controlled_export');assert.equal(scopes.rows[0].outcome,'succeeded');assert.ok(scopes.rows[0].revoked_at);
+  const native=(await database.ownerPool.query("SELECT protected_object_id FROM deliverable.artifact WHERE revision_id=$1 AND role='native'",[revision])).rows[0].protected_object_id;
+  // Owner-only fault injection in the isolated test database; ordinary product
+  // mutations cannot alter an attached artifact's immutable storage record.
+  const lifecycleFault=async(state:string)=>{const owner=await database.ownerPool.connect();try{await owner.query('BEGIN');await owner.query("SET LOCAL session_replication_role=replica");await owner.query('UPDATE object_store.protected_object SET lifecycle_status=$1 WHERE id=$2',[state,native]);await owner.query('COMMIT');}catch(error){await owner.query('ROLLBACK');throw error;}finally{owner.release();}};
+  await lifecycleFault('tombstoned');
+  const unavailable=await api.inject({method:'POST',url:root+'/internal-export-reviews',headers:{cookie,'idempotency-key':crypto.randomUUID()},payload:{revision_id:revision,purpose:'inspection'}});assert.equal(unavailable.statusCode,201,unavailable.body);assert.ok(unavailable.json().data.scope.hard_blockers.some((b:{code:string})=>b.code==='exact_artifact_unavailable'));
+  const blockedStream=()=>api.inject({url:root+`/internal-controlled-exports/${receipt.id}/content`,headers:{cookie,authorization:`ObjectGrant ${objectGrant.json().data.grant_token}`}});
+  assert.equal((await blockedStream()).statusCode,409,'A retained stream capability cannot bypass current artifact lifecycle');
+  await lifecycleFault('active');
+  const rights=await command('rights-assessments',{source_record_id:objective.source_record_id,purpose:'internal_deal_execution',rights:'blocked',permitted_operations:[],conditions:['Synthetic authority withdrawal'],basis:{evidence:'Controlled export negative acceptance'}});assert.equal(rights.prospective_reliance,'removed');
+  assert.equal((await blockedStream()).statusCode,409,'Current Source rights block retrieval of a previously completed archive');
+  const changedScope=await grant();assert.equal(changedScope.statusCode,412,changedScope.body);assert.equal(changedScope.json().code,'export_version_conflict');
+  assert.equal((await read('/internal-controlled-exports')).length,2);assert.equal((await read('/guide')).graduation.id,graduated.graduation.id);
 });
