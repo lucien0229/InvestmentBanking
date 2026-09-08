@@ -1,5 +1,6 @@
 import { registerDeliverableRoutes } from "./deliverables.js";
 import { registerControlledExportRoutes } from "./controlled-export.js";
+import { registerReimportRoutes } from "./reimport.js";
 import crypto from "node:crypto";
 import { Readable } from "node:stream";
 import { setTimeout as pause } from "node:timers/promises";
@@ -351,6 +352,7 @@ export async function buildApi(options: BuildApiOptions = {}): Promise<FastifyIn
   registerImpactRoutes(api, database, { requireBanker, commandKey });
   registerDeliverableRoutes(api, database, { requireBanker, commandKey });
   registerControlledExportRoutes(api, database, { requireBanker, commandKey, auth, authMode });
+  registerReimportRoutes(api, database, { requireBanker, commandKey });
   if (process.env.APP_ENV === "production" && !options.aiProvider) throw new Error("live HelloX AI provider is required in production");
   registerAiSourceProposalRoutes(api, database, { requireBanker, commandKey }, { provider: options.aiProvider });
 
