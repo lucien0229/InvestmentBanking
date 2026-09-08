@@ -328,6 +328,24 @@ function Preview({
   );
 }
 
+export function AuctionControlWorkbookSurface({ dealId }: { dealId: string }) {
+  const [items, setItems] = useState<Deliverable[]>([]);
+  const [loaded, setLoaded] = useState(false);
+  useEffect(() => {
+    fetch(`/api/v1/deals/${dealId}/auction-control-workbooks`, { credentials: "same-origin", cache: "no-store" })
+      .then(async (response) => response.ok ? response.json() : null)
+      .then((payload) => { setItems(Array.isArray(payload?.data) ? payload.data : []); setLoaded(true); })
+      .catch(() => setLoaded(true));
+  }, [dealId]);
+  const current = items[0];
+  return <div data-od-id="auction-control-workbook-surface">
+    <PageHeader eyebrow="Deal workspace · Auction Control Workbook" title="Auction Control Workbook" description="The first visible view is an executive control surface over governed Buyer and process state. Native XLSX and Reader PDF share one exact Revision identity; neither becomes the source of truth." actions={<><StatusBadge tone="warning">External use blocked</StatusBadge><span className="dc-mono">auction-control-1.0.0</span></>} />
+    <div className="dc-grid-three"><article className="dc-surface-card"><span className="dc-eyebrow">Native Artifact</span><h2>XLSX</h2><p>{current?.reader_available ? "Exact paired output available" : "Generation required"}</p><StatusBadge tone={current?.reader_available ? "success" : "warning"}>{current?.reader_available ? "Paired" : "Pending"}</StatusBadge></article><article className="dc-surface-card"><span className="dc-eyebrow">Reader Copy</span><h2>PDF</h2><p>Exact Revision, manifest and lineage identity</p><StatusBadge tone="info">Reader</StatusBadge></article><article className="dc-surface-card"><span className="dc-eyebrow">Readiness</span><h2>Review required</h2><p>No aggregate ready / OK score is calculated</p><StatusBadge tone="warning">Blocker-first</StatusBadge></article></div>
+    <section className="dc-surface-card"><h2>Executive Control · first tab</h2><div className="dc-table-wrap"><table><thead><tr><th>Process family</th><th>Current state</th><th>Authoritative boundary</th><th>Next controlled action</th></tr></thead><tbody>{[["Buyer universe","Candidate / Approved Buyer distinct","Buyer Candidate + typed Human Decision","Review exact version and restrictions"],["Outreach / NDA / Access","Not applicable until authority exists","No later process object fabricated","Continue in its dedicated ticket"],["Diligence / Bids / Milestones","Not applicable until authority exists","Planned, occurred and current remain distinct","Continue in its dedicated ticket"],["History / lineage","Current snapshot","Stable identity → exact cell/range → Reader page","Inspect manifest and QC"]].map(([family,state,boundary,next]) => <tr key={family}><td><strong>{family}</strong></td><td><StatusBadge tone={state.startsWith("Not") ? "info" : "warning"}>{state}</StatusBadge></td><td>{boundary}</td><td>{next}</td></tr>)}</tbody></table></div><p className="dc-inline-notice">{loaded ? (current ? `Authoritative deliverable ${current.id} loaded for this Deal.` : "No authenticated deliverable receipt was returned; the control view remains inspect-only.") : "Loading authoritative deliverable receipt…"}</p></section>
+    <section className="dc-surface-card"><h2>Stable identity and Office boundary</h2><div className="dc-grid-two"><p>Buyer Candidate, approval, process state, history and exact workbook ranges remain linked bidirectionally in the manifest lineage.</p><p>Declared path: open → inspect → edit → save → reopen → reimport. Protected Banker Notes must survive every supported round trip.</p></div><div className="dc-page-actions"><a className="dc-button dc-button-secondary" href={`/app/deals/${dealId}/auction-process`}>Inspect Buyer universe</a><a className="dc-button dc-button-secondary" href={`/app/deals/${dealId}/execution-package`}>Return to Execution Package</a></div></section>
+  </div>;
+}
+
 export function WorkbookSurface({
   dealId,
   slug,

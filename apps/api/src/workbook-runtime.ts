@@ -39,6 +39,8 @@ type WorkbookInput = {
   audience: string;
   calculations: unknown[];
   limitations: string[];
+  template_version?: string;
+  process_state?: Record<string, unknown>;
 };
 export type RenderedWorkbook = {
   report: Record<string, unknown>;
@@ -57,13 +59,13 @@ export interface OfficeRenderer {
 export class SocketOfficeRenderer implements OfficeRenderer {
   async render(input: WorkbookInput): Promise<RenderedWorkbook> {
     return this.call({
-      operation: "build_analysis_workbook",
+      operation: input.template_version === "auction-control-1.0.0" ? "build_auction_control_workbook" : "build_analysis_workbook",
       input,
     }) as Promise<RenderedWorkbook>;
   }
   async inspect(input: WorkbookInput, native: Buffer, reader: Buffer) {
     return this.call({
-      operation: "inspect_analysis_workbook",
+      operation: input.template_version === "auction-control-1.0.0" ? "inspect_auction_control_workbook" : "inspect_analysis_workbook",
       input,
       native: native.toString("base64"),
       reader: reader.toString("base64"),
@@ -75,7 +77,7 @@ export class SocketOfficeRenderer implements OfficeRenderer {
     const body = JSON.stringify(payload);
     if (
       Buffer.byteLength(body) >
-      (payload.operation === "build_analysis_workbook"
+      (payload.operation === "build_analysis_workbook" || payload.operation === "build_auction_control_workbook"
         ? 250000
         : 64 * 1024 * 1024)
     )
@@ -127,6 +129,9 @@ export class SocketOfficeRenderer implements OfficeRenderer {
   }
 }
 function classify(path: string) {
+  if (path === "auction-control.xlsx")
+    return { role: "native", media: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" };
+  if (path === "auction-control.pdf") return { role: "reader", media: "application/pdf" };
   if (path === "analysis-valuation.xlsx")
     return {
       role: "native",

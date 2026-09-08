@@ -9,7 +9,7 @@ import { useEffect, useMemo, useState } from "react";
 import { PageHeader, StatePanel, StatusBadge } from "./ui";
 import { AnalysisWorkspace, ImpactAssessmentRoute } from "./analysis-workspace";
 import { EvidenceWorkspace } from "./evidence-workspace";
-import { WorkbookSurface } from "./workbooks";
+import { AuctionControlWorkbookSurface, WorkbookSurface } from "./workbooks";
 
 type Tone = "neutral" | "info" | "warning" | "critical" | "success";
 
@@ -120,7 +120,7 @@ function ReadinessSurface({ dealId }: { dealId: string }) {
 }
 
 function PackageSurface({ dealId }: { dealId: string }) {
-  return <><PageHeader eyebrow="Deal workspace · execution package" title="Execution Package" description="Inspect applicability, exact Revision, Native Artifact, Reader Copy, QC and external-use boundaries as one controlled package." actions={<StatusBadge tone="warning">Review required</StatusBadge>} /><MetricGrid items={[{ label: "Current Revision", value: "0.4", detail: "Revision 0.3 remains preserved" }, { label: "Native Artifact", value: "XLSX", detail: "Exact hash and locator profile available", tone: "success" }, { label: "Reader Copy", value: "PDF", detail: "Parity finding QC-022 remains open", tone: "warning" }]} /><section className="dc-surface-card"><h2>Package contents</h2><div className="dc-grid-two"><ul><li>Source lineage and deterministic validation receipt</li><li>Native XLSX and PDF Reader Copy</li><li>QC findings and Impact Assessment</li></ul><ul><li>Revision and authorization boundary</li><li>Internal Controlled Export Manifest</li><li>External-use status: not authorized</li></ul></div><div className="dc-page-actions"><a className="dc-button" href={`${dealBase(dealId)}/review-readiness/package-readiness`}>Open Package Readiness</a><a className="dc-button dc-button-secondary" href={`${dealBase(dealId)}/deliverables/del-004`}>Inspect deliverable</a></div></section></>;
+  return <><PageHeader eyebrow="Deal workspace · execution package" title="Execution Package" description="Inspect applicability, exact Revision, Native Artifact, Reader Copy, QC and external-use boundaries as one controlled package." actions={<StatusBadge tone="warning">Review required</StatusBadge>} /><MetricGrid items={[{ label: "Current Revision", value: "0.4", detail: "Revision 0.3 remains preserved" }, { label: "Native Artifact", value: "XLSX", detail: "Exact hash and locator profile available", tone: "success" }, { label: "Reader Copy", value: "PDF", detail: "Parity finding QC-022 remains open", tone: "warning" }]} /><section className="dc-surface-card"><h2>Package contents</h2><div className="dc-grid-two"><ul><li>Source lineage and deterministic validation receipt</li><li>Native XLSX and PDF Reader Copy</li><li>QC findings and Impact Assessment</li></ul><ul><li>Revision and authorization boundary</li><li>Internal Controlled Export Manifest</li><li>External-use status: not authorized</li></ul></div><div className="dc-page-actions"><a className="dc-button" href={`${dealBase(dealId)}/review-readiness/package-readiness`}>Open Package Readiness</a><a className="dc-button dc-button-secondary" href={`${dealBase(dealId)}/auction-control-workbook`}>Open Auction Control Workbook</a><a className="dc-button dc-button-secondary" href={`${dealBase(dealId)}/deliverables/del-004`}>Inspect deliverable</a></div></section></>;
 }
 
 function HistorySurface({ dealId }: { dealId: string }) {
@@ -212,6 +212,7 @@ export default function DealSurfacePage({ dealId, slug }: { dealId: string; slug
   if (path === "evidence-decisions") return <EvidenceInspectorSurface dealId={dealId} />;
   if (path === "analysis") return <AnalysisSurface dealId={dealId} />;
   if (path === "auction-process") return <BuyerUniverseSurface dealId={dealId} />;
+  if (path === "auction-control-workbook") return <AuctionControlWorkbookSurface dealId={dealId} />;
   if (path === "execution-package") return <PackageSurface dealId={dealId} />;
   if (path === "review-readiness") return <ReadinessSurface dealId={dealId} />;
   if (path === "history-portability") return <HistorySurface dealId={dealId} />;

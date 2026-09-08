@@ -31,6 +31,14 @@ export const deliverableBody = z
     ]),
   })
   .strict();
+export const auctionControlBody = z
+  .object({
+    title: text,
+    purpose: text,
+    audience: text,
+    confidentiality: z.enum(["public", "internal", "confidential", "restricted"]),
+  })
+  .strict();
 export const revisionBody = z
   .object({
     basis: z
@@ -302,6 +310,58 @@ export function registerDeliverableRoutes(
       },
       { command: true, status: 201 },
     ),
+  );
+  api.get(
+    `${root}/auction-control-workbooks`,
+    scoped((client) =>
+      query(
+        client,
+        "SELECT coalesce(jsonb_agg(to_jsonb(d)||jsonb_build_object('current_revision_ordinal',(SELECT ordinal FROM deliverable.deliverable_revision WHERE id=d.current_revision_id),'reader_available',EXISTS(SELECT 1 FROM deliverable.artifact WHERE revision_id=d.current_revision_id AND role='reader')) ORDER BY d.created_at DESC),'[]') AS data FROM deliverable.deliverable d WHERE d.deliverable_type='auction_control_workbook'",
+      ),
+    ),
+  );
+  api.post(
+    `${root}/auction-control-workbooks`,
+    scoped(
+      (client, request) => {
+        const body = auctionControlBody.parse(request.body);
+        return query(
+          client,
+          "SELECT deliverable.create_auction_control_deliverable($1,$2,$3) AS data",
+          [...commandArgs(request, body), body],
+        );
+      },
+      { command: true, status: 201 },
+    ),
+  );
+  api.post(
+    `${root}/auction-control-workbooks/:deliverable_id/revisions`,
+    async (request, reply) => {
+      const match = String(request.headers["if-match"] ?? "").match(/^"([1-9]\d*)"$/);
+      if (!match) return problem(reply, 428, "if_match_required", request.url);
+      return scoped(
+        (client, req) => {
+          const body = z.object({ limitations: z.array(z.string().min(1).max(500)).max(20).default([]) }).strict().parse(req.body);
+          return query(
+            client,
+            "SELECT deliverable.create_auction_control_revision($1,$2,$3,$4,$5,$6) AS data",
+            [uuid.parse((req.params as Record<string, string>).deliverable_id), Number(match[1]), ...commandArgs(req, body), JSON.stringify(body.limitations), process.env.RELEASE_ID ?? "local-development"],
+          );
+        },
+        { command: true, status: 202 },
+      )(request, reply);
+    },
+  );
+  api.get(
+    `${root}/auction-control-workbooks/:deliverable_id/revisions/:revision_id/process-lineage`,
+    scoped((client, request) => {
+      const params = request.params as Record<string, string>;
+      return query(
+        client,
+        "SELECT coalesce(jsonb_agg(to_jsonb(l) ORDER BY l.object_type,l.object_id),'[]') AS data FROM deliverable.auction_control_lineage l JOIN deliverable.deliverable_revision r ON r.id=l.revision_id AND r.deliverable_id=$1 WHERE l.revision_id=$2",
+        [uuid.parse(params.deliverable_id), uuid.parse(params.revision_id)],
+      );
+    }),
   );
   api.get(
     `${root}/deliverables/:deliverable_id/revisions`,

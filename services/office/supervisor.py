@@ -36,10 +36,10 @@ class Handler(BaseHTTPRequestHandler):
             if self.path == '/v1/source':
                 if operation != 'inspect_source' or set(request) != {'operation','input','source'} or set(request['input']) != {'mode','family'} or request['input']['mode'] not in ('scan','parse') or request['input']['family'] not in ('xlsx','pptx','docx','pdf','csv'):
                     raise ValueError('input_contract')
-            elif operation == 'build_analysis_workbook':
+            elif operation in ('build_analysis_workbook','build_auction_control_workbook'):
                 if set(request) != {'operation','input'} or size > 250000:
                     raise ValueError('input_limit')
-            elif operation == 'inspect_analysis_workbook':
+            elif operation in ('inspect_analysis_workbook','inspect_auction_control_workbook'):
                 if set(request) != {'operation','input','native','reader'}:
                     raise ValueError('input_contract')
             else:
@@ -81,10 +81,10 @@ class Handler(BaseHTTPRequestHandler):
                         raise ValueError('malware_signatures_unavailable')
                     command += ['-v',f'{signatures}:/signatures:ro']
                     arguments=['/app/services/office/process_source.py']
-                elif operation == 'build_analysis_workbook':
+                elif operation in ('build_analysis_workbook','build_auction_control_workbook'):
                     arguments=['/app/services/office/run_workbook.py','/input/input.json','/output']
                 else:
-                    arguments=['/app/services/office/inspect_workbook.py','/input/input.json','/input/artifact.xlsx','/input/artifact.pdf','/output/inspection-report.json']
+                    arguments=['/app/services/office/inspect_workbook.py' if operation == 'inspect_analysis_workbook' else '/app/services/office/inspect_auction_workbook.py','/input/input.json','/input/artifact.xlsx','/input/artifact.pdf','/output/inspection-report.json']
                 command += ['--entrypoint','python',IMAGE,*arguments]
                 try:
                     result = subprocess.run(command, capture_output=True, timeout=180)
@@ -106,16 +106,16 @@ class Handler(BaseHTTPRequestHandler):
                     self.end_headers()
                     self.wfile.write(payload)
                     return
-                report = json.loads((root/'output'/'render-report.json').read_text()) if operation == 'build_analysis_workbook' else {'revision_id':request['input']['revision_id']}
+                report = json.loads((root/'output'/'render-report.json').read_text()) if operation in ('build_analysis_workbook','build_auction_control_workbook') else {'revision_id':request['input']['revision_id']}
                 inspection = json.loads((root/'output'/'inspection-report.json').read_text())
                 report['container_digest']=IMAGE
-                if operation == 'build_analysis_workbook':
+                if operation in ('build_analysis_workbook','build_auction_control_workbook'):
                     (root/'output'/'render-report.json').write_text(json.dumps(report,indent=2))
                 files = []
                 for file in sorted((root/'output').iterdir()):
                     if file.name == 'inspection-report.json':
                         continue
-                    if file.is_symlink() or not re.fullmatch(r'(analysis-valuation\.(xlsx|pdf)|render-report\.json|(native|reader)-page-[1-9]\d{0,2}\.png)', file.name):
+                    if file.is_symlink() or not re.fullmatch(r'(analysis-valuation\.(xlsx|pdf)|auction-control\.(xlsx|pdf)|render-report\.json|(native|reader)-page-[1-9]\d{0,2}\.png)', file.name):
                         raise ValueError('output_path_invalid')
                     files.append({'path':file.name,'content':base64.b64encode(file.read_bytes()).decode()})
                 payload = json.dumps({'report':report,'checks':inspection['checks'],'files':files}).encode()
