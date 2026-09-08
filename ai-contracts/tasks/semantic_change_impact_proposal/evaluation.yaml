@@ -1,0 +1,6 @@
+evaluation_suite_version: 1.0.0
+fixtures:
+  - fixtures/deterministic_closure_only.json
+  - fixtures/incomplete_closure_abstains.json
+gates: [schema, deterministic_closure_only, no_authority, abstention_boundary]
+forbidden_authority: [readiness, professional_usability, external_action]

@@ -1,0 +1,1 @@
+{"name":"deterministic closure only","input":{"deterministic_results":[{"object_kind":"deliverable_revision","object_id":"00000000-0000-0000-0000-000000000001"}]},"expected":{"status":"complete","requires_human_decision":true}}

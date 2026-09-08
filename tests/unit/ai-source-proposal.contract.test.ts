@@ -9,6 +9,7 @@ import {
   validateAiOutput,
   type AiOutput,
 } from "../../packages/ai-contracts/src/index.js";
+import { SyntheticAiProvider } from "../../apps/api/src/ai-source-proposals.js";
 
 const ids = {
   accountId: "00000000-0000-4000-8000-000000000001",
@@ -102,6 +103,27 @@ test("one repair is structure-only and semantic changes reject the response", ()
   assert.equal(detectRepairSemanticChange(original, repaired), false);
   repaired.results[0]!.payload.proposition = "changed";
   assert.equal(detectRepairSemanticChange(original, repaired), true);
+});
+
+test("semantic impact proposals stay inside the deterministic closure and remain proposal-only", async () => {
+  const revisionId = "00000000-0000-4000-8000-000000000501";
+  const itemId = "00000000-0000-4000-8000-000000000502";
+  const envelope = buildAiInputEnvelope({
+    taskDefinition: "semantic_change_impact_proposal", taskDefinitionVersion: "1.0.0", promptPackageVersion: "1.0.0", inputContractVersion: "1.0.0", outputContractVersion: "1.0.0", aiEvidencePolicyVersion: "1.0.0", contextPlanVersion: "1.0.0",
+    accountId: ids.accountId, dealId: ids.dealId, jobId: ids.jobId, jobScopeId: ids.jobScopeId, packetVersionId: ids.packetVersionId, workObjective: "Assess exact material change closure", intendedUse: "internal_analysis", audience: "individual_banker",
+    materialClassification: { provenanceClass: "synthetic", confidentialityClass: "internal", deIdentificationPosture: "not_applicable", assessmentIds: ["00000000-0000-4000-8000-000000000503"] }, rightsAssessmentId: "00000000-0000-4000-8000-000000000504",
+    fragments: [{ id: ids.fragmentId, sourceRecordId: ids.sourceRecordId, representationId: ids.representationId, locator: { kind: "pdf_page", page: 2 }, contentDigest: "sha256:fragment" }], requiredInputKeys: [ids.fragmentId], excludedInputKeys: [], failedInputKeys: [], limits: { maxContextBytes: 120000, maxOutputTokens: 8000, timeoutSeconds: 600, maxCostMinorUnits: 500 },
+    controlledInputs: { currentRevisions: [{ id: revisionId }], deterministicResults: [{ id: "00000000-0000-4000-8000-000000000505", items: [{ id: itemId, object_kind: "deliverable_revision", object_id: revisionId }] }] },
+  });
+  const provider = new SyntheticAiProvider();
+  const result = await provider.invoke({ taskDefinition: "semantic_change_impact_proposal", envelope, fragments: [{ fragment_id: ids.fragmentId, source_record_id: ids.sourceRecordId, source_record_version: 1, source_record_digest: "sha256:source", representation_id: ids.representationId, representation_digest: "sha256:representation", locator: { kind: "pdf_page", page: 2 }, content_digest: "sha256:fragment", coverage_code: "complete", content_text: "A source statement", provenance_class: "synthetic", confidentiality_class: "internal", de_identification_posture: "not_applicable", rights_assessment_id: "00000000-0000-4000-8000-000000000504" }] });
+  assert.deepEqual(validateAiOutput(result.response, envelope), { ok: true });
+  const foreign = structuredClone(result.response) as unknown as { results: Array<{ payload: { affected_object_id: string } }> };
+  foreign.results[0]!.payload.affected_object_id = "00000000-0000-4000-8000-000000000999";
+  assert.equal(validateAiOutput(foreign, envelope).ok, false);
+  const omitted = structuredClone(result.response) as unknown as { results: Array<unknown> };
+  omitted.results = [];
+  assert.equal(validateAiOutput(omitted, envelope).ok, false);
 });
 
 test("each concrete task ships a versioned strict output contract and synthetic evaluation manifest", () => {

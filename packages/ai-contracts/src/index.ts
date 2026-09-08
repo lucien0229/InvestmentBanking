@@ -19,6 +19,7 @@ export const taskDefinitions = [
   "workbook_commentary_draft",
   "deliverable_semantic_qc",
   "native_reader_semantic_parity_review",
+  "semantic_change_impact_proposal",
 ] as const;
 export type TaskDefinition = (typeof taskDefinitions)[number];
 export type MaterialProvenanceClass = "synthetic" | "real";
@@ -301,6 +302,14 @@ const valuationCommentaryPayload = z.object({
   evidence_ids: z.array(z.string().uuid()).max(30), scenario_version_ids: z.array(z.string().uuid()).max(30),
   limitations: z.array(z.string().min(1).max(500)).max(20),
 }).strict();
+const semanticChangeImpactPayload = z.object({
+  candidate_key: z.string().min(1).max(160),
+  affected_object_kind: z.enum(["source_record","evidence","claim","fact","assumption","calculation_version","calculation_run","model_version","scenario_version","analysis_version","cell_range","deliverable_revision","reader_copy","artifact","review","qc_finding","human_decision","external_use_decision","package_readiness"]),
+  affected_object_id: z.string().uuid(),
+  impact_code: z.enum(["potentially_affected","materially_affected","unable_to_assess"]),
+  proposed_action: z.enum(["recalculate","regenerate","rereview","block_circulation","unable_to_assess"]),
+  rationale: z.string().min(1).max(2000),
+}).strict();
 export const workbookAiTasks = ["workbook_commentary_draft", "deliverable_semantic_qc", "native_reader_semantic_parity_review"] as const;
 const boundedText = z.string().trim().min(1).max(2000);
 const regionKey = z.string().min(1).max(160);
@@ -326,6 +335,7 @@ const taskPayloads: Record<TaskDefinition, z.ZodType<Record<string, unknown>>> =
   workbook_commentary_draft: workbookCommentaryPayload,
   deliverable_semantic_qc: deliverableQcPayload,
   native_reader_semantic_parity_review: nativeReaderParityPayload,
+  semantic_change_impact_proposal: semanticChangeImpactPayload,
 };
 
 /** Use the same structural contract for provider instructions and deterministic validation. */
@@ -359,6 +369,7 @@ export function validateAiOutput(value: unknown, envelope: AiInputEnvelope): { o
     const record = value as Record<string, unknown>;
     const typedKind = kind === "calculations" ? ("result" in record && "checks" in record ? "calculation_runs" : "method_code" in record ? "calculation_versions" : null) : kind === "models" ? ("version_ordinal" in record ? "model_versions" : null) : kind === "scenarios" ? ("version_ordinal" in record ? "scenario_versions" : null) : kind;
     if (typedKind && "id" in record && typeof record.id === "string") controlled.set(record.id, typedKind);
+    if (kind === "deterministic_results" && "object_id" in record && typeof record.object_id === "string") controlled.set(record.object_id, "impact_objects");
     for (const [key, item] of Object.entries(record)) {
       const childKind = key === "runs" ? "calculation_runs" : key === "versions" && kind === "calculations" ? "calculation_versions" : key === "versions" && kind === "models" ? "model_versions" : key === "versions" && kind === "scenarios" ? "scenario_versions" : kind;
       addControlled(item, childKind);
@@ -429,6 +440,27 @@ export function validateAiOutput(value: unknown, envelope: AiInputEnvelope): { o
       if (payload.model_version_id !== null && payload.model_version_id !== undefined && !modelIds.has(payload.model_version_id as string)) return { ok: false, code: "foreign_controlled_input", pointer: `results.${index}.payload.model_version_id` };
       for (const [key, values, allowed] of [["calculation_run_ids", payload.calculation_run_ids, calcIds], ["assumption_ids", payload.assumption_ids, assumptionIds], ["evidence_ids", payload.evidence_ids, evidenceIds], ["scenario_version_ids", payload.scenario_version_ids, scenarioIds]] as const) { const invalid = assertIds(values, allowed, `results.${index}.payload.${key}`); if (invalid) return invalid; }
       if (payload.model_version_id === null && !(payload.calculation_run_ids as unknown[]).length && !(payload.assumption_ids as unknown[]).length && !(payload.evidence_ids as unknown[]).length && !(payload.scenario_version_ids as unknown[]).length) return { ok: false, code: "controlled_input_missing", pointer: `results.${index}.payload` };
+    }
+    if (envelope.task.task_definition === "semantic_change_impact_proposal") {
+      const affectedId = payload.affected_object_id;
+      if (typeof affectedId !== "string" || !controlled.has(affectedId)) return { ok: false, code: "foreign_controlled_input", pointer: `results.${index}.payload.affected_object_id` };
+      if (payload.candidate_key !== result.candidate_key) return { ok: false, code: "candidate_key_mismatch", pointer: `results.${index}.payload.candidate_key` };
+    }
+  }
+  if (envelope.task.task_definition === "semantic_change_impact_proposal") {
+    const deterministicCandidates = new Set<string>();
+    const collectCandidates = (value: unknown): void => {
+      if (Array.isArray(value)) { value.forEach(collectCandidates); return; }
+      if (!value || typeof value !== "object") return;
+      const record = value as Record<string, unknown>;
+      if (typeof record.object_id === "string" && typeof record.object_kind === "string") deterministicCandidates.add(record.object_id);
+      Object.values(record).forEach(collectCandidates);
+    };
+    collectCandidates(envelope.inputs.deterministic_results);
+    if (deterministicCandidates.size > 0) {
+      const proposedCandidates = new Set(results.data.map((result) => (result.payload as Record<string, unknown>).affected_object_id).filter((id): id is string => typeof id === "string"));
+      const missing = [...deterministicCandidates].filter((id) => !proposedCandidates.has(id));
+      if (missing.length > 0) return { ok: false, code: "impact_candidate_omitted", pointer: "results" };
     }
   }
   return { ok: true };

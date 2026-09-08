@@ -97,6 +97,16 @@ test("Claim correction is append-only and exposes every dependent candidate", as
   assert.equal(fact.statusCode, 201, fact.body);
   const correction = await api.inject({ method: "POST", url: `/api/v1/deals/${database.dealId}/claims/${claimId}/corrections`, headers: { cookie: database.cookie, "idempotency-key": `correction-${crypto.randomUUID()}` }, payload: { corrected_value: "4.7", scope: "internal analysis", purpose: "valuation", rationale: "Corrected to the exact cash cell after reconciliation", evidence_relationship_ids: [relationshipId], alternatives: ["Retain original 6.2"] } });
   assert.equal(correction.statusCode, 201, correction.body); assert.equal(correction.json().data.origin, "correction"); assert.equal(correction.json().data.original.value, "6.2"); assert.ok(correction.json().data.dependent_candidates.some((candidate: { kind: string }) => candidate.kind === "fact"));
+  const impacts = await api.inject({ method: "GET", url: `/api/v1/deals/${database.dealId}/impact-assessments`, headers: { cookie: database.cookie } });
+  assert.equal(impacts.statusCode, 200, impacts.body);
+  const assessment = impacts.json().data[0];
+  assert.equal(assessment.material_change.trigger_kind, "claim");
+  assert.ok(assessment.items.some((item: { object_kind: string; impact_code: string }) => item.object_kind === "fact" && item.impact_code === "materially_affected"));
+  const pending = assessment.items.find((item: { circulation_blocked: boolean; recalculation_required: boolean; regeneration_required: boolean; rereview_required: boolean; impact_code: string }) => item.circulation_blocked || item.recalculation_required || item.regeneration_required || item.rereview_required);
+  assert.ok(pending);
+  const action = pending.recalculation_required ? "recalculate" : pending.regeneration_required ? "regenerate" : pending.rereview_required ? "rereview" : pending.circulation_blocked && pending.impact_code !== "materially_affected" ? "block_circulation" : "unable_to_assess";
+  const disposition = await api.inject({ method: "POST", url: `/api/v1/deals/${database.dealId}/impact-assessments/${assessment.id}/dispositions`, headers: { cookie: database.cookie, "idempotency-key": `impact-disposition-${crypto.randomUUID()}` }, payload: { items: [{ impact_item_id: pending.id, disposition_code: action }], rationale: "Reviewed exact downstream state and recorded the required follow-up." } });
+  assert.equal(disposition.statusCode, 201, disposition.body);
   const original = await api.inject({ method: "GET", url: `/api/v1/deals/${database.dealId}/claims/${claimId}`, headers: { cookie: database.cookie } });
   assert.equal(original.json().data[0].value, "6.2");
 });

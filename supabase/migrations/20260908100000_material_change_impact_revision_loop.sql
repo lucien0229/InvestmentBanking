@@ -268,7 +268,7 @@ BEGIN
     INSERT INTO impact_disposition(account_id,deal_id,assessment_id,impact_item_id,disposition_code,rationale,follow_up,decided_by) VALUES(p_account,p_deal,p_assessment,item_row.id,action,p_rationale,coalesce(p_follow_up,'{}'::jsonb),p_actor);
     count_items:=count_items+1;
   END LOOP;
-  SELECT count(*) INTO pending FROM impact_item i WHERE i.assessment_id=p_assessment AND NOT EXISTS(SELECT 1 FROM impact_disposition d WHERE d.impact_item_id=i.id);
+  SELECT count(*) INTO pending FROM impact_item i WHERE i.assessment_id=p_assessment AND NOT analysis.impact_item_resolved(i.id);
   UPDATE impact_assessment SET status=CASE WHEN pending=0 THEN 'recovered' ELSE 'partially_recovered' END, completed_at=CASE WHEN pending=0 THEN now() ELSE NULL END WHERE id=p_assessment;
   result:=jsonb_build_object('assessment_id',p_assessment,'dispositions',count_items,'status',(SELECT status FROM impact_assessment WHERE id=p_assessment),'idempotent_replayed',false);
   INSERT INTO analysis.command_idempotency(account_id,actor_id,deal_id,command_type,key_hash,request_digest,result_id) VALUES(p_account,p_actor,p_deal,'record_impact_disposition',p_key_hash,p_request_digest,p_assessment);
@@ -290,29 +290,32 @@ END $$;
 CREATE TRIGGER material_revision_link_after AFTER INSERT ON deliverable.deliverable_revision FOR EACH ROW EXECUTE FUNCTION analysis.link_material_revision();
 
 CREATE OR REPLACE FUNCTION deliverable.create_revision(p_parent uuid,p_expected bigint,p_key text,p_digest text,p_basis jsonb,p_limitations jsonb,p_release text,p_impact uuid,p_reason text) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=deliverable,analysis,knowledge,source,app,extensions,pg_catalog AS $$
-DECLARE parent deliverable.deliverable%ROWTYPE; replay jsonb; revision uuid:=gen_random_uuid(); job uuid:=gen_random_uuid(); input jsonb; basis jsonb; ordinal integer;
+DECLARE parent deliverable.deliverable%ROWTYPE; objective app.work_objective%ROWTYPE; replay jsonb; revision uuid:=gen_random_uuid(); job uuid:=gen_random_uuid(); input jsonb; basis jsonb; ordinal integer;
 BEGIN
   PERFORM deliverable.assert_write(); replay:=deliverable.replay('create_revision',p_key,p_digest); IF replay IS NOT NULL THEN RETURN replay; END IF;
   SELECT * INTO parent FROM deliverable.deliverable WHERE id=p_parent FOR UPDATE; IF NOT FOUND THEN RAISE EXCEPTION 'artifact_scope_unavailable'; END IF;
   IF parent.row_version<>p_expected THEN RAISE EXCEPTION 'artifact_version_conflict'; END IF;
+  SELECT * INTO objective FROM app.work_objective WHERE id=parent.work_objective_id AND account_id=parent.account_id AND deal_id=parent.deal_id;
+  IF NOT FOUND THEN RAISE EXCEPTION 'artifact_work_objective_required'; END IF;
+  PERFORM source.get_packet_worker_input(parent.account_id,parent.deal_id,objective.packet_version_id,objective.id,'native_artifact');
+  PERFORM source.get_packet_worker_input(parent.account_id,parent.deal_id,objective.packet_version_id,objective.id,'reader_copy');
   IF p_impact IS NOT NULL AND NOT EXISTS(SELECT 1 FROM analysis.impact_assessment WHERE id=p_impact AND account_id=parent.account_id AND deal_id=parent.deal_id) THEN RAISE EXCEPTION 'impact_assessment_not_found'; END IF;
   IF p_impact IS NOT NULL AND EXISTS(
     SELECT 1
     FROM analysis.impact_assessment ia
     JOIN analysis.impact_item ii ON ii.assessment_id=ia.id
-    LEFT JOIN analysis.impact_disposition idp ON idp.impact_item_id=ii.id
-    WHERE ia.id=p_impact AND idp.id IS NULL
+    WHERE ia.id=p_impact AND NOT analysis.impact_item_resolved(ii.id)
   ) THEN RAISE EXCEPTION 'impact_disposition_required'; END IF;
   IF p_impact IS NOT NULL AND length(btrim(coalesce(p_reason,'')))<20 THEN RAISE EXCEPTION 'change_reason_required'; END IF;
-  input:=deliverable.build_input(p_parent,revision,p_basis,p_limitations);
+  input:=deliverable.build_input(p_parent,revision,p_basis,p_limitations)||jsonb_build_object('work_objective_id',objective.id,'packet_version_id',objective.packet_version_id);
   SELECT coalesce(max(r.ordinal),0)+1 INTO ordinal FROM deliverable.deliverable_revision r WHERE deliverable_id=p_parent;
-  INSERT INTO deliverable.deliverable_revision(id,account_id,deal_id,deliverable_id,ordinal,predecessor_id,purpose,audience,confidentiality,template_version,build_input,basis_digest,created_by,impact_assessment_id,change_reason) VALUES(revision,parent.account_id,parent.deal_id,parent.id,ordinal,parent.current_revision_id,parent.purpose,parent.audience,parent.confidentiality,'analysis-valuation-1.0.0',input,encode(extensions.digest(input::text,'sha256'),'hex'),app.policy_actor_id(),p_impact,p_reason);
+  INSERT INTO deliverable.deliverable_revision(id,account_id,deal_id,deliverable_id,ordinal,predecessor_id,purpose,audience,confidentiality,template_version,build_input,basis_digest,created_by,work_objective_id,packet_version_id,impact_assessment_id,change_reason) VALUES(revision,parent.account_id,parent.deal_id,parent.id,ordinal,parent.current_revision_id,parent.purpose,parent.audience,parent.confidentiality,'analysis-valuation-1.0.0',input,encode(extensions.digest(input::text,'sha256'),'hex'),app.policy_actor_id(),objective.id,objective.packet_version_id,p_impact,p_reason);
   FOR basis IN SELECT value FROM jsonb_array_elements(p_basis) LOOP INSERT INTO deliverable.revision_calculation_run VALUES(parent.account_id,parent.deal_id,revision,(basis->>'calculation_run_id')::uuid) ON CONFLICT DO NOTHING; INSERT INTO deliverable.revision_model_version VALUES(parent.account_id,parent.deal_id,revision,(basis->>'model_version_id')::uuid) ON CONFLICT DO NOTHING; INSERT INTO deliverable.revision_scenario_version VALUES(parent.account_id,parent.deal_id,revision,(basis->>'scenario_version_id')::uuid) ON CONFLICT DO NOTHING; END LOOP;
   INSERT INTO jobs.job(id,account_id,deal_id,actor_id,command_type,purpose_code,accepted_inputs,input_digest,input_version,workflow_version,release_id,allowance_class,allowance_quantity,allowance_posture,workspace_posture_version,security_epoch,state) SELECT job,parent.account_id,parent.deal_id,app.policy_actor_id(),'analysis_workbook_build','analysis_workbook_build',jsonb_build_object('revision_id',revision,'basis',p_basis,'impact_assessment_id',p_impact),encode(extensions.digest(input::text,'sha256'),'hex'),'1.0.0','analysis-valuation-1.0.0',p_release,'analysis_workbook_build',1,'reserved',w.posture_version,a.security_epoch,'queued' FROM app.deal_workspace w JOIN app.account a ON a.id=w.account_id WHERE w.deal_id=parent.deal_id AND w.account_id=parent.account_id;
   INSERT INTO deliverable.workbook_job(job_id,account_id,deal_id,revision_id,input) VALUES(job,parent.account_id,parent.deal_id,revision,input);
   UPDATE deliverable.deliverable SET current_revision_id=revision,row_version=row_version+1 WHERE id=parent.id;
   IF p_impact IS NOT NULL THEN INSERT INTO analysis.impact_revision_link(assessment_id,account_id,deal_id,revision_id,predecessor_revision_id) VALUES(p_impact,parent.account_id,parent.deal_id,revision,parent.current_revision_id) ON CONFLICT DO NOTHING; END IF;
-  PERFORM app.record_audit('workbook_revision_requested','accepted','revision',revision::text,'exact_controlled_basis',coalesce(p_impact::text,''));
+  PERFORM app.record_audit('workbook_revision_requested','completed','revision',revision::text,'exact_controlled_basis',coalesce(p_impact::text,''));
   RETURN deliverable.remember('create_revision',p_key,p_digest,jsonb_build_object('id',job,'job_type','analysis_workbook_build','state','queued','revision_id',revision,'deliverable_id',parent.id,'row_version',parent.row_version+1,'impact_assessment_id',p_impact));
 END $$;
 GRANT EXECUTE ON FUNCTION deliverable.create_revision(uuid,bigint,text,text,jsonb,jsonb,text,uuid,text) TO app_runtime;
