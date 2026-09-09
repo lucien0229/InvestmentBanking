@@ -16,7 +16,18 @@ Ticket 18 implements the stage-required Teaser from a strict `teaser_content_dra
 
 ## Development-server acceptance
 
-Pending final remote job execution and authenticated route verification. The remote migration and Office image build were prepared, but the development host currently rejects SSH with `Not allowed at this time`/banner timeout and its public upstream returns `502 Bad Gateway`. The final evidence must record the exact deliverable, Revision, job, QC, artifact hashes, Office image digest, and public UI route after the host accepts a session.
+The restored development host completed a real Ticket 18 build on release `20260909-ticket18`.
+
+- Route: `https://dev-banking.aptoren.com/app/deals/290c3734-3b1a-442d-beab-89ce0f8b5e99/teaser?deliverable_id=ba1d37e8-5280-42d8-b9ee-3d91b78f2a9a` returned HTTP 200 and the served UI shell contains `Teaser`, `Applicability`, `Native`, `Reader`, `Lineage`, and `Review` markers.
+- Deliverable: `ba1d37e8-5280-42d8-b9ee-3d91b78f2a9a` (`current_stage_required`).
+- Revision: `d97e9ef4-4dd8-44c3-8748-0bbf62324cd9` (ordinal 9, proposal-only, synthetic controlled inputs).
+- Job: `264b3dc0-ad59-4890-8c4f-0e99f3f5933f` completed with `artifacts_and_qc_recorded`; QC run `2221f02f-bc43-41f1-9a18-1c9a65687d55`.
+- Native artifact: `teaser.pptx`, SHA-256 `4580045d04577fc6997383bb831fdefe39042b85f29f793f243ebc860f75bc46`, 38,556 bytes.
+- Reader artifact: `teaser.pdf`, SHA-256 `5dd538ebd3f4a3b845c4d0ee24cb5601489c0e437f59627259631faaa8e6466e`, 39,541 bytes.
+- Reader previews and render report were stored as six exact protected artifacts. The receipt reports LibreOffice Impress `7.4.7.2`, template `teaser-1.0.0`, image digest `sha256:c8501f568ab6a57ca9dd118b4b5a1015c49d82d9328ba1a1278a31f12b8b9ed0`, three selected slides/pages, no font substitutions, and matching native/Reader identity.
+- All semantic/native/Reader checks passed: `native_structure`, `revision_identity`, `citation_lineage`, `native_editable`, `native_reader_parity`, `confidentiality`, and `proposal_only`. Every section has point-of-use disclosure, Evidence, Fact, Assumption, source, native locator, Reader locator, and qualification lineage.
+
+The host required a restored Live-environment fallback: rootful Podman with a persistent graph root because rootless user delegation was unavailable. The repository-side Office image was corrected to install `libreoffice-impress`; the resulting image was manually exercised and then used by the real job. The development signer socket was unavailable, so `signed_manifest` is recorded as `missing` with `artifact_signer_unavailable`; this is an explicit development limitation, not a fabricated signature. Microsoft 365 Office observer evidence remains outside this host's available tooling.
 
 ## Known evidence boundary
 
