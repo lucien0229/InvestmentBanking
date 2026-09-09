@@ -24,6 +24,36 @@ x-worker: &worker
       limits: { cpus: "0.50", memory: 256M, pids: 64 }
 
 services:
+  artifact_signer:
+    image: ${NODE_RUNTIME_IMAGE:-node:22-bookworm-slim}
+    environment:
+      APP_ENV: development
+      ARTIFACT_SIGNER_SOCKET: /run/signer/signer.sock
+      ARTIFACT_SIGNER_PRIVATE_KEY: /run/secrets/artifact-ed25519.pem
+      ARTIFACT_SIGNER_KEY_VERSION: ${ARTIFACT_SIGNER_KEY_VERSION:-development/artifact/20260906/versions/1}
+    command: [node, /opt/signer/server.mjs]
+    user: "${ARTIFACT_SIGNER_UID:-993}:${ARTIFACT_SIGNER_GID:?ARTIFACT_SIGNER_GID is required}"
+    volumes:
+      - ${APP_RELEASE_PATH:?APP_RELEASE_PATH is required}/services/artifact-signer:/opt/signer:ro
+      - ${ARTIFACT_SIGNER_PRIVATE_KEY_HOST_PATH:?ARTIFACT_SIGNER_PRIVATE_KEY_HOST_PATH is required}:/run/secrets/artifact-ed25519.pem:ro
+      - ${ARTIFACT_SIGNER_SOCKET_DIRECTORY:?ARTIFACT_SIGNER_SOCKET_DIRECTORY is required}:/run/signer
+    network_mode: none
+    init: true
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('fs').statSync('/run/signer/signer.sock').isSocket()?process.exit(0):process.exit(1)"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 2s
+    deploy:
+      resources:
+        limits: { cpus: "0.25", memory: 128M, pids: 32 }
+
   api:
     image: ${NODE_RUNTIME_IMAGE:-node:22-bookworm-slim}
     env_file:
@@ -138,6 +168,9 @@ services:
       - ${ARTIFACT_IDENTITY_DIRECTORY}:/run/artifact-identity:ro
       - ${ARTIFACT_SIGNER_SOCKET_DIRECTORY:?ARTIFACT_SIGNER_SOCKET_DIRECTORY is required}:/run/artifact-signer:ro
     group_add: ["${OFFICE_RENDERER_GID:-1001}", "${ARTIFACT_SIGNER_GID:?ARTIFACT_SIGNER_GID is required}"]
+    depends_on:
+      artifact_signer:
+        condition: service_healthy
     deploy:
       resources:
         limits: { cpus: "1.00", memory: 768M, pids: 64 }
