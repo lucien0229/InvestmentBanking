@@ -17,7 +17,7 @@ Status: resolved for the authorized development implementation boundary on `deve
 - `npx tsc --noEmit` passed.
 - `npm run web:build` passed with the canonical dynamic Impact route.
 - Fresh PostgreSQL 18 cluster `55450` was created from zero, migrated and seeded through `20260908170012` plus the native artifact migration; the focused authenticated material-impact HTTP test passed (`1/1`).
-- `npm run contracts:check`, `npx tsc --noEmit` and `npm run web:build` passed. `npm run domain:naming` is currently blocked by unrelated uncommitted Ticket 15 UI text in `apps/web/components/deal-control/surfaces.tsx`; the Ticket 14 migration paths use delivery-neutral names.
+- `npm run contracts:check`, `npm run domain:naming`, `npx tsc --noEmit --pretty false --incremental false` and `npm run web:build` pass on the reviewed `develop` tree. The Ticket 14 route was rechecked after the later Ticket 15 UI work and remains free of delivery-number identifiers.
 - Release `20260909-ticket14-v4` is running on the development Cell. Remote migration verification reports `20260908170011` and `20260908170012`, the `calculation_version` trigger constraint, and the completed-assessment immutable error branch.
 - Public development probes returned `200` for the web shell and Impact route, and unauthenticated `GET /api/v1/session` returned `401 application/problem+json` at `https://dev-banking.aptoren.com`. Playwright also verified the Impact heading, prototype receipt, five independent groups and dependency closure rows.
 
