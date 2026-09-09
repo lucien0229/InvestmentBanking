@@ -27,6 +27,7 @@ Ticket 09 is resolved for the authorized development boundary: the real authenti
 - Development evidence is explicitly separated from live Stripe collection, live tax/invoice behavior, production provider configuration, and production recovery evidence.
 
 - Ticket 14 is claimed for the authorized development environment: [ticket](issues/14-change-impact-revision-loop.md) and [acceptance evidence](../../docs/implementation/ticket-14-evidence.md). Deterministic material-change closure, exact Impact dispositions, immutable Revision lineage, and the prototype-aligned Analysis Impact surface are live on `20260908-ticket14-v2`; no downstream ticket is advanced.
+- Ticket 19 is resolved for the authorized development profile: [ticket](issues/19-cim-native-reader-loop.md) and [acceptance evidence](../../docs/implementation/ticket-19-evidence.md). The CIM strict proposal contract, exact source/basis perimeter, editable PPTX, exact PDF Reader Copy, lineage, signed manifest, QC, and prototype-aligned UI are live on `20260909-ticket19`; no downstream ticket is advanced.
 
 ## Fog
 
