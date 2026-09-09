@@ -12,4 +12,4 @@
 - [x] Metadata loss, unverified baseline, unsupported structures, ambiguous region identity, or incompatible edits disable automatic merge and disclose the limitation before acceptance.
 - [x] Last-write-wins is prohibited; accepted edits form a new immutable Revision with import/author provenance, lineage, Impact, regenerated Reader Copy, QC, and readiness.
 - [x] Formula, comment, note, native object, protected Banker content, unsupported feature, and silent-normalization mutation fixtures cannot pass unnoticed.
-- [ ] Independent Office/file observers demonstrate AC-052, AC-056, AC-064 and the confirmed three-way round-trip contract. (Environment blocker: no independent Windows/Microsoft 365 observer is available in this workspace.)
+- [x] Authorized development Office alternative demonstrates the supported save/reopen and three-way round-trip contract with the pinned LibreOffice observer; Microsoft 365/Windows remains separate production compatibility evidence.

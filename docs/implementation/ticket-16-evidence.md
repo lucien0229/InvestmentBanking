@@ -24,7 +24,8 @@ Ticket 16 is implemented on `develop` for the authorized development boundary. T
 - Remote development migration `20260909120000_buyer_candidate_approval_loop.sql` applied to the configured Supabase development database and recorded in `supabase_migrations.schema_migrations` by `codex-ticket16`.
 - Remote release `/opt/cells/investmentbanking/dev/releases/20260909-ticket16` and web release `/opt/cells/investmentbanking/dev/web-releases/20260909-ticket16` are running healthy. Public probes: web `200`, anonymous `/api/v1/session` `401 application/problem+json`.
 - Playwright public acceptance screenshot: `output/playwright/ticket16-buyer-universe-public.png`. The rendered page shows Buyer universe, candidate/provenance/posture columns, typed approval boundary, and external action blocked state in the confirmed Deal Control visual language.
+- Authenticated development acceptance screenshot: `output/playwright/ticket16-authenticated-correct.png`. The same surface loaded the real Deal header and rendered the candidate table, typed approval boundary, and external action blocked state under the scoped session.
 
 ## Boundary and remaining observer gap
 
-The authenticated browser path could not be exercised because the Mac was locked and the CUA surface could not unlock it. The public page and anonymous authorization boundary were verified. No independent second Banker, Windows/Microsoft 365 observer, or external outreach system is required for this candidate-to-approval ticket; outreach and later process objects remain outside this ticket.
+The authenticated run used a temporary Deal-scoped passkey-backed development session for acceptance only; it is not production Supabase identity evidence. No independent second Banker, Windows/Microsoft 365 observer, or external outreach system is required for this candidate-to-approval ticket; outreach and later process objects remain outside this ticket.

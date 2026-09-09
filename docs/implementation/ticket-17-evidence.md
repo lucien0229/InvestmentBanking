@@ -21,6 +21,7 @@ The Office renderer accepts the auction operation and emits `auction-control.xls
 - Public UI probe: `https://dev-banking.aptoren.com/app/deals/project-northstar/auction-control-workbook` returned HTTP 200 and rendered `Auction Control Workbook`, `Executive Control`, `Native Artifact`, and `No aggregate ready / OK score is calculated`.
 - Anonymous API probe: `/api/v1/session` returned HTTP 401 with `application/problem+json`.
 - Playwright screenshot: [ticket-17-auction-control.png](/Users/wxm/Desktop/workspace/InvestmentBanking/output/playwright/ticket-17-auction-control.png).
+- Authenticated development UI acceptance screenshot: `output/playwright/ticket17-authenticated-correct.png`; the route loaded the real Deal header and the Executive Control surface with Native/Reader status, process families, and external-use block.
 
 ## Development-server evidence
 
@@ -39,4 +40,4 @@ The first remote attempts exposed a development deployment mapping error: the wo
 
 ## Runtime boundary
 
-The development profile records `signed_manifest` as `missing` when the optional artifact signer is unavailable; this does not bypass the Native/Reader, identity, lineage or QC checks. The declared Office paths are exercised with LibreOffice in the pinned development container, including save/reopen and Reader generation. Microsoft 365/Windows independent edit-save-reopen-reimport observation is still external evidence and is not claimed from this host; the current host's authenticated browser surface was unavailable because macOS was locked.
+The development signer is now compose-managed and healthy. A fresh auction-control revision completed on the development host with an Ed25519 manifest (`key_version=development/artifact/20260906/versions/1`, manifest endpoint HTTP 200); the prior revision's missing manifest is historical. The declared Office path is exercised with LibreOffice in the pinned development container, including save/reopen and Reader generation, under the authorized development alternative. Microsoft 365/Windows remains separate production evidence.
