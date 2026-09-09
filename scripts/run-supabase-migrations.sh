@@ -31,12 +31,12 @@ command -v supabase >/dev/null 2>&1 || {
 npm run db:validate
 supabase --version
 supabase migration list --db-url "${SUPABASE_DB_URL}"
-supabase db push --db-url "${SUPABASE_DB_URL}" --dry-run
+supabase db push --db-url "${SUPABASE_DB_URL}" --include-all --dry-run
 
 if [[ "${MIGRATION_DRY_RUN:-false}" == "true" ]]; then
   echo "database migration dry run complete (${MIGRATION_ENVIRONMENT})"
   exit 0
 fi
 
-supabase db push --db-url "${SUPABASE_DB_URL}"
+supabase db push --db-url "${SUPABASE_DB_URL}" --include-all
 echo "database migrations applied (${MIGRATION_ENVIRONMENT})"
