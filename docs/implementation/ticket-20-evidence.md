@@ -21,6 +21,7 @@ Local and disposable PostgreSQL evidence:
 - `npx tsc --noEmit --pretty false --incremental false` — passed.
 - `npm run web:build` — passed.
 - `npm run db:validate` — 105 migrations, unique ordered versions.
+- Fresh PostgreSQL 18 cluster replayed all 105 migrations with `npm run db:migrate`, including the Teaser/CIM constraint rebuilds and Ticket 20 migration — all applied successfully.
 
 Development VPS evidence:
 
