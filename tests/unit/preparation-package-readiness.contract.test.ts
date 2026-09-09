@@ -7,7 +7,7 @@ const migration = fs.readFileSync(
   "utf8",
 );
 
-test("Ticket 20 migration defines immutable execution package snapshot and readiness projection", () => {
+test("preparation package migration defines immutable execution package snapshot and readiness projection", () => {
   assert.match(migration, /CREATE SCHEMA IF NOT EXISTS deal/);
   assert.match(migration, /CREATE TABLE IF NOT EXISTS deal\.execution_package/);
   assert.match(migration, /CREATE TABLE IF NOT EXISTS deal\.package_snapshot/);
@@ -21,7 +21,7 @@ test("Ticket 20 migration defines immutable execution package snapshot and readi
   assert.doesNotMatch(migration, /global_ready|readiness_score|percentage_ready/);
 });
 
-test("Ticket 20 API exposes package, snapshot and exact readiness seams", () => {
+test("preparation package API exposes package, snapshot and exact readiness seams", () => {
   const source = fs.readFileSync("apps/api/src/preparation-package.ts", "utf8");
   for (const token of ["execution-packages", "package_id", "snapshots", "snapshot_id", "readiness"]) {
     assert.ok(source.includes(token), `missing API seam token: ${token}`);
