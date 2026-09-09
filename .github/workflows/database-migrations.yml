@@ -74,7 +74,7 @@ jobs:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
           set +e
-          diagnostic="$(supabase db push --db-url "$SUPABASE_DB_URL" --debug 2>&1)"
+          diagnostic="$(supabase db push --db-url "$SUPABASE_DB_URL" --include-all --debug 2>&1)"
           diagnostic="$(printf '%s' "$diagnostic" | sed -E 's#postgres(ql)?://[^ ]+#postgres://<redacted>#g' | tail -c 6000)"
           echo "::error title=Development migration diagnostic::${diagnostic//$'\n'/%0A}"
           exit 0
