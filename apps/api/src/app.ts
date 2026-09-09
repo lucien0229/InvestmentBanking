@@ -26,6 +26,7 @@ import { registerEvidenceFactDecisionRoutes } from "./evidence-fact-decision.js"
 import { registerAnalysisRoutes } from "./analysis.js";
 import { registerImpactRoutes } from "./impact.js";
 import { registerBuyerRoutes } from "./buyers.js";
+import { registerPreparationPackageRoutes } from "./preparation-package.js";
 
 const dealIdSchema = z.string().uuid();
 const emailSchema = z.string().email().max(320);
@@ -352,6 +353,7 @@ export async function buildApi(options: BuildApiOptions = {}): Promise<FastifyIn
   registerAnalysisRoutes(api, database, { requireBanker, commandKey });
   registerImpactRoutes(api, database, { requireBanker, commandKey });
   registerBuyerRoutes(api, database, { requireBanker, commandKey });
+  registerPreparationPackageRoutes(api, database, { requireBanker, commandKey });
   registerDeliverableRoutes(api, database, { requireBanker, commandKey });
   registerControlledExportRoutes(api, database, { requireBanker, commandKey, auth, authMode });
   registerReimportRoutes(api, database, { requireBanker, commandKey });

@@ -10,6 +10,7 @@ import { PageHeader, StatePanel, StatusBadge } from "./ui";
 import { AnalysisWorkspace, ImpactAssessmentRoute } from "./analysis-workspace";
 import { EvidenceWorkspace } from "./evidence-workspace";
 import { AuctionControlWorkbookSurface, CimSurface, TeaserSurface, WorkbookSurface } from "./workbooks";
+import { PreparationPackageWorkspace } from "./preparation-package-workspace";
 
 type Tone = "neutral" | "info" | "warning" | "critical" | "success";
 
@@ -198,7 +199,9 @@ export default function DealSurfacePage({ dealId, slug }: { dealId: string; slug
     if (path === "history-portability" || path === "history-portability/internal-export") return <ExportWorkspace dealId={dealId} reviewMode={path.endsWith("internal-export")} />;
   }
   if (/^[0-9a-f-]{36}$/i.test(dealId) && ["source-records", "source-packets"].includes(slug[0])) return <SourceWorkspace key={`${dealId}:${path}`} dealId={dealId} sourceRecordId={slug[0] === "source-records" ? slug[1] : undefined} packetId={slug[0] === "source-packets" ? slug[1] : undefined} />;
-  if (/^[0-9a-f-]{36}$/i.test(dealId) && dealId !== "00000000-0000-0000-0000-000000000000" && (path === "execution-package" || path === "review-readiness" || slug[0] === "deliverables")) return <WorkbookSurface dealId={dealId} slug={slug} />;
+  if (/^[0-9a-f-]{36}$/i.test(dealId) && dealId !== "00000000-0000-0000-0000-000000000000" && path === "execution-package") return <PreparationPackageWorkspace dealId={dealId} />;
+  if (/^[0-9a-f-]{36}$/i.test(dealId) && dealId !== "00000000-0000-0000-0000-000000000000" && (path === "review-readiness" || path === "review-readiness/package-readiness")) return <PreparationPackageWorkspace dealId={dealId} readinessOnly />;
+  if (/^[0-9a-f-]{36}$/i.test(dealId) && dealId !== "00000000-0000-0000-0000-000000000000" && slug[0] === "deliverables") return <WorkbookSurface dealId={dealId} slug={slug} />;
   if (/^[0-9a-f-]{36}$/i.test(dealId) && ["evidence-decisions", "claims", "human-decisions"].includes(slug[0])) return <EvidenceWorkspace key={`${dealId}:${path}`} dealId={dealId} slug={slug} />;
   if (/^[0-9a-f-]{36}$/i.test(dealId) && slug[0] === "review-readiness" && slug[1] === "impact-assessments" && slug[2]) return <ImpactAssessmentRoute dealId={dealId} assessmentId={slug[2]} />;
   if (/^[0-9a-f-]{36}$/i.test(dealId) && ["analysis", "analyses", "calculations", "models", "scenarios", "impact-assessments", "deterministic-validation-records"].includes(slug[0])) return <AnalysisWorkspace key={`${dealId}:${path}`} dealId={dealId} slug={slug[0] === "analysis" && slug.length > 1 ? slug.slice(1) : slug} />;
