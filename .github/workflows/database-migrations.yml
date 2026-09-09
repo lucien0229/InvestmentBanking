@@ -68,6 +68,16 @@ jobs:
         with:
           version: 2.116.0
       - run: bash scripts/run-supabase-migrations.sh
+      - name: Diagnose development migration failure
+        if: failure()
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set +e
+          diagnostic="$(supabase db push --db-url "$SUPABASE_DB_URL" --debug 2>&1)"
+          diagnostic="$(printf '%s' "$diagnostic" | sed -E 's#postgres(ql)?://[^ ]+#postgres://<redacted>#g' | tail -c 6000)"
+          echo "::error title=Development migration diagnostic::${diagnostic//$'\n'/%0A}"
+          exit 0
 
   migrate-production:
     name: Migrate production Supabase
