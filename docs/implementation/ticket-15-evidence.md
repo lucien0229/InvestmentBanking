@@ -20,6 +20,7 @@ Status: resolved for the authorized development implementation boundary on `deve
 - A fresh PostgreSQL 18 cluster was migrated from zero through `20260909110000_reimport_backend_hardening.sql` successfully. The new function arities are executable by `app_runtime`; the old unbound arities are revoked.
 - Remote development release `20260909-ticket15` is running with healthy API/workers/web containers. Public probes returned `200` for the web shell and reimport comparison route; unauthenticated `GET /api/v1/session` returned `401 application/problem+json`.
 - Playwright verified the public reimport route heading, fixed baseline/current cards and Difference ledger. The page calls the Deal-scoped API and explicitly discloses when an authenticated receipt is unavailable.
+- UI review at 1280px found and fixed a shared grid min-content overflow that clipped the third baseline/edit/current card. The reviewed development release now keeps all three cards inside the main content region; the fixed screenshot is `output/playwright/ticket15-reimport-review-fixed.png`.
 
 ## Boundary and blockers
 

@@ -234,6 +234,9 @@ p { text-wrap: pretty; }
 
 /* Analysis workbench — tech-utility prototype tokens and boundaries. */
 .dc-analysis-page { display: grid; gap: var(--dc-space-4); }
+.dc-analysis-page > * { min-width: 0; }
+.dc-grid-three > * { min-width: 0; }
+.dc-grid-three .dc-mono { overflow-wrap: anywhere; }
 .dc-analysis-page .dc-page-header { margin-bottom: 0; }
 .dc-analysis-actions { display: flex; flex-wrap: wrap; gap: var(--dc-space-2); align-items: center; }
 .dc-analysis-blocker, .dc-analysis-decision { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--dc-space-4); align-items: center; border: 1px solid var(--dc-border); border-left: 3px solid var(--dc-critical); border-radius: var(--dc-radius-panel); background: var(--dc-critical-soft); padding: var(--dc-space-5); }
