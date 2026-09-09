@@ -37,6 +37,7 @@ CREATE TABLE IF NOT EXISTS deal.package_snapshot (
   created_by uuid NOT NULL REFERENCES app.actor(id),
   created_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE(account_id, deal_id, id),
+  UNIQUE(account_id, deal_id, execution_package_id, id),
   UNIQUE(execution_package_id, ordinal),
   FOREIGN KEY(account_id, deal_id, execution_package_id) REFERENCES deal.execution_package(account_id, deal_id, id),
   FOREIGN KEY(account_id, deal_id) REFERENCES app.deal(account_id, id)
@@ -47,6 +48,16 @@ ALTER TABLE deal.execution_package
   ADD CONSTRAINT execution_package_current_snapshot_fk
   FOREIGN KEY(account_id, deal_id, current_snapshot_id)
   REFERENCES deal.package_snapshot(account_id, deal_id, id);
+CREATE OR REPLACE FUNCTION deal.validate_current_package_snapshot() RETURNS trigger
+LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.current_snapshot_id IS NOT NULL AND NOT EXISTS (
+    SELECT 1 FROM deal.package_snapshot s WHERE s.id=NEW.current_snapshot_id AND s.account_id=NEW.account_id AND s.deal_id=NEW.deal_id AND s.execution_package_id=NEW.id
+  ) THEN RAISE EXCEPTION 'package_snapshot_scope_mismatch'; END IF;
+  RETURN NEW;
+END $$;
+CREATE TRIGGER execution_package_current_snapshot_scope BEFORE INSERT OR UPDATE OF current_snapshot_id ON deal.execution_package
+  FOR EACH ROW EXECUTE FUNCTION deal.validate_current_package_snapshot();
 
 CREATE TABLE IF NOT EXISTS deal.package_snapshot_revision (
   account_id uuid NOT NULL,
@@ -168,11 +179,14 @@ END $$;
 
 CREATE OR REPLACE FUNCTION deal.create_execution_package(p_key text,p_digest text,p_body jsonb)
 RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=deal,app,pg_catalog AS $$
-DECLARE replay jsonb; row deal.execution_package%ROWTYPE;
+DECLARE replay jsonb; replay_digest text; row deal.execution_package%ROWTYPE;
 BEGIN
   PERFORM deal.assert_package_scope(app.policy_deal_id());
-  SELECT response INTO replay FROM deal.package_command_idempotency WHERE account_id=app.policy_account_id() AND deal_id=app.policy_deal_id() AND actor_id=app.policy_actor_id() AND command_code='create_execution_package' AND key_hash=p_key;
-  IF replay IS NOT NULL THEN RETURN replay || '{"idempotent_replayed":true}'::jsonb; END IF;
+  SELECT response,request_digest INTO replay,replay_digest FROM deal.package_command_idempotency WHERE account_id=app.policy_account_id() AND deal_id=app.policy_deal_id() AND actor_id=app.policy_actor_id() AND command_code='create_execution_package' AND key_hash=p_key;
+  IF replay IS NOT NULL THEN
+    IF replay_digest IS DISTINCT FROM p_digest THEN RAISE EXCEPTION 'idempotency_key_reused'; END IF;
+    RETURN replay || '{"idempotent_replayed":true}'::jsonb;
+  END IF;
   INSERT INTO deal.execution_package(account_id,deal_id,purpose,owner_id)
     VALUES(app.policy_account_id(),app.policy_deal_id(),p_body->>'purpose',app.policy_actor_id()) RETURNING * INTO row;
   replay:=jsonb_build_object('id',row.id,'account_id',row.account_id,'deal_id',row.deal_id,'purpose',row.purpose,'row_version',row.row_version,'current_snapshot_id',row.current_snapshot_id,'idempotent_replayed',false);
@@ -185,14 +199,17 @@ CREATE OR REPLACE FUNCTION deal.create_package_snapshot(
   p_package uuid,p_expected_version bigint,p_key text,p_digest text,p_revisions jsonb,
   p_controls jsonb,p_dependencies jsonb,p_omissions jsonb,p_limitations jsonb,p_reason text
 ) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=deal,deliverable,app,source,pg_catalog AS $$
-DECLARE package_row deal.execution_package%ROWTYPE; snapshot_id uuid:=gen_random_uuid(); ordinal integer; stage text; purpose text; audience text; basis text; replay jsonb; item jsonb; rev deliverable.deliverable_revision%ROWTYPE;
+DECLARE package_row deal.execution_package%ROWTYPE; v_snapshot_id uuid:=gen_random_uuid(); ordinal integer; stage text; purpose text; audience text; basis text; replay jsonb; replay_digest text; item jsonb; rev deliverable.deliverable_revision%ROWTYPE;
 BEGIN
   PERFORM deal.assert_package_scope(app.policy_deal_id());
   SELECT * INTO package_row FROM deal.execution_package WHERE id=p_package AND account_id=app.policy_account_id() AND deal_id=app.policy_deal_id() FOR UPDATE;
   IF NOT FOUND THEN RAISE EXCEPTION 'package_scope_unavailable'; END IF;
   IF package_row.row_version<>p_expected_version THEN RAISE EXCEPTION 'package_version_conflict'; END IF;
-  SELECT response INTO replay FROM deal.package_command_idempotency WHERE account_id=app.policy_account_id() AND deal_id=app.policy_deal_id() AND actor_id=app.policy_actor_id() AND command_code='create_package_snapshot' AND key_hash=p_key;
-  IF replay IS NOT NULL THEN RETURN replay || '{"idempotent_replayed":true}'::jsonb; END IF;
+  SELECT response,request_digest INTO replay,replay_digest FROM deal.package_command_idempotency WHERE account_id=app.policy_account_id() AND deal_id=app.policy_deal_id() AND actor_id=app.policy_actor_id() AND command_code='create_package_snapshot' AND key_hash=p_key;
+  IF replay IS NOT NULL THEN
+    IF replay_digest IS DISTINCT FROM p_digest THEN RAISE EXCEPTION 'idempotency_key_reused'; END IF;
+    RETURN replay || '{"idempotent_replayed":true}'::jsonb;
+  END IF;
   IF jsonb_typeof(p_revisions)<>'array' OR jsonb_array_length(p_revisions)=0 THEN RAISE EXCEPTION 'package_revision_members_required'; END IF;
   SELECT business_stage INTO stage FROM app.deal WHERE id=app.policy_deal_id() AND account_id=app.policy_account_id();
   purpose:=package_row.purpose;
@@ -200,24 +217,35 @@ BEGIN
   SELECT coalesce(max(s.ordinal),0)+1 INTO ordinal FROM deal.package_snapshot s WHERE s.execution_package_id=package_row.id;
   basis:=encode(extensions.digest(jsonb_build_object('package',package_row.id,'version',package_row.row_version,'revisions',p_revisions,'controls',p_controls,'dependencies',p_dependencies,'omissions',p_omissions,'limitations',p_limitations,'reason',p_reason)::text,'sha256'),'hex');
   INSERT INTO deal.package_snapshot(id,account_id,deal_id,execution_package_id,ordinal,purpose,audience,business_stage,source_perimeter,readiness_basis_digest,omissions,limitations,created_by)
-    VALUES(snapshot_id,app.policy_account_id(),app.policy_deal_id(),package_row.id,ordinal,purpose,audience,stage,jsonb_build_object('revision_ids',p_revisions),basis,coalesce(p_omissions,'[]'),coalesce(p_limitations,'[]'),app.policy_actor_id());
+    VALUES(v_snapshot_id,app.policy_account_id(),app.policy_deal_id(),package_row.id,ordinal,purpose,audience,stage,jsonb_build_object('revision_ids',p_revisions),basis,coalesce(p_omissions,'[]'),coalesce(p_limitations,'[]'),app.policy_actor_id());
   FOR item IN SELECT value FROM jsonb_array_elements(p_revisions) LOOP
     IF item->>'revision_id' IS NULL OR item->>'package_role' IS NULL THEN RAISE EXCEPTION 'package_revision_member_invalid'; END IF;
-    SELECT * INTO rev FROM deliverable.deliverable_revision WHERE id=(item->>'revision_id')::uuid AND account_id=app.policy_account_id() AND deal_id=app.policy_deal_id();
+    IF item->>'package_role' IN ('analysis_valuation_workbook','auction_control_workbook') AND item->>'stage_applicability'='not_stage_required' THEN
+      RAISE EXCEPTION 'package_revision_member_invalid';
+    END IF;
+    SELECT r.* INTO rev FROM deliverable.deliverable_revision r JOIN deliverable.deliverable d ON d.id=r.deliverable_id AND d.current_revision_id=r.id WHERE r.id=(item->>'revision_id')::uuid AND r.account_id=app.policy_account_id() AND r.deal_id=app.policy_deal_id();
     IF NOT FOUND THEN RAISE EXCEPTION 'package_revision_scope_mismatch'; END IF;
+    IF (item->>'package_role'='analysis_valuation_workbook' AND NOT EXISTS (SELECT 1 FROM deliverable.deliverable d WHERE d.id=rev.deliverable_id AND d.deliverable_type='analysis_valuation_workbook'))
+       OR (item->>'package_role'='auction_control_workbook' AND NOT EXISTS (SELECT 1 FROM deliverable.deliverable d WHERE d.id=rev.deliverable_id AND d.deliverable_type='auction_control_workbook')) THEN
+      RAISE EXCEPTION 'package_revision_member_invalid';
+    END IF;
     INSERT INTO deal.package_snapshot_revision(account_id,deal_id,snapshot_id,revision_id,package_role,inclusion_reason,stage_applicability)
-      VALUES(app.policy_account_id(),app.policy_deal_id(),snapshot_id,rev.id,item->>'package_role',coalesce(item->>'inclusion_reason',p_reason),coalesce(item->>'stage_applicability','always_required'));
+      VALUES(app.policy_account_id(),app.policy_deal_id(),v_snapshot_id,rev.id,item->>'package_role',coalesce(item->>'inclusion_reason',p_reason),coalesce(item->>'stage_applicability','always_required'));
   END LOOP;
+  IF NOT EXISTS (SELECT 1 FROM deal.package_snapshot_revision psr WHERE psr.snapshot_id=v_snapshot_id AND psr.package_role='analysis_valuation_workbook' AND psr.stage_applicability<>'not_stage_required')
+     OR NOT EXISTS (SELECT 1 FROM deal.package_snapshot_revision psr WHERE psr.snapshot_id=v_snapshot_id AND psr.package_role='auction_control_workbook' AND psr.stage_applicability<>'not_stage_required') THEN
+    RAISE EXCEPTION 'package_required_revision_missing';
+  END IF;
   FOR item IN SELECT value FROM jsonb_array_elements(coalesce(p_controls,'[]')) LOOP
     INSERT INTO deal.package_snapshot_control(account_id,deal_id,snapshot_id,control_kind,control_id,control_role,basis)
-      VALUES(app.policy_account_id(),app.policy_deal_id(),snapshot_id,item->>'control_kind',nullif(item->>'control_id','')::uuid,coalesce(item->>'control_role','basis'),coalesce(item->'basis','{}'));
+      VALUES(app.policy_account_id(),app.policy_deal_id(),v_snapshot_id,item->>'control_kind',nullif(item->>'control_id','')::uuid,coalesce(item->>'control_role','basis'),coalesce(item->'basis','{}'));
   END LOOP;
   FOR item IN SELECT value FROM jsonb_array_elements(coalesce(p_dependencies,'[]')) LOOP
     INSERT INTO deal.package_snapshot_dependency(account_id,deal_id,snapshot_id,dependency_kind,dependency_id,dependency_version,dependency_role)
-      VALUES(app.policy_account_id(),app.policy_deal_id(),snapshot_id,item->>'dependency_kind',(item->>'dependency_id')::uuid,item->>'dependency_version',coalesce(item->>'dependency_role','required'));
+      VALUES(app.policy_account_id(),app.policy_deal_id(),v_snapshot_id,item->>'dependency_kind',(item->>'dependency_id')::uuid,item->>'dependency_version',coalesce(item->>'dependency_role','required'));
   END LOOP;
-  UPDATE deal.execution_package SET current_snapshot_id=snapshot_id,row_version=row_version+1 WHERE id=package_row.id;
-  replay:=jsonb_build_object('id',snapshot_id,'execution_package_id',package_row.id,'ordinal',ordinal,'row_version',package_row.row_version+1,'purpose',purpose,'audience',audience,'business_stage',stage,'readiness_basis_digest',basis,'idempotent_replayed',false);
+  UPDATE deal.execution_package SET current_snapshot_id=v_snapshot_id,row_version=row_version+1 WHERE id=package_row.id;
+  replay:=jsonb_build_object('id',v_snapshot_id,'execution_package_id',package_row.id,'ordinal',ordinal,'row_version',package_row.row_version+1,'purpose',purpose,'audience',audience,'business_stage',stage,'readiness_basis_digest',basis,'idempotent_replayed',false);
   INSERT INTO deal.package_command_idempotency VALUES(app.policy_account_id(),app.policy_deal_id(),app.policy_actor_id(),'create_package_snapshot',p_key,p_digest,replay);
   RETURN replay;
 END $$;
@@ -229,6 +257,9 @@ BEGIN
   PERFORM deal.assert_package_scope(app.policy_deal_id());
   SELECT * INTO snap FROM deal.package_snapshot WHERE id=p_snapshot AND account_id=app.policy_account_id() AND deal_id=app.policy_deal_id();
   IF NOT FOUND THEN RAISE EXCEPTION 'package_snapshot_not_found'; END IF;
+  IF snap.purpose IS DISTINCT FROM p_purpose OR snap.audience IS DISTINCT FROM p_audience THEN
+    RAISE EXCEPTION 'package_use_mismatch';
+  END IF;
   SELECT * INTO package_row FROM deal.execution_package WHERE id=snap.execution_package_id AND account_id=snap.account_id AND deal_id=snap.deal_id;
   FOR item IN SELECT psr.*,d.deliverable_type,d.title,r.ordinal,r.purpose AS revision_purpose,r.audience AS revision_audience FROM deal.package_snapshot_revision psr JOIN deliverable.deliverable_revision r ON r.id=psr.revision_id JOIN deliverable.deliverable d ON d.id=r.deliverable_id WHERE psr.snapshot_id=snap.id ORDER BY psr.package_role, r.ordinal LOOP
     rev_count:=rev_count+1; role:=item.package_role; stage_required:=item.stage_applicability<>'not_stage_required';
@@ -250,12 +281,21 @@ BEGIN
     ('qc','QC and Reviews','Resolve every material QC Finding and required Review'),
     ('confidentiality','Confidentiality and rights','Confirm source rights, confidentiality and disclosure basis'),
     ('audience','Audience and purpose','Bind one exact audience and intended purpose'),
-    ('external_use','External use','External-Use Decision remains separate and absent')
+    ('external_use','External use','External-Use Decision remains separate and absent'),
+    ('buyer_universe','Buyer universe','Bind the exact Buyer universe control and approval posture'),
+    ('decisions','Reviews and Decisions','Bind required Human Decisions and review conclusions')
   ) AS x(code,label,next_action) LOOP
     outcome:='passed'; blocker:=NULL;
     IF req.code='external_use' THEN outcome:='not_authorized'; blocker:='No matching External-Use Decision exists'; posture:=CASE WHEN posture='blocked' THEN posture ELSE 'circulation_candidate' END;
     ELSIF rev_count=0 THEN outcome:='missing'; blocker:='Package Snapshot has no exact Deliverable Revisions'; posture:='blocked';
     ELSIF req.code='source' AND NOT EXISTS(SELECT 1 FROM deal.package_snapshot_control c WHERE c.snapshot_id=snap.id AND c.control_kind IN ('source_packet','source_record','evidence')) THEN outcome:='missing'; blocker:='Source / Evidence control perimeter is missing'; posture:='blocked';
+    ELSIF req.code='deterministic' AND NOT EXISTS(SELECT 1 FROM deal.package_snapshot_control c WHERE c.snapshot_id=snap.id AND c.control_kind='validation') THEN outcome:='missing'; blocker:='Deterministic validation control is missing'; posture:='blocked';
+    ELSIF req.code='professional' AND NOT EXISTS(SELECT 1 FROM deal.package_snapshot_control c WHERE c.snapshot_id=snap.id AND c.control_kind='review' AND c.control_role IN ('professional_suitability','professional_usability')) THEN outcome:='missing'; blocker:='Professional suitability Review is missing'; posture:='blocked';
+    ELSIF req.code='qc' AND (NOT EXISTS(SELECT 1 FROM deal.package_snapshot_control c WHERE c.snapshot_id=snap.id AND c.control_kind IN ('qc_run','review')) OR EXISTS(SELECT 1 FROM deal.package_snapshot_control c WHERE c.snapshot_id=snap.id AND c.control_kind='qc_finding' AND lower(coalesce(c.basis->>'status','unresolved')) IN ('open','unresolved','critical','failed'))) THEN outcome:=CASE WHEN EXISTS(SELECT 1 FROM deal.package_snapshot_control c WHERE c.snapshot_id=snap.id AND c.control_kind='qc_finding' AND lower(coalesce(c.basis->>'status','unresolved')) IN ('open','unresolved','critical','failed')) THEN 'failed' ELSE 'missing' END; blocker:=CASE WHEN outcome='failed' THEN 'Unresolved Critical QC Finding remains' ELSE 'QC Run or Review control is missing' END; posture:='blocked';
+    ELSIF req.code='confidentiality' AND NOT EXISTS(SELECT 1 FROM deal.package_snapshot_control c WHERE c.snapshot_id=snap.id AND c.control_kind='confidentiality') THEN outcome:='missing'; blocker:='Confidentiality and rights control is missing'; posture:='blocked';
+    ELSIF req.code='audience' AND NOT EXISTS(SELECT 1 FROM deal.package_snapshot_control c WHERE c.snapshot_id=snap.id AND c.control_kind='audience') THEN outcome:='missing'; blocker:='Audience control is missing'; posture:='blocked';
+    ELSIF req.code='buyer_universe' AND NOT EXISTS(SELECT 1 FROM deal.package_snapshot_control c WHERE c.snapshot_id=snap.id AND c.control_kind='buyer_universe') THEN outcome:='missing'; blocker:='Buyer universe control is missing'; posture:='blocked';
+    ELSIF req.code='decisions' AND NOT EXISTS(SELECT 1 FROM deal.package_snapshot_control c WHERE c.snapshot_id=snap.id AND c.control_kind IN ('decision','review')) THEN outcome:='missing'; blocker:='Required Human Decision or Review is missing'; posture:='blocked';
     ELSIF req.code='audience' AND nullif(trim(p_audience),'') IS NULL THEN outcome:='missing'; blocker:='Audience is missing'; posture:='blocked';
     END IF;
     rows:=rows||jsonb_build_array(jsonb_build_object('requirement',req.label,'exact_scope',snap.id,'current_posture',outcome,'evidence_control',req.code,'blocker',blocker,'next_controlled_action',CASE WHEN blocker IS NULL THEN 'Inspect exact control record' ELSE req.next_action END,'stage_applicability','current_stage_required'));

@@ -34,6 +34,8 @@ test("Preparation Package commands freeze an exact snapshot and expose blocker-f
   const packageId = created.json().data.id as string;
   const revisionId = crypto.randomUUID();
   const deliverableId = crypto.randomUUID();
+  const auctionRevisionId = crypto.randomUUID();
+  const auctionDeliverableId = crypto.randomUUID();
   await database.ownerPool.query(
     "INSERT INTO deliverable.deliverable(id,account_id,deal_id,deliverable_type,title,purpose,audience,confidentiality,owner_id) VALUES($1,$2,$3,'analysis_valuation_workbook','Synthetic valuation workbook',$4,'Named Individual Banker','internal',$5)",
     [deliverableId, actor.account_id, dealId, body.purpose, actor.id],
@@ -42,10 +44,19 @@ test("Preparation Package commands freeze an exact snapshot and expose blocker-f
     "INSERT INTO deliverable.deliverable_revision(id,account_id,deal_id,deliverable_id,ordinal,purpose,audience,confidentiality,template_version,build_input,basis_digest,created_by) VALUES($1,$2,$3,$4,1,$5,'Named Individual Banker','internal','analysis-valuation-1.0.0','{}',$6,$7)",
     [revisionId, actor.account_id, dealId, deliverableId, body.purpose, "a".repeat(64), actor.id],
   );
+  await database.ownerPool.query(
+    "INSERT INTO deliverable.deliverable(id,account_id,deal_id,deliverable_type,title,purpose,audience,confidentiality,owner_id) VALUES($1,$2,$3,'auction_control_workbook','Synthetic auction workbook',$4,'Named Individual Banker','internal',$5)",
+    [auctionDeliverableId, actor.account_id, dealId, body.purpose, actor.id],
+  );
+  await database.ownerPool.query(
+    "INSERT INTO deliverable.deliverable_revision(id,account_id,deal_id,deliverable_id,ordinal,purpose,audience,confidentiality,template_version,build_input,basis_digest,created_by) VALUES($1,$2,$3,$4,1,$5,'Named Individual Banker','internal','analysis-valuation-1.0.0','{}',$6,$7)",
+    [auctionRevisionId, actor.account_id, dealId, auctionDeliverableId, body.purpose, "b".repeat(64), actor.id],
+  );
   await database.ownerPool.query("UPDATE deliverable.deliverable SET current_revision_id=$1 WHERE id=$2", [revisionId, deliverableId]);
+  await database.ownerPool.query("UPDATE deliverable.deliverable SET current_revision_id=$1 WHERE id=$2", [auctionRevisionId, auctionDeliverableId]);
   const snapshot = await api.inject({
     method: "POST", url: `${root}/${packageId}/snapshots`, headers: { cookie, "idempotency-key": crypto.randomUUID(), "if-match": '"1"' },
-    payload: { revisions: [{ revision_id: revisionId, package_role: "analysis_valuation_workbook", inclusion_reason: "Current exact revision", stage_applicability: "always_required" }], controls: [], dependencies: [], omissions: [], limitations: [], reason: "Freeze exact package perimeter" },
+    payload: { revisions: [{ revision_id: revisionId, package_role: "analysis_valuation_workbook", inclusion_reason: "Current exact revision", stage_applicability: "always_required" }, { revision_id: auctionRevisionId, package_role: "auction_control_workbook", inclusion_reason: "Current exact revision", stage_applicability: "always_required" }], controls: [], dependencies: [], omissions: [], limitations: [], reason: "Freeze exact package perimeter" },
   });
   assert.equal(snapshot.statusCode, 201, snapshot.body);
   const snapshotId = snapshot.json().data.id as string;

@@ -41,6 +41,7 @@ function problem(reply: FastifyReply, status: number, code: string, request: Fas
   return reply.code(status).type("application/problem+json").send({
     type: `https://investment-banking.local/problems/${code.replaceAll("_", "-")}`,
     title: code.replaceAll("_", " "), status, code, instance: request.url,
+    detail: "The request could not be completed within the exact Deal-scoped control boundary.",
     outcome: "rejected", retryable: status === 401 || status === 503,
     recovery_action: status === 412 ? "reload_and_compare" : status === 404 ? "return_to_safe_parent" : "inspect_and_correct_request",
   });
@@ -50,9 +51,10 @@ function mapError(error: unknown, request: FastifyRequest, reply: FastifyReply) 
   if (error instanceof z.ZodError) return problem(reply, 400, "invalid_request", request);
   const code = error instanceof Error ? error.message : "unknown";
   if (["package_scope_unavailable", "package_snapshot_not_found", "package_revision_scope_mismatch"].includes(code)) return problem(reply, 404, "resource_not_found", request);
+  if (code === "package_use_mismatch") return problem(reply, 409, code, request);
   if (code === "package_version_conflict") return problem(reply, 412, code, request);
-  if (["package_revision_members_required", "package_revision_member_invalid", "idempotency_key_reused"].includes(code)) return problem(reply, 409, code, request);
-  throw error;
+  if (["package_revision_members_required", "package_revision_member_invalid", "package_required_revision_missing", "package_snapshot_scope_mismatch", "idempotency_key_reused"].includes(code)) return problem(reply, 409, code, request);
+  return problem(reply, 503, "service_unavailable", request);
 }
 
 export function registerPreparationPackageRoutes(api: FastifyInstance, database: Database, deps: Deps) {
@@ -87,13 +89,15 @@ export function registerPreparationPackageRoutes(api: FastifyInstance, database:
     return (await client.query("SELECT coalesce(jsonb_agg(to_jsonb(s) ORDER BY s.ordinal DESC),'[]') AS data FROM deal.package_snapshot s WHERE s.execution_package_id=$1", [packageId])).rows[0]?.data ?? [];
   }));
   api.post(`${root}/:package_id/snapshots`, async (request, reply) => {
-    const body = snapshotBody.parse(request.body); const key = deps.commandKey(request, reply); if (!key) return;
-    const match = String(request.headers["if-match"] ?? "").match(/^"([1-9]\d*)"$/); if (!match) return problem(reply, 428, "if_match_required", request);
-    return scoped(request, reply, async (client) => {
-      const packageId = uuid.parse((request.params as { package_id: string }).package_id);
-      const digest = canonicalDigest({ method: "POST", route: "/execution-packages/{package_id}/snapshots", package_id: packageId, body });
-      return (await client.query("SELECT deal.create_package_snapshot($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) AS data", [packageId, Number(match[1]), Database.hashToken(key), digest, JSON.stringify(body.revisions), JSON.stringify(body.controls), JSON.stringify(body.dependencies), JSON.stringify(body.omissions), JSON.stringify(body.limitations), body.reason])).rows[0]?.data ?? null;
-    }, true);
+    try {
+      const body = snapshotBody.parse(request.body); const key = deps.commandKey(request, reply); if (!key) return;
+      const match = String(request.headers["if-match"] ?? "").match(/^"([1-9]\d*)"$/); if (!match) return problem(reply, 428, "if_match_required", request);
+      return scoped(request, reply, async (client) => {
+        const packageId = uuid.parse((request.params as { package_id: string }).package_id);
+        const digest = canonicalDigest({ method: "POST", route: "/execution-packages/{package_id}/snapshots", package_id: packageId, body });
+        return (await client.query("SELECT deal.create_package_snapshot($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) AS data", [packageId, Number(match[1]), Database.hashToken(key), digest, JSON.stringify(body.revisions), JSON.stringify(body.controls), JSON.stringify(body.dependencies), JSON.stringify(body.omissions), JSON.stringify(body.limitations), body.reason])).rows[0]?.data ?? null;
+      }, true);
+    } catch (error) { return mapError(error, request, reply); }
   });
   api.get(`${root}/:package_id/snapshots/:snapshot_id`, (request, reply) => scoped(request, reply, async (client) => {
     const p = request.params as { package_id: string; snapshot_id: string }; const packageId = uuid.parse(p.package_id); const snapshotId = uuid.parse(p.snapshot_id);
