@@ -25,7 +25,7 @@ const server = http.createServer(async (request, response) => {
     const input = JSON.parse(Buffer.concat(chunks).toString('utf8'));
     if (typeof input.canonical_payload !== 'string' || Object.keys(input).length !== 1) throw new Error('invalid_contract');
     const manifest = JSON.parse(input.canonical_payload);
-    const workbook = manifest.schema_version === '1.0.0' && manifest.engine?.name === 'libreoffice.calc'
+    const workbook = manifest.schema_version === '1.0.0' && ['libreoffice.calc', 'libreoffice.impress'].includes(manifest.engine?.name)
       && manifest.engine?.acceptance_profile === 'development_foss_v1'
       && manifest.claims?.deployment_origin_and_integrity_only === true && manifest.claims?.external_use_authorization === false;
     const internalExport = manifest.schema_version === 'internal-controlled-export-1.0.0'
