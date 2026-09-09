@@ -19,6 +19,8 @@ test -f "${APP_RELEASE_PATH}/package.json"
 test -f "${APP_RELEASE_PATH}/apps/api/src/server.ts"
 test -f "${APP_RELEASE_PATH}/apps/web/.next/standalone/apps/web/server.cjs"
 test -f "${WEB_RELEASE_PATH}/apps/web/server.cjs"
+test -d "${WEB_RELEASE_PATH}/apps/web/.next/static"
+test -n "$(find "${WEB_RELEASE_PATH}/apps/web/.next/static" -type f -print -quit)"
 mkdir -p "${protected_volume}"
 
 export RUNTIME_ENV_FILE="${runtime_env}"

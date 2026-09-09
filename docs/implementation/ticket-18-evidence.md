@@ -19,6 +19,8 @@ Ticket 18 implements the stage-required Teaser from a strict `teaser_content_dra
 The restored development host completed a real Ticket 18 build on release `20260909-ticket18`.
 
 - Route: `https://dev-banking.aptoren.com/app/deals/290c3734-3b1a-442d-beab-89ce0f8b5e99/teaser?deliverable_id=ba1d37e8-5280-42d8-b9ee-3d91b78f2a9a` returned HTTP 200 and the served UI shell contains `Teaser`, `Applicability`, `Native`, `Reader`, `Lineage`, and `Review` markers.
+- The initial raw-browser screenshot was caused by an incomplete web release: `.next/static` was absent, so the CSS and JavaScript chunks returned 404. The development web release was repaired from the immutable build output; the route now returns HTTP 200 and its stylesheet returns HTTP 200. `scripts/deploy-docker-cell.sh` now fails closed when `.next/static` is missing or empty.
+- The reviewed route set for Tickets 14–18 all returned HTML 200 with CSS 200 on the development host. Ticket 18 visual acceptance screenshot after repair: `output/playwright/ticket18-teaser-after-static.png`.
 - Deliverable: `ba1d37e8-5280-42d8-b9ee-3d91b78f2a9a` (`current_stage_required`).
 - Revision: `d97e9ef4-4dd8-44c3-8748-0bbf62324cd9` (ordinal 9, proposal-only, synthetic controlled inputs).
 - Job: `264b3dc0-ad59-4890-8c4f-0e99f3f5933f` completed with `artifacts_and_qc_recorded`; QC run `2221f02f-bc43-41f1-9a18-1c9a65687d55`.
