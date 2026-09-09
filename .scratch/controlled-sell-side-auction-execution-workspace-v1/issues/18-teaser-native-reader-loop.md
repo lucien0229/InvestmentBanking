@@ -6,6 +6,8 @@
 
 **Status:** resolved
 
+Development review addendum (2026-09-09): the development artifact signer is now compose-managed and the Teaser Impress profile is accepted under the authorized `development_foss_v1` boundary. Revision `4aa4f954-e628-455c-bc9a-ac786ae56791` completed with `signed_manifest=passed`; the exact manifest and member hashes are recorded in `docs/implementation/ticket-18-evidence.md`. The authenticated development UI review is captured at `output/playwright/ticket18-authenticated-final.png`.
+
 - [x] `teaser_content_draft` accepts only the exact Teaser section contract, purpose, audience, approved disclosure set, Evidence, Facts/Assumptions, and Output Ceiling and produces a strict proposal-only payload.
 - [x] PPTX retains editable native text, tables, charts, masters, layouts, themes, placeholders, notes, footers, page numbers, source zones, and confidentiality zones where supported rather than flattened substitutes.
 - [x] Every material Claim/value/table/chart resolves to point-of-use citation and machine lineage through exact controlling sources, Facts/Assumptions, Calculations, and Revision.
