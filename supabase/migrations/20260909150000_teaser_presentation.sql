@@ -3,7 +3,9 @@ DO $$ DECLARE c text; BEGIN
   ALTER TABLE deliverable.deliverable DROP CONSTRAINT IF EXISTS deliverable_type_check;
   SELECT conname INTO c FROM pg_constraint WHERE conrelid='deliverable.deliverable'::regclass AND pg_get_constraintdef(oid) LIKE '%deliverable_type%';
   IF c IS NOT NULL THEN EXECUTE format('ALTER TABLE deliverable.deliverable DROP CONSTRAINT %I', c); END IF;
-  ALTER TABLE deliverable.deliverable ADD CONSTRAINT deliverable_type_check CHECK (deliverable_type IN ('analysis_valuation_workbook','auction_control_workbook','teaser_presentation'));
+  -- Keep the out-of-order migration safe when a remote already has CIM rows
+  -- from the later 20260909170000 migration.
+  ALTER TABLE deliverable.deliverable ADD CONSTRAINT deliverable_type_check CHECK (deliverable_type IN ('analysis_valuation_workbook','auction_control_workbook','teaser_presentation','cim_presentation'));
   ALTER TABLE deliverable.deliverable_revision DROP CONSTRAINT IF EXISTS deliverable_template_version_check;
   SELECT conname INTO c FROM pg_constraint WHERE conrelid='deliverable.deliverable_revision'::regclass AND pg_get_constraintdef(oid) LIKE '%template_version%';
   IF c IS NOT NULL THEN EXECUTE format('ALTER TABLE deliverable.deliverable_revision DROP CONSTRAINT %I', c); END IF;
