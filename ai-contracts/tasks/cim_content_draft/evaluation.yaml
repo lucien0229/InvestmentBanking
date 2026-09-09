@@ -1,0 +1,4 @@
+evaluation_suite_version: 1.0.0
+executable_suite: tests/unit/cim-content-contract.test.ts
+gates: [closed_schema, approved_disclosure_set, citation_completeness, source_perimeter, output_ceiling, proposal_only, audience_confidentiality, abstention_omission_boundary, native_structure_inputs, hidden_note_observer, render_identity_qc_scope]
+forbidden_authority: [fact_creation, human_decision, readiness, professional_usability, external_authorization, qc_resolution]

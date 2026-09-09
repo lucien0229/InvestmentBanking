@@ -18,6 +18,7 @@ export const taskDefinitions = [
   "valuation_commentary_draft",
   "workbook_commentary_draft",
   "teaser_content_draft",
+  "cim_content_draft",
   "deliverable_semantic_qc",
   "native_reader_semantic_parity_review",
   "semantic_change_impact_proposal",
@@ -330,6 +331,13 @@ export const teaserContentPayload = z.object({
  approved_disclosure_set:z.array(z.string().min(1).max(240)).min(1).max(100),
  evidence_refs:z.array(z.string().uuid()).min(1).max(30), fact_refs:z.array(z.string().uuid()).max(30).default([]), assumption_refs:z.array(z.string().uuid()).max(30).default([]),
 }).strict();
+export const cimContentPayload = z.object({
+ revision_id:z.string().uuid(), section_key:regionKey, title:z.string().min(1).max(240), body:boundedText,
+ citations:z.array(z.string().min(1).max(240)).min(1).max(30), qualification:z.string().min(1).max(1000),
+ approved_disclosure_set:z.array(z.string().min(1).max(240)).min(1).max(100),
+ evidence_refs:z.array(z.string().uuid()).min(1).max(30), fact_refs:z.array(z.string().uuid()).max(30).default([]), assumption_refs:z.array(z.string().uuid()).max(30).default([]), source_refs:z.array(z.string().uuid()).min(1).max(30),
+ table_rows:z.array(z.array(z.string().max(240)).min(1).max(8)).max(20).optional(), chart:z.object({categories:z.array(z.string().min(1).max(80)).min(1).max(12),values:z.array(z.number()).min(1).max(12),series_name:z.string().min(1).max(80).optional()}).strict().optional(),
+}).strict();
 
 const taskPayloads: Record<TaskDefinition, z.ZodType<Record<string, unknown>>> = {
   source_claim_extraction: sourceClaimPayload as z.ZodType<Record<string, unknown>>,
@@ -342,6 +350,7 @@ const taskPayloads: Record<TaskDefinition, z.ZodType<Record<string, unknown>>> =
   valuation_commentary_draft: valuationCommentaryPayload as z.ZodType<Record<string, unknown>>,
   workbook_commentary_draft: workbookCommentaryPayload,
   teaser_content_draft: teaserContentPayload as z.ZodType<Record<string, unknown>>,
+  cim_content_draft: cimContentPayload as z.ZodType<Record<string, unknown>>,
   deliverable_semantic_qc: deliverableQcPayload,
   native_reader_semantic_parity_review: nativeReaderParityPayload,
   semantic_change_impact_proposal: semanticChangeImpactPayload,

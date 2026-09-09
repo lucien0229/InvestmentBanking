@@ -370,6 +370,48 @@ export function TeaserSurface({ dealId }: { dealId: string }) {
   </div>;
 }
 
+export function CimSurface({ dealId }: { dealId: string }) {
+  const [items, setItems] = useState<Deliverable[]>([]);
+  const [revision, setRevision] = useState<Revision | null>(null);
+  const [lineage, setLineage] = useState<Array<Record<string, unknown>>>([]);
+  const [tab, setTab] = useState("Overview");
+  const current = items[0];
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/v1/deals/${dealId}/cims`, { credentials: "same-origin", cache: "no-store" })
+      .then((response) => response.ok ? response.json() : null)
+      .then(async (payload) => {
+        const rows = Array.isArray(payload?.data) ? payload.data : [];
+        if (cancelled) return;
+        setItems(rows);
+        const row = rows[0];
+        if (!row?.current_revision_id) return;
+        const revisionResponse = await fetch(`/api/v1/deals/${dealId}/deliverables/${row.id}/revisions/${row.current_revision_id}`, { credentials: "same-origin", cache: "no-store" });
+        const revisionPayload = revisionResponse.ok ? await revisionResponse.json() : null;
+        if (cancelled) return;
+        setRevision(revisionPayload?.data ?? null);
+        const lineageResponse = await fetch(`/api/v1/deals/${dealId}/cims/${row.id}/revisions/${row.current_revision_id}/lineage`, { credentials: "same-origin", cache: "no-store" });
+        const lineagePayload = lineageResponse.ok ? await lineageResponse.json() : null;
+        if (!cancelled) setLineage(Array.isArray(lineagePayload?.data) ? lineagePayload.data : []);
+      }).catch(() => undefined);
+    return () => { cancelled = true; };
+  }, [dealId]);
+  const base = dealBase(dealId);
+  const stageRequired = current?.stage_applicability !== "not_stage_required";
+  const tabs = ["Overview", "Native / Reader", "Lineage", "Reviews", "Revisions", "External Use"];
+  return <div data-od-id="cim-deliverable-detail" className="dc-analysis-page">
+    <PageHeader eyebrow="Deliverable · DEL-004" title="Confidential Information Memorandum" description="The CIM's Native Artifact, Reader Copy, Revision, Lineage, Review, QC and external authority remain separate control states." actions={<><StatusBadge tone="warning">{stageRequired ? "Revision · re-review required" : "Not stage-required"}</StatusBadge><span className="dc-mono">cim-1.0.0</span></>} />
+    <div className="dc-grid-three" data-od-id="cim-property-strip"><article className="dc-surface-card"><span className="dc-eyebrow">Format</span><h2>PPTX + PDF</h2><p>Editable Native Artifact and exact Reader Copy.</p></article><article className="dc-surface-card"><span className="dc-eyebrow">Revision</span><h2>{revision?.ordinal ? `Revision ${revision.ordinal}` : "Pending"}</h2><p className="dc-mono">{revision?.id ?? current?.current_revision_id ?? "No exact Revision"}</p></article><article className="dc-surface-card"><span className="dc-eyebrow">Native</span><h2>{revision?.artifacts?.some((a) => a.role === "native") ? "Generated" : "Pending"}</h2><p>Banker-native PPTX structure.</p></article><article className="dc-surface-card"><span className="dc-eyebrow">Reader</span><h2>{revision?.artifacts?.some((a) => a.role === "reader") ? "Generated" : "Pending"}</h2><p>PDF from the exact Native Revision.</p></article><article className="dc-surface-card"><span className="dc-eyebrow">Parity</span><h2>Review required</h2><p>Native/Reader comparison remains exact-scope QC.</p><StatusBadge tone="warning">QC-022 scope</StatusBadge></article><article className="dc-surface-card"><span className="dc-eyebrow">External use</span><h2>Blocked</h2><p>Proposal-only until Review, QC and exact External-Use Decision.</p><StatusBadge tone="critical">Not authorized</StatusBadge></article></div>
+    <nav className="dc-page-actions" aria-label="CIM detail views">{tabs.map((name) => <button key={name} type="button" className={`dc-button ${tab === name ? "" : "dc-button-secondary"}`} onClick={() => setTab(name)}>{name}</button>)}</nav>
+    {tab === "Overview" ? <section className="dc-surface-card"><h2>Deliverable identity and control boundary</h2><dl className="dc-grid-two"><div><dt>Purpose</dt><dd>{current?.purpose ?? "Preparation marketing"}</dd></div><div><dt>Audience</dt><dd>{current?.audience ?? "Internal Banker"}</dd></div><div><dt>Confidentiality</dt><dd>{current?.confidentiality ?? "confidential"}</dd></div><div><dt>Source posture</dt><dd>Approved disclosure set · Evidence · Facts/Assumptions</dd></div></dl><div className="dc-page-actions"><a className="dc-button dc-button-secondary" href={`${base}/execution-package`}>Return to Execution Package</a>{current ? <a className="dc-button dc-button-secondary" href={`${base}/deliverables/${current.id}`}>Open canonical Deliverable</a> : null}</div></section> : null}
+    {tab === "Native / Reader" ? <section className="dc-surface-card" data-od-id="cim-native-reader"><h2>Exact Native / Reader pair</h2>{revision?.artifacts?.length ? <div className="dc-deliverable-rows">{revision.artifacts.map((artifact) => <article className="dc-deliverable-row" key={artifact.id}><div><strong>{artifact.path_label}</strong><p>{artifact.role === "native" ? "Editable Native Artifact · PPTX" : "Exact Reader Copy · PDF"}</p><span className="dc-mono">sha256:{artifact.plaintext_sha256}</span></div><StatusBadge tone="success">Registered</StatusBadge></article>)}</div> : <p className="dc-inline-notice">No authenticated artifact receipt was returned; this view remains inspect-only.</p>}<p className="dc-inline-notice">Declared renderer: LibreOffice Impress development profile. Microsoft 365 compatibility remains an explicit readiness limitation.</p></section> : null}
+    {tab === "Lineage" ? <section className="dc-surface-card" data-od-id="cim-lineage"><h2>Point-of-use lineage</h2>{lineage.length ? <div className="dc-table-wrap"><table><thead><tr><th>Section / claim</th><th>Evidence</th><th>Fact / Assumption</th><th>Native</th><th>Reader</th></tr></thead><tbody>{lineage.map((row) => <tr key={String(row.id)}><td><strong>{String(row.section_key)}</strong><br /><span className="dc-mono">{String(row.claim_key)}</span></td><td className="dc-mono">{JSON.stringify(row.evidence_refs ?? [])}</td><td className="dc-mono">{JSON.stringify([...(Array.isArray(row.fact_refs) ? row.fact_refs : []), ...(Array.isArray(row.assumption_refs) ? row.assumption_refs : [])])}</td><td className="dc-mono">{JSON.stringify(row.native_locator)}</td><td className="dc-mono">{JSON.stringify(row.reader_locator)}</td></tr>)}</tbody></table></div> : <p className="dc-inline-notice">Lineage receipt is available after the exact Revision is generated.</p>}</section> : null}
+    {tab === "Reviews" ? <section className="dc-surface-card" data-od-id="cim-review-qc"><h2>Reviews, QC and readiness</h2><div className="dc-grid-two"><p>Native structure, citation lineage, semantic content, native/Reader parity and confidentiality are independent checks. A material mismatch blocks circulation for this Revision only.</p><p><strong>QC-022 · Native / Reader parity</strong><br />Targeted review is required before circulation. Findings retain exact artifact locations and do not carry forward.</p></div><div className="dc-page-actions"><a className="dc-button dc-button-secondary" href={`${base}/review-readiness`}>Open Package Readiness</a>{revision ? <a className="dc-button dc-button-secondary" href={`${base}/deliverables/${current?.id}/revisions/${revision.id}`}>Inspect Revision</a> : null}</div></section> : null}
+    {tab === "Revisions" ? <section className="dc-surface-card"><h2>Revision history</h2><p className="dc-inline-notice">Current scope is bound to {revision?.id ?? "the pending exact Revision"}. Prior revisions remain immutable; Review, QC and authorization never carry forward automatically.</p></section> : null}
+    {tab === "External Use" ? <section className="dc-surface-card"><h2>External-use boundary</h2><p>External use is blocked for this proposal-only CIM. An exact Revision, artifact hash, audience, purpose, conditions and Banker Decision are required before any authorization can be recorded.</p><StatusBadge tone="critical">No external authority</StatusBadge></section> : null}
+  </div>;
+}
+
 export function AuctionControlWorkbookSurface({ dealId }: { dealId: string }) {
   const [items, setItems] = useState<Deliverable[]>([]);
   const [loaded, setLoaded] = useState(false);

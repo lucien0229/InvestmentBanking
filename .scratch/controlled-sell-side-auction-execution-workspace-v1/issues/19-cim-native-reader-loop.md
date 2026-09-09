@@ -4,7 +4,7 @@
 
 **Blocked by:** 11 — Produce replayable financial Analysis from controlled inputs; 12 — Generate the Analysis and Valuation Workbook as a circulation candidate.
 
-**Status:** ready-for-agent
+**Status:** claimed
 
 - [ ] `cim_content_draft` has one strict sectioned content contract, exact input perimeter, abstention/qualification behavior, deterministic validators, and task-scoped evaluation evidence.
 - [ ] Unsupported material propositions remain unsupported or blocked; AI drafting cannot silently promote them to Fact, professional suitability, or circulation readiness.

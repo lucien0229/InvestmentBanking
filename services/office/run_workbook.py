@@ -9,6 +9,11 @@ if data.get("template_version") == "teaser-1.0.0":
     from inspect_teaser_presentation import inspect
     build(data, output)
     result = inspect(data, output/'teaser.pptx', output/'teaser.pdf')
+elif data.get("template_version") == "cim-1.0.0":
+    from cim_presentation import build
+    from inspect_cim_presentation import inspect
+    build(data, output)
+    result = inspect(data, output/'cim.pptx', output/'cim.pdf', json.loads((output/'render-report.json').read_text()))
 elif data.get("template_version") == "auction-control-1.0.0":
     from auction_control_workbook import build
     from inspect_auction_workbook import inspect

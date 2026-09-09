@@ -47,6 +47,14 @@ export const teaserBody = z.object({
   confidentiality: z.enum(["public", "internal", "confidential", "restricted"]),
   stage_required: z.boolean().default(true),
 }).strict();
+export const cimBody = z.object({
+  work_objective_id: uuid,
+  title: text,
+  purpose: text,
+  audience: text,
+  confidentiality: z.enum(["public", "internal", "confidential", "restricted"]),
+  stage_required: z.boolean().default(true),
+}).strict();
 const teaserEvidence = z.object({
   id: uuid,
   source_record_id: uuid,
@@ -63,6 +71,47 @@ export const teaserDraft = z.object({
   approved_disclosure_set: z.array(z.string().min(1).max(240)).min(1).max(100),
   evidence: z.array(teaserEvidence).min(1).max(200),
   facts_assumptions: z.array(teaserControlledBasis).min(1).max(200),
+  output_ceiling: z.object({ max_slides: z.number().int().min(1).max(12) }).strict(),
+  sections: z.array(z.object({
+    section_key: z.string().min(1).max(80), title: text, body: z.string().min(1).max(2000),
+    claim_key: z.string().min(1).max(120).optional(), citations: z.array(z.string().min(1).max(240)).min(1).max(30),
+    qualification: z.string().min(1).max(1000),
+    evidence_refs: z.array(uuid).min(1).max(30),
+    fact_refs: z.array(uuid).max(30).default([]),
+    assumption_refs: z.array(uuid).max(30).default([]),
+    source_refs: z.array(uuid).min(1).max(30),
+    table_rows: z.array(z.array(z.string().max(240)).min(1).max(8)).max(20).optional(),
+    chart: z.object({ categories: z.array(z.string().min(1).max(80)).min(1).max(12), values: z.array(z.number()).min(1).max(12), series_name: z.string().min(1).max(80).optional() }).strict().optional(),
+  }).strict()).min(1).max(12),
+}).strict().superRefine((draft, ctx) => {
+  if (draft.sections.length + 1 > draft.output_ceiling.max_slides) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["sections"], message: "sections_exceed_output_ceiling" });
+  const disclosure = new Set(draft.approved_disclosure_set);
+  const evidence = new Map(draft.evidence.map((item) => [item.id, item.source_record_id]));
+  const basis = new Map(draft.facts_assumptions.map((item) => [item.id, item.kind]));
+  draft.sections.forEach((section, index) => {
+    section.citations.forEach((citation) => { if (!disclosure.has(citation)) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["sections", index, "citations"], message: "citation_not_in_approved_disclosure_set" }); });
+    section.evidence_refs.forEach((id) => { if (!evidence.has(id)) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["sections", index, "evidence_refs"], message: "evidence_reference_not_in_input" }); });
+    section.source_refs.forEach((id) => { if (![...evidence.values()].includes(id)) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["sections", index, "source_refs"], message: "source_reference_not_in_input" }); });
+    section.fact_refs.forEach((id) => { if (basis.get(id) !== "fact") ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["sections", index, "fact_refs"], message: "fact_reference_not_in_input" }); });
+    section.assumption_refs.forEach((id) => { if (basis.get(id) !== "assumption") ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["sections", index, "assumption_refs"], message: "assumption_reference_not_in_input" }); });
+  });
+});
+const cimEvidence = z.object({
+  id: uuid,
+  source_record_id: uuid,
+  locator: z.record(z.string(), z.unknown()).optional(),
+}).strict();
+const cimControlledBasis = z.object({
+  id: uuid,
+  kind: z.enum(["fact", "assumption"]),
+  status: z.string().min(1).max(80),
+}).strict();
+export const cimDraft = z.object({
+  task_definition: z.literal("cim_content_draft"),
+  status: z.literal("proposal_only"),
+  approved_disclosure_set: z.array(z.string().min(1).max(240)).min(1).max(100),
+  evidence: z.array(cimEvidence).min(1).max(200),
+  facts_assumptions: z.array(cimControlledBasis).min(1).max(200),
   output_ceiling: z.object({ max_slides: z.number().int().min(1).max(12) }).strict(),
   sections: z.array(z.object({
     section_key: z.string().min(1).max(80), title: text, body: z.string().min(1).max(2000),
@@ -195,6 +244,14 @@ function failure(error: unknown, request: FastifyRequest, reply: FastifyReply) {
       "change_reason_required",
       "teaser_content_contract_invalid",
       "teaser_citation_required",
+      "cim_content_contract_invalid",
+      "cim_citation_required",
+      "cim_lineage_required",
+      "cim_controlled_basis_required",
+      "cim_citation_not_approved",
+      "cim_evidence_scope_mismatch",
+      "cim_fact_scope_mismatch",
+      "cim_assumption_scope_mismatch",
     ].includes(code)
   )
     return problem(reply, 409, code, request.url);
@@ -383,6 +440,26 @@ export function registerDeliverableRoutes(
     scoped((client, request) => { const p=request.params as Record<string,string>; return query(client, "SELECT coalesce(jsonb_agg(to_jsonb(l) ORDER BY l.section_key,l.claim_key),'[]') AS data FROM deliverable.teaser_lineage l JOIN deliverable.deliverable_revision r ON r.id=l.revision_id AND r.deliverable_id=$1 WHERE l.revision_id=$2", [uuid.parse(p.deliverable_id),uuid.parse(p.revision_id)]); }),
   );
   api.get(
+    `${root}/cims`,
+    scoped((client) => query(client, "SELECT coalesce(jsonb_agg(to_jsonb(d)||jsonb_build_object('current_revision_ordinal',(SELECT ordinal FROM deliverable.deliverable_revision WHERE id=d.current_revision_id),'reader_available',EXISTS(SELECT 1 FROM deliverable.artifact WHERE revision_id=d.current_revision_id AND role='reader')) ORDER BY d.created_at DESC),'[]') AS data FROM deliverable.deliverable d WHERE d.deliverable_type='cim_presentation'")),
+  );
+  api.post(
+    `${root}/cims`,
+    scoped((client, request) => { const body = cimBody.parse(request.body); return query(client, "SELECT deliverable.create_cim_deliverable($1,$2,$3) AS data", [...commandArgs(request, body), body]); }, { command: true, status: 201 }),
+  );
+  api.post(
+    `${root}/cims/:deliverable_id/revisions`,
+    async (request, reply) => {
+      const match = String(request.headers["if-match"] ?? "").match(/^"([1-9]\d*)"$/);
+      if (!match) return problem(reply, 428, "if_match_required", request.url);
+      return scoped((client, req) => { const body = z.object({ draft: cimDraft, limitations: z.array(z.string().min(1).max(500)).max(20).default([]) }).strict().parse(req.body); return query(client, "SELECT deliverable.create_cim_revision($1,$2,$3,$4,$5,$6,$7) AS data", [uuid.parse((req.params as Record<string,string>).deliverable_id), Number(match[1]), ...commandArgs(req, body), JSON.stringify(body.draft), JSON.stringify(body.limitations), process.env.RELEASE_ID ?? "local-development"]); }, { command: true, status: 202 })(request, reply);
+    },
+  );
+  api.get(
+    `${root}/cims/:deliverable_id/revisions/:revision_id/lineage`,
+    scoped((client, request) => { const p=request.params as Record<string,string>; return query(client, "SELECT coalesce(jsonb_agg(to_jsonb(l) ORDER BY l.section_key,l.claim_key),'[]') AS data FROM deliverable.cim_lineage l JOIN deliverable.deliverable_revision r ON r.id=l.revision_id AND r.deliverable_id=$1 WHERE l.revision_id=$2", [uuid.parse(p.deliverable_id),uuid.parse(p.revision_id)]); }),
+  );
+  api.get(
     `${root}/auction-control-workbooks`,
     scoped((client) =>
       query(
@@ -559,6 +636,7 @@ export function registerDeliverableRoutes(
           .object({
             task_definition: z.enum([
               "workbook_commentary_draft",
+              "cim_content_draft",
               "deliverable_semantic_qc",
               "native_reader_semantic_parity_review",
             ]),
