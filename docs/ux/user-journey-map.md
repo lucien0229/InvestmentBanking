@@ -14,10 +14,10 @@ It is a User Journey Map, not a User Flow, Information Architecture, route speci
 
 The journey is derived from:
 
-1. the current [V1 product specification](../../.scratch/ai-investment-banking-productization-wayfinding/spec.md);
+1. the current [V1 product specification](../product/spec.md);
 2. the canonical [Domain Context](../../CONTEXT.md);
-3. the confirmed [V1 Productization Blueprint](../../.scratch/ai-investment-banking-productization-wayfinding/assets/v1-productization-blueprint.md);
-4. the validated [Self-Serve Deal Workspace First-Value Journey](../../.scratch/ai-investment-banking-productization-wayfinding/assets/self-serve-first-value-journey-verdict.md); and
+3. the confirmed [V1 Productization Blueprint](../product/assets/v1-productization-blueprint.md);
+4. the validated [Self-Serve Deal Workspace First-Value Journey](../product/assets/self-serve-first-value-journey-verdict.md); and
 5. the resolved Wayfinder decisions and supporting research assets.
 
 Product scope, control boundaries, lifecycle, First Unmistakable Value, and C → A → B product form are confirmed Product Design Decisions. The throwaway prototype is evidence for those structural decisions only; its code, layout, visual styling, simulated actions, and browser state are not production requirements.

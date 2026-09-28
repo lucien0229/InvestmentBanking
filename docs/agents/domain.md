@@ -1,40 +1,5 @@
-# Domain Docs
+# 领域文档
 
-How the engineering skills should consume this repo's domain documentation when exploring the codebase.
+讨论产品概念、关系、边界或状态时先读取 [CONTEXT.md](../../CONTEXT.md)。产品需求与决策位于 [产品文档](../product/README.md)，技术约束位于 `docs/technical/` 和 `docs/adr/`。
 
-## Layout
-
-This is a single-context repository. Domain documentation belongs in:
-
-- `CONTEXT.md` at the repository root
-- `docs/adr/` for architecture decision records
-
-## Before exploring, read these
-
-- **`CONTEXT.md`** at the repo root
-- Relevant ADRs under **`docs/adr/`**
-
-If these files don't exist, **proceed silently**. Don't flag their absence or suggest creating them upfront. The `/domain-modeling` skill (reached via `/grill-with-docs` and `/improve-codebase-architecture`) creates them lazily when terms or decisions actually get resolved.
-
-## File structure
-
-```text
-/
-├── CONTEXT.md
-├── docs/adr/
-│   ├── 0001-event-sourced-orders.md
-│   └── 0002-postgres-for-write-model.md
-└── src/
-```
-
-## Use the glossary's vocabulary
-
-When your output names a domain concept (in an issue title, a refactor proposal, a hypothesis, or a test name), use the term as defined in `CONTEXT.md`. Don't drift to synonyms the glossary explicitly avoids.
-
-If the concept you need isn't in the glossary yet, that's a signal: either you're inventing language the project doesn't use, or there's a real gap to note for `/domain-modeling`.
-
-## Flag ADR conflicts
-
-If your output contradicts an existing ADR, surface it explicitly rather than silently overriding:
-
-> _Contradicts ADR-0007 (event-sourced orders) — but worth reopening because…_
+使用现有领域术语；发现文档之间的冲突时明确指出相关来源，交由用户的新设计决定处理。保留记录中的既往状态不自动授权新实现、旧任务续做或服务操作。

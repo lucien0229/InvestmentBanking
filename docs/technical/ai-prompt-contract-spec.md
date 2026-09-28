@@ -32,7 +32,7 @@ It does not define the provider's undocumented behavior, replace deterministic f
 
 Authority is concern-specific:
 
-- the approved [product specification](../../.scratch/ai-investment-banking-productization-wayfinding/spec.md) and confirmed product assets own product scope and behavior;
+- the approved [product specification](../product/spec.md) and confirmed product assets own product scope and behavior;
 - accepted [ADRs](../adr) own hard architecture decisions within their stated concern;
 - [CONTEXT.md](../../CONTEXT.md) owns canonical domain language and distinctions;
 - the approved [UX Spec](../ux/ux-spec.md) owns user-visible task behavior;
@@ -929,9 +929,9 @@ If a valid candidate is returned under the wrong wrapper, deterministic normaliz
 
 | Product/architecture concern | Governing source | This specification |
 |---|---|---|
-| AI proposal-only and Evidence/Human control | Product Spec user stories and acceptance seam; [AI control contract](../../.scratch/ai-investment-banking-productization-wayfinding/assets/ai-deterministic-work-evidence-human-control-contract.md); ADR 0020 | Sections 3, 9–13 |
+| AI proposal-only and Evidence/Human control | Product Spec user stories and acceptance seam; [AI control contract](../product/assets/ai-deterministic-work-evidence-human-control-contract.md); ADR 0020 | Sections 3, 9–13 |
 | Fixed HelloX route and provider evidence | ADR 0012; ADR 0021; Technical Design 12.1 | Sections 5, 13, 17 |
-| Official plugin baseline and V1 workflow ownership | [Official capability baseline](../../.scratch/ai-investment-banking-productization-wayfinding/assets/official-investment-banking-capability-baseline.md); product specification | Sections 4 and 6 |
+| Official plugin baseline and V1 workflow ownership | [Official capability baseline](../product/assets/official-investment-banking-capability-baseline.md); product specification | Sections 4 and 6 |
 | Account/Deal isolation and runtime authority | ADR 0006; ADR 0025; System Architecture | Sections 8, 12, 15, 17 |
 | Source, Evidence, Native Locator, and Processing Coverage | CONTEXT.md; ADR 0014–0018 | Sections 8–12 and 16 |
 | No live Deal template/training/evaluation promotion | ADR 0019 | Sections 3, 7, 16 |
@@ -980,7 +980,7 @@ Until the applicable obligation is evidenced, the affected Task Definition remai
 - [Technical Design](technical-design.md)
 - [System Architecture](system-architecture.md)
 - [UX Spec](../ux/ux-spec.md)
-- [Product specification](../../.scratch/ai-investment-banking-productization-wayfinding/spec.md)
+- [Product specification](../product/spec.md)
 - [ADR 0012 — Fix AI egress to the HelloX route](../adr/0012-fix-ai-egress-to-the-hellox-route.md)
 - [ADR 0016 — Use composite version-bound Native Locators](../adr/0016-use-composite-version-bound-native-locators.md)
 - [ADR 0019 — Prohibit promoting live Deal Material into reusable templates](../adr/0019-prohibit-promoting-live-deal-material-into-reusable-templates.md)
