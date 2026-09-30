@@ -1,5 +1,7 @@
 # System Architecture
 
+**Design revision: 2026-09-30.** Read the [control consistency contract](control-consistency.md), [content contract](../product/contracts/deliverable-content.md) and [capacity/outcome contract](../product/contracts/capacity-and-first-outcome.md) with this specification. These are design requirements, not current runtime evidence.
+
 **Product:** HelloX Investment Banking — Individual-First V1
 
 **Status:** Confirmed architecture baseline
@@ -681,6 +683,8 @@ A component failure never silently broadens data access, switches provider, rela
 
 ## 18. Backup and recovery topology
 
+The [scenario-specific recovery contract](control-consistency.md#9-recoverable-data-not-unrelated-rpo-numbers) governs applicability: daily logical-copy fallback can lose up to 24 hours; DB/object/key/tombstone completeness determines a common restore point; simultaneous loss of primary and sole mirror or irreversible key loss has no recovery promise. These objectives require configuration and drill evidence.
+
 - Supabase PITR protects PostgreSQL according to the confirmed seven-day production window.
 - The Backup Executor creates a daily encrypted logical database backup in the VPS recovery area.
 - Immutable encrypted object copies arrive in the VPS recovery area within the confirmed 15-minute objective.
@@ -694,10 +698,10 @@ Objectives remain:
 
 | Scope | Objective |
 |---|---:|
-| Transactional data RPO | 5 minutes or less |
-| Object recovery-copy RPO | 15 minutes or less |
-| Current Active Deal RTO | 8 hours or less |
-| Full historical restoration RTO | 24 hours or less |
+| Transactional data RPO with available, configured PITR | ≤5 minutes; common DB/object recovery point may be up to 15 minutes |
+| Object recovery-copy RPO | ≤15 minutes; verify all references at the selected DB point |
+| Current Active Deal RTO with available recovery dependencies | ≤8 hours; outage/key-loss exceptions below |
+| Full historical restoration RTO with available recovery dependencies | ≤24 hours |
 
 ## 19. Observability architecture
 

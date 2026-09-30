@@ -1,5 +1,7 @@
 # AI Prompt & Contract Spec
 
+**Design revision: 2026-09-30.** Read the [control consistency contract](control-consistency.md), [content contract](../product/contracts/deliverable-content.md) and [capacity/outcome contract](../product/contracts/capacity-and-first-outcome.md) with this specification. These are design requirements, not current runtime evidence.
+
 **Product:** HelloX Investment Banking — Individual-First V1
 
 **Status:** Confirmed implementation contract
@@ -168,6 +170,8 @@ AI Task Family groups responsibilities for governance and reporting. It is not e
 
 ### 6.2 First-sellable-release Task Definitions
 
+The [five content contracts](../product/contracts/deliverable-content.md) and frozen [Harbor reference packet](../product/reference-deals/harbor-components/README.md) are substantive inputs to deliverable, bid-comparison, valuation-commentary and QC tasks. Required modules, numbers, uncertainties and 16 mutation cases must be carried into manifests/evaluation; schema-valid prose alone cannot pass. Three-judge usefulness review complements deterministic truth and is not independent Banker validation.
+
 | ID | Concrete Task Definition | Family | Minimum task-specific input | Strict result `$def` |
 |---:|---|---|---|---|
 | 1 | `source_claim_extraction` | `source_semantic_extraction` | Accepted representation, coverage, fragments, objective | `SourceClaimCandidate` |
@@ -186,7 +190,7 @@ AI Task Family groups responsibilities for governance and reporting. It is not e
 | 14 | `bid_comparison_recommendation` | `deal_recommendation_draft` | Exact Bid versions, normalized terms, assumptions, comparison contract | `BidComparisonRecommendation` |
 | 15 | `teaser_content_draft` | `deliverable_content_draft` | Teaser section contract, audience, approved disclosure set | `TeaserContentDraft` |
 | 16 | `cim_content_draft` | `deliverable_content_draft` | CIM section contract, audience, Evidence, qualifications | `CimContentDraft` |
-| 17 | `management_presentation_content_draft` | `deliverable_content_draft` | Presentation section contract, audience, Evidence, current Revision | `ManagementPresentationContentDraft` |
+| 17 | `management_presentation_content_draft` | `deliverable_content_draft` | Presentation section contract, audience, Evidence, optional current Revision (null on first draft) | `ManagementPresentationContentDraft` |
 | 18 | `bid_evaluation_memo_draft` | `deliverable_content_draft` | Memo section contract, exact Bid comparison, audience, Decisions | `BidEvaluationMemoDraft` |
 | 19 | `workbook_commentary_draft` | `deliverable_content_draft` | Exact workbook regions, deterministic outputs, audience, units | `WorkbookCommentaryDraft` |
 | 20 | `process_communication_draft` | `deliverable_content_draft` | Approved purpose/audience/disclosure scope and exact process state | `ProcessCommunicationDraft` |
@@ -402,7 +406,7 @@ Permitted categories are:
 - Source Records, Source Representations, pre-issued fragments, Native Locators, content digests, and Processing Coverage;
 - accepted Evidence, Facts, Assumptions, Human Decisions, Calculations, Models, and Scenarios;
 - deterministic lineage closure, numeric checks, state-machine results, compatibility results, and Artifact Manifests;
-- exact Artifact Template/section contract, current Revision, Native Artifact, and Reader Copy identities; and
+- exact Artifact Template/section contract, accepted content version where available, and optional current Revision/native/reader identities; first creation explicitly has no prior Revision, while QC/parity tasks require an existing exact pair; and
 - task-specific taxonomies, controlled enums, and canonical domain definitions.
 
 Raw Deal-wide search, mutable filenames, arbitrary URLs, user-written Prompt text, provider credentials, operator data, and unrelated Deal objects are never inputs.

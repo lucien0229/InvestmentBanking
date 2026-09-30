@@ -1,5 +1,7 @@
 # Domain Context
 
+Current design refinements: [content](docs/product/contracts/deliverable-content.md), [capacity and first outcome](docs/product/contracts/capacity-and-first-outcome.md), [control consistency](docs/technical/control-consistency.md).
+
 ## Independent Product
 
 A standalone, monetizable product through which overseas users can access Investment Banking workflows without needing to use the official OpenAI Investment Banking plugin directly.
@@ -106,7 +108,7 @@ An immutable acknowledgement by the Account's Actor of the exact version and dig
 
 ## Guarantee Refund Request
 
-A durable self-serve request to evaluate one exact first-purchase payment and Deal control-loop history under the versioned First-Deal Control-Loop Guarantee. It becomes eligible or ineligible only through the deterministic Guarantee Assessment and does not itself prove refund eligibility or payment-provider completion.
+A durable self-serve request to evaluate the first-purchase payment and selected-outcome history under the purchased version of the First-Deal Control-Loop Guarantee. Eligibility is determined by the versioned Guarantee Assessment, including First Useful Outcome under commercial-v1.1, and does not prove payment-provider refund completion.
 
 ## Refund Effect
 
@@ -118,7 +120,11 @@ A privacy-safe public referral capability issued only after the Account reaches 
 
 ## Usage Ledger
 
-The authoritative append-only commercial record of capacity granted, reserved, committed, released, expired, or adjusted for an Account, Active Deal, billing period, and defined allowance class. It reconciles to Product Entitlements and provider events but is not replaced by a Stripe balance, AI token count, Job count, or analytics event.
+The authoritative append-only record of capacity grants, reservations, consumption, releases and adjustments for an Account, stable Active Deal Slot, Deal and allowance period. Slot reuse and Deal movement preserve consumed capacity; storage occupancy is distinct from periodically renewed processing allowance.
+
+## Active Deal Slot
+
+A stable unit of concurrent Active Deal capacity whose processing allowance survives changes to the Deal occupying it. Both the slot and the Deal retain their own consumption history.
 
 ## Usage Reservation
 
@@ -162,15 +168,27 @@ The first sellable version of the Independent Product, optimized for an Individu
 
 ## First Deal Guide
 
-The recoverable mode within a Deal Workspace that sequences the controls required for an Individual Banker to reach First Unmistakable Value, create the first permitted Internal Controlled Export, and explicitly graduate from guided first use. It remains available after graduation and is not a separate onboarding product or source of Deal state.
+The recoverable mode within a Deal Workspace that helps an Individual Banker select and complete a First Useful Outcome, retrieve its permitted Internal Controlled Export, and explicitly enter the Deal Execution Desk. It reuses canonical Deal objects and remains available after graduation.
 
 ## Deal Setup
 
 The recoverable control flow through which an Individual Banker establishes a Deal's identity, Paid Preflight posture, authority boundary, initial Source Packet, and Work Objective. Every Deal completes Deal Setup; the First Deal Guide provides expanded guidance for the initial Deal without changing these controls.
 
+## First Control Loop
+
+The first completed Evidence, scoped Banker judgment or correction, applicable deterministic validation and downstream-consequence review. It can teach the control model through a correct blocker without producing a usable selected result.
+
+## Outcome Selection
+
+A versioned choice of the useful result, purpose, required content and permitted limitations that the Banker intends to complete first. Changing the selection is explicit and preserves the previous scope and progress.
+
+## First Useful Outcome
+
+The first selected real-Deal result whose required content and controls are complete and whose matching native and reader artifacts have been retrieved through a permitted Internal Controlled Export. A correct blocker or generated draft alone cannot complete this milestone.
+
 ## First Unmistakable Value
 
-The first completed control loop in which an Individual Banker inspects exact Evidence, records the required typed Human Decision or correction, completes applicable deterministic validation, and sees the affected Deliverable, Revision, QC, Package Readiness, or authorization consequence. File upload, AI generation, or artifact preview alone does not qualify.
+The historical product name for the first-value milestone. Under commercial-v1.1 it means First Useful Outcome; earlier control-loop-only records retain their original predicate version and are not equivalent evidence.
 
 ## Synthetic Proof Session
 
@@ -178,7 +196,7 @@ A short-lived, bounded anonymous session for Project Northstar that exercises th
 
 ## Deal Execution Desk
 
-The persistent operating mode of a Deal Workspace after the Individual Banker completes the First Deal Guide graduation conditions, where the Banker continues Sell-Side Auction work, responds to Deal events, controls the Execution Package, and preserves immutable Revisions and Decisions. First Unmistakable Value alone does not complete graduation; the first permitted Internal Controlled Export and explicit entry are separate required milestones.
+The persistent working mode of the same Deal Workspace, supporting continuing Sell-Side Auction work, immutable Revisions and Decisions. Explicit Guide graduation follows First Useful Outcome; entering the workspace before graduation does not falsify that milestone.
 
 ## Core Business Workflow
 
@@ -534,7 +552,11 @@ A banker work product created for a stated Deal purpose, audience, or decision a
 
 ## Deliverable Semantic Content
 
-The immutable, contract-versioned structure expressing a narrative Deliverable Revision's sections, regions, reader-facing content, citations, qualifications, and refresh dependencies before native-file generation. Its closed schema-governed payload may vary by Deliverable type, while Facts, Evidence Relationships, Analyses, Quantitative Measures, Decisions, permissions, states, versions, and Lineage remain authoritative typed relationships outside that payload. For a workbook, the applicable Models, Calculations, Scenarios, Buyer, Bid, and Process records remain semantic authority rather than the workbook bytes or a duplicated content payload.
+The structured narrative of a Deliverable, including its sections, reader-facing text, citations and qualifications. Its accepted versions bind authoritative Evidence, Facts, Assumptions and Calculations; workbook financial and process authority remains in the corresponding domain records.
+
+## Accepted Content Version
+
+An immutable accepted narrative and its exact authority bindings under a Deliverable, available before a file is built. A successful build binds it to a Revision; acceptance alone creates no artifact, readiness or external-use authority.
 
 ## Artifact Template
 
@@ -586,7 +608,7 @@ A short-lived, read-only, request-scoped authorization first issued with fresh a
 
 ## Deletion Status Claimant
 
-A minimal identity-to-Deletion-Request binding retained after normal Account or Deal access is removed so the same authentication identity can continue proving its right to inspect privacy-safe deletion status. It retains only the provider issuer and subject binding plus the exact request identity needed for that purpose, not Deal content, display name, or an unnecessary email copy. The corresponding provider identity remains authentication-only with no Account authority while the Claimant is active. It remains while deletion or a preservation exception is unresolved and for 30 days after terminal completion, then the Claimant and, absent another lawful product relationship, the provider identity are removed and no longer support self-service status access.
+A minimal identity-to-request binding that permits the same identity to inspect privacy-safe deletion status. It removes no authority outside the deleted scope; only an identity without another ordinary relationship becomes claimant-only, and final identity deletion also waits for every other lawful relationship and claimant to end.
 
 ## Deletion Scope
 
@@ -718,7 +740,7 @@ A Deal whose active progression has been deliberately suspended while its last D
 
 ## Archived Deal
 
-A Deal whose Deal Workspace is retained as a historical record rather than used for current active work. Archive becomes effective only after domain-mutating Jobs finish or safely cancel; it is then read-only for inspection, search, permitted export, deletion, and explicit reactivation, with no stale Job commit. Archival is a record posture, not a transaction outcome, does not revoke Recipient Access automatically, and may follow closure, termination, or an explicit decision to archive a paused Deal.
+A Deal whose Deal Workspace is retained as a historical record rather than used for current active work. Archive becomes effective only after domain-mutating Jobs finish or safely cancel; it is then read-only for ordinary work, while permitting inspection, search, export, deletion, explicit reactivation and exact Decision or Recipient Access revocation without reactivation, with no stale Job commit. Archival is a record posture, not a transaction outcome, does not revoke Recipient Access automatically, and may follow closure, termination, or an explicit decision to archive a paused Deal.
 
 ## Source Reliance State
 

@@ -1,5 +1,7 @@
 # User Flow — Controlled Sell-Side Auction Execution Workspace V1
 
+**Design revised: 2026-09-30.** [Continuous workflows CW-01–CW-07](continuous-workflows.md) specify outcome selection, mixed intake/consent, sequential review, Deal search, external correction, sharing recovery and narrow layouts. These are current design inputs; historical prototype outcomes are not implementation evidence.
+
 Status: confirmed  
 Confirmed on: 2026-08-08
 
@@ -83,7 +85,7 @@ flowchart TD
     R --> PF
     S --> G["First Deal Guide or compact Deal Setup"]
     G --> W["Observable controlled work"]
-    W --> V["First Unmistakable Value"]
+    W --> V["Control loop and selected useful result"]
     V --> IE0["First permitted Internal Controlled Export"]
     IE0 --> X["Explicit graduation summary"]
     X --> B["Deal Execution Desk"]
@@ -320,15 +322,15 @@ flowchart LR
     R --> D
     V -->|passes declared scope| I["Review Impact Assessment"]
     I --> O["Inspect affected artifact, QC, readiness and authorization consequence"]
-    O --> F["First Unmistakable Value achieved"]
+    O --> F["First Control Loop completed"]
 ```
 
 The milestone requires the complete loop. Upload completion, AI generation, artifact preview, a dashboard percentage or a successful file open is insufficient.
 
 ### UF-15 — Explicit graduation into the Deal Execution Desk
 
-1. After First Unmistakable Value, the user creates the first permitted Internal Controlled Export under UF-21; the export is a distinct portability milestone and does not become external-use authorization.
-2. After both milestones complete, show a graduation summary containing the Evidence, Decision/correction, deterministic result, affected objects, exact Internal Controlled Export, remaining blockers and next controlled actions.
+1. After First Control Loop, complete the selected required content and controls, create the matching Internal Controlled Export under UF-21 and retrieve it successfully. This completes First Useful Outcome under CW-01; it creates no external authorization.
+2. After the selected useful outcome, including verified export retrieval, show a graduation summary with exact Evidence, Decisions, deterministic results, artifacts, remaining unrelated blockers and next actions.
 3. The user may inspect the completed loop and export, remain in or reopen the Guide, or explicitly choose to enter the Deal Execution Desk.
 4. On explicit entry, the product changes the primary operating mode without creating a new Deal, Workspace, source of truth or duplicated state.
 5. The First Deal Guide and its history remain accessible.
@@ -510,7 +512,7 @@ The recipient sees no Deal navigation, membership, other Revision, editing, shar
 2. The user chooses to let eligible jobs finish or request safe cancellation; the product never silently discards accepted work.
 3. Archive remains pending until every domain-mutating Job finishes or safely cancels; when it becomes effective, no prior Job Scope may commit another domain result.
 4. The user may separately revoke selected or all Recipient Access, but Archive does not revoke access automatically.
-5. Archive makes the Deal read-only for search, Evidence inspection, download, Internal Controlled Export and deletion; it cannot create new Source Records, material work, Revisions or readiness advancement.
+5. Archive stops new substantive work, Sources, Revisions and readiness advancement. Search, inspection, permitted export/deletion and exact Decision/Access revocation remain available without reactivation or Active Slot consumption.
 6. Valid external authorization/access continues only under its own expiry, revocation and invalidation conditions.
 7. Reactivation preserves the same Deal and history, requires an explicit return stage and consumes Active Deal capacity.
 8. If no slot is available, offer the existing capacity choices: archive another Active Deal or explicitly purchase additional capacity.
@@ -535,7 +537,7 @@ The recipient sees no Deal navigation, membership, other Revision, editing, shar
 1. Show exact deletion scope, lifecycle timing, retention exceptions, affected Recipient Access and an optional Internal Controlled Export path.
 2. Export is strongly offered but never required.
 3. Require a Passkey login no older than five minutes, a single-use Sensitive Action Grant and typed confirmation of the exact Deal.
-4. On submission, immediately remove normal access and revoke all Recipient Access for that Deal.
+4. On submission, remove authority only for that Deal, revoke its Access/grants and fence its Jobs. Preserve Account, Actor, billing, other Deals and ordinary session with the deleted Deal denied; offer its exact deletion receipt/status.
 5. Deletion is not self-service reversible.
 6. Provide a privacy-safe deletion receipt and lifecycle status without Deal content.
 7. Complete active-system deletion and ordinary encrypted backup expiry under the confirmed contractual clocks.
@@ -573,7 +575,7 @@ Recovery options may include source replacement, authorized unlocked copy, right
 | Deal with no Source Record | Show minimum anchor-source requirement, rights conditions and recovery path |
 | Deal with one anchor source | Permit source inventory, Claim mapping and missing-source planning under the Output Ceiling |
 | No current Open Item | Show lifecycle posture and next controlled action |
-| Archived Deal | Offer read-only search, Evidence inspection, Internal Controlled Export, deletion or reactivation |
+| Archived Deal | Offer search, Evidence/history inspection, permitted export/deletion/reactivation and exact Decision/Access revocation without reactivation |
 | Post-Term Access | Offer read-only inspection, Internal Controlled Export and deletion before the window ends |
 
 ### UF-37 — Confidentiality-safe notification return
@@ -588,11 +590,11 @@ Recovery options may include source replacement, authorized unlocked copy, right
 | Surface | Supported V1 flow responsibility |
 |---|---|
 | Desktop Web | Complete public proof, purchase, Deal Setup, source intake, Evidence/Human Decisions, Analysis, artifact review, QC/readiness, lifecycle changes, external-use control, export and continuing execution |
-| Mobile or small-screen Web | Account access/recovery, generic safe notification return, authenticated read-only review, job/status inspection, Internal Controlled Export access, subscription cancellation and deletion |
+| Mobile or narrow Web | Same permitted Web task set as desktop through stacked/stepwise context; includes Source intake, material Decisions, new export and Access control; native application editing remains external |
 | Native Office applications | Inspect/edit applicable XLSX, PPTX and DOCX through Internal Controlled Export and controlled reimport/three-way comparison |
 | Recipient-specific Web access | Authenticated, read-only, non-downloadable inspection of one exact authorized Revision |
 
-Mobile-primary work, source upload, native editing in the browser, material Human Decisions, Deal stage changes, External-Use Decisions and new Recipient Access creation are not V1 small-screen tasks. The later UX Spec owns exact action permissions, responsive layouts, handoff behavior and breakpoints without weakening this boundary.
+Narrow layouts preserve the same permitted Web work, including upload, material Decisions, stage changes, export creation and Access control, through stacked review. Full native Office editing inside the browser remains outside V1; optional handoff never substitutes for required Web capability. See CW-07.
 
 ## Traceability to the User Journey Map
 
@@ -629,7 +631,7 @@ The User Flow succeeds only if the implemented experience can demonstrate that a
 - recover from waiting, blocking, retryable, terminal and canceled work without repeating accepted steps;
 - complete a material new-event Revision loop without carrying prior authorization forward;
 - pause, resume, move backward, close, terminate, archive, reactivate, cancel, export and delete under explicit truthful postures; and
-- preserve the defined desktop-primary and bounded small-screen experience.
+- preserve full, compact and narrow critical-flow completion, including200% zoom, without viewport-based business permission;
 
 ## Deferred to subsequent UX artifacts
 

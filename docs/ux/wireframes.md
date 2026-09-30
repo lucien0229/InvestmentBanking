@@ -1,5 +1,7 @@
 # Wireframes — Controlled Sell-Side Auction Execution Workspace V1
 
+**Design revised: 2026-09-30.** [Continuous workflows CW-01–CW-07](continuous-workflows.md) specify outcome selection, mixed intake/consent, sequential review, Deal search, external correction, sharing recovery and narrow layouts. These are current design inputs; historical prototype outcomes are not implementation evidence.
+
 Status: confirmed
 
 Confirmed on: 2026-08-08
@@ -57,7 +59,7 @@ The Wireframes may arrange confirmed content and interaction patterns. They may 
 7. Material control uses an evidence-first dedicated Control Review with a sticky decision summary.
 8. Revision and parity comparison use synchronized dual panes; reimport keeps the original export fixed and switches the comparison target between external edit and current controlled Revision.
 9. Full, compact and small-screen reference canvases are `1440px`, `1180px` and `390px`; targeted `768px` frames are added only where structure materially differs.
-10. Small-screen navigation uses `Deals`, `Overview`, `Actions` and `More`; a Read-only Object Viewer is contextual rather than a permanent navigation domain.
+10. Small-screen navigation uses `Deals`, `Overview`, `Actions` and `More`; an Object Viewer and its permitted actions are contextual rather than a permanent navigation domain.
 11. Frames use exact synthetic content where it reveals structural truth and never invent implementation-deferred capability values.
 12. Checkout is `Order → Terms → Payment → Confirmation`; Recovery is an exception route returning to the preserved checkpoint.
 13. `Templates & Compatibility` is the canonical Deal-level home of Artifact Templates.
@@ -68,14 +70,16 @@ None of these layout and documentation choices qualifies for a new ADR. ADR 0001
 
 ## Wireframe notation and review rules
 
+The persistent Deal shell includes `Search this Deal` (Ctrl/Cmd+K outside editable fields). Action Center supports root-cause groups and sequential individual review; existing typed actions and five queues remain. [CW-03/CW-04](continuous-workflows.md) specify results, indexing state and exact return context.
+
 ### Reference canvases
 
 | Canvas | Contract represented | Purpose |
 |---|---|---|
 | `1440` | Full workspace, `>=1280px` | Persistent navigation, primary work and Inspector may coexist |
 | `1180` | Compact workspace, `1024–1279px` | Collapsed navigation, overlaid Inspector, complete Banker actions |
-| `390` | Bounded small-screen, `<1024px` | Inspection, status, existing export, cancellation, deletion and desktop handoff |
-| `768` targeted | Bounded small-screen, `<1024px` | Used only for dense read-only inspection or destructive confirmation where 390 does not expose the structural question |
+| `390` | Narrow workspace, `<1024px` | Complete permitted critical Web tasks using stacked context/review |
+| `768` targeted | Narrow workspace, `<1024px` | Dense comparison, keyboard review and confirmation layouts |
 
 These are review canvases, not new CSS breakpoints.
 
@@ -88,7 +92,7 @@ These are review canvases, not new CSS breakpoints.
 {State}             exact state, posture or mode
 ! Blocker            material interruption with durable recovery
 ->                   route or state transition
-[Desktop required]  visible prohibited small-screen action
+[Continue elsewhere] optional saved-context handoff; never a width-based action gate
 ```
 
 ### Frame annotation contract
@@ -135,7 +139,7 @@ Unless a frame states a narrower value, every frame inherits the following final
 | First Deal Guide | Guided tasks, canonical work, graduation | `WF-GDE-01`–`WF-GDE-02`; first-value storyboard |
 | Deal Workspace | Nine domains, canonical objects, Jobs, Controls, comparisons and lifecycle | `WF-DSK-01` through `WF-DEL-01` |
 | Recipient Access | identity, access check, exact viewer, unavailable state | `WF-REC-01`–`WF-REC-03` |
-| Bounded small-screen | reduced navigation and permitted/prohibited task projection | `WF-SM-01`–`WF-SM-06` |
+| Narrow workspace | same permitted actions with stacked context, search and optional handoff | `WF-SM-01`–`WF-SM-06`, CW-07 |
 
 ### Reusable page archetypes
 
@@ -504,7 +508,7 @@ EMPTY
 
 ### WF-PRE-01 — Paid Preflight outcomes
 
-**Frame contract:** `/app/deals/{deal-id}/controls/preflight`; Individual Banker; Preflight-Restricted or Targeted Re-Preflight mode; 1440/390 read-only projection. Goal is to understand exact permitted scope and either accept it, recover or exit. Visible inputs include Deal identity, purpose/audience, authority, confidentiality, processing, compatibility and minimum Source Packet. Primary action depends on `pass`, `limited-proceed`, `waiting-for-user` or `blocked`; no Assumption or payment can waive a hard gate. Return is the preserved Deal Setup or permitted source intake. Traces UF-06–UF-07, UF-35.
+**Frame contract:** `/app/deals/{deal-id}/controls/preflight`; Individual Banker; Preflight-Restricted or Targeted Re-Preflight mode; 1440/390 projection. Goal is to understand exact permitted scope and either accept it, recover or exit. Visible inputs include Deal identity, purpose/audience, authority, confidentiality, processing, compatibility and minimum Source Packet. Primary action depends on `pass`, `limited-proceed`, `waiting-for-user` or `blocked`; no Assumption or payment can waive a hard gate. Return is the preserved Deal Setup or permitted source intake. Traces UF-06–UF-07, UF-35.
 
 ```text
 +----------------------+------------------------------------------------+------------------+
@@ -554,17 +558,17 @@ EMPTY
 
 ### WF-GDE-02 — First controlled loop completion
 
-**Frame contract:** Guide graduation state; Individual Banker; 1440/390 read-only. Goal is to verify the complete loop, the first permitted Internal Controlled Export and explicit entry into the Deal Execution Desk. Visible receipt binds exact Evidence, Human Decision, deterministic result, affected consequences and Internal Controlled Export. Primary action is `Enter Deal Execution Desk`; inspect export and reopen Guide are secondary; First Unmistakable Value without the export, upload or preview alone cannot complete the state. Traces UF-14–UF-15 and UF-21.
+**Frame contract:** Guide graduation; Individual Banker;1440/390. Shows selected result, exact Evidence/Decision/validation, matching native/reader artifacts and completed export retrieval. First Control Loop alone cannot graduate. Primary action `Enter Deal Execution Desk`; inspect result/receipt and reopen Guide are secondary. CW-01 and UF-14–UF-15 own ordering.
 
 ```text
 +--------------------------------------------------------------------------+
-| H1 First controlled loop complete                                        |
+| H1 Selected useful outcome complete                                        |
 |                                                                          |
 | Evidence: EVD-001 at exact Source locator                                |
 | Human Decision: DEC-014, exact scope and actor                           |
 | Deterministic result: VAL-009, declared gate only                        |
 | Consequences: Revision 0.4 | QC-022 | Package Readiness changed          |
-| Internal export: EXP-003 | exact Revision and signed manifest            |
+| Export EXP-003 retrieved | exact Revision, manifest and stream receipt            |
 |                                                                          |
 | [Enter Deal Execution Desk] (Review the loop)                            |
 | The First Deal Guide remains available from Overview.                    |
@@ -691,19 +695,19 @@ EMPTY
 
 ### WF-SRC-01 — Four-stage Add Source
 
-**Frame contract:** Sources → Intake & Processing → Add Source; exact task route slug implementation-deferred; Individual Banker; permitted desktop Deal; 1440/1180. Goal is to create an authorized Source Record and optionally add its exact version to a Source Packet. Visible stages are declaration, safe receive, inspection and packet selection. Primary action advances the durable step; safe Draft and exit are secondary; file selection before authority declaration and small-screen upload are prohibited. Traces UF-08, UF-35–UF-36.
+**Frame contract:** Add Source; all supported widths. Local file selection, explicit shared/per-item declarations, Operation Preview consent, safe receive/inspection and packet selection follow CW-02. Undeclared bytes never transfer. Stale consent preserves selection and declarations; per-item progress/recovery survives partial failure.
 
 ```text
 +----------------------+------------------------------------------+--------------------+
 | ADD SOURCE           | H1 Declare Source                        | CONTROL CONTEXT    |
 | <1 Declaration>      | Source category [__________________]     | Paid Preflight     |
-|  2 Safe receive      | Origin/acquisition [_______________]     | permitted scope    |
+|  2 Preview / consent | Origin/acquisition [_______________]     | permitted scope    |
 |  3 Inspect record    | Authority basis [__________________]     | confidentiality    |
 |  4 Select packet     | Permitted purpose [________________]     | Capability Manifest|
 |                      | Confidentiality class [___________]     | Output Ceiling     |
 |                      | Processing restrictions [_________]     |                    |
 |                      |                                          |                    |
-|                      | [Review declaration]                     |                    |
+|                      | [Review work and capacity]                     |                    |
 +----------------------+------------------------------------------+--------------------+
 | Draft saved. No Source has entered substantive processing.                          |
 +-------------------------------------------------------------------------------------+
@@ -711,7 +715,7 @@ EMPTY
 
 **Safe receive states:** rejected, quarantined, supported, supported with limitations, replacement/default required and unsupported remain distinct and state whether substantive processing occurred.
 
-Batch file selection may occur only in Safe receive. Authority, safety, Compatibility Report and Source Record outcomes remain exact per Source; a batch result never converts individual restrictions into one aggregate pass.
+Batch selection occurs locally before declarations; no file metadata or bytes leaves the browser until each selected item is declared. Transfer follows exact Operation Preview consent. Shared defaults, exceptions, item acceptance and recovery are shown in CW-02; no batch-wide authority pass.
 
 ### WF-SRC-02 — Source Packet builder
 
@@ -1098,7 +1102,7 @@ Batch file selection may occur only in Safe receive. Authority, safety, Compatib
 
 ### WF-EXP-01 — Internal Controlled Export
 
-**Frame contract:** exact object/Revision or History export review; Individual Banker; desktop creation, small-screen existing access only; 1440/390. Goal is to create or inspect a portable internal copy without implying external authority. Visible exact objects, hashes, posture, restrictions, included/excluded records, intended internal use and manifest remain explicit. Primary action on desktop is `Create internal controlled export`; a missing or stale Grant preserves this exact export review, traverses the inherited fresh-Passkey branch and resumes only while every bound Revision, artifact, manifest, exclusion and precondition remains unchanged. Existing download/inspection is secondary; external circulation and small-screen creation are prohibited. Traces UF-21 and ADR 0001.
+**Frame contract:** exact export review at 1440/390. Creation and retrieval are supported at every width with the same exact scope, rights, fresh-Passkey and Sensitive Grant checks. Changed basis preserves review but requires new consent; completed stream coverage supplies the retrieval receipt. Internal export grants no external authority. UF-21, CW-01/CW-07 and ADR0001 apply.
 
 ```text
 +----------------------------------------------------------+---------------------------+
@@ -1228,11 +1232,13 @@ STATUS
 +--------------------------------------------------------------+
 ```
 
-## Bounded small-screen projection
+## Narrow workspace projection
+
+See [CW-02–CW-07 frames](continuous-workflows.md) for mixed intake/preview, continuous review, global-in-Deal search, recipient correction and a390px Decision panel. These frames add to the canonical shell; no new prototype is implied.
 
 ### WF-SM-01 — Small-screen shell and navigation
 
-**Frame contract:** authenticated Account/Deal route below 1024px; Individual Banker; 390. Goal is safe inspection and exit-task access without compressing material work. Visible navigation is Deals, Overview, Actions and More. Primary actions are permitted by the matrix; desktop-only actions remain visible in context with handoff. Traces UF-38.
+**Frame contract:** same Account/Deal route below 1024px. Navigation collapses; every permitted Web task remains reachable. Evidence/Decision/Impact use sequential panels with pinned version and preserved position. CSS width introduces no permission gate; CW-07 is the task-completion frame.
 
 ```text
 +--------------------------------------+
@@ -1244,7 +1250,7 @@ STATUS
 | READ-ONLY OR PERMITTED TASK CONTENT   |
 |                                      |
 | [Permitted primary action]            |
-| [Desktop required] material action    |
+| [Continue material action]           |
 +--------------------------------------+
 | Deals | Overview | Actions | More     |
 +--------------------------------------+
@@ -1268,7 +1274,7 @@ STATUS
 | Blocker and smallest recovery         |
 |                                      |
 | [Inspect Evidence]                    |
-| [Desktop required] Prepare decision  |
+| [Prepare decision]                   |
 +--------------------------------------+
 | Deals | Overview | Actions | More     |
 +--------------------------------------+
@@ -1309,18 +1315,18 @@ STATUS
 | Manifest / hash                      |
 |                                      |
 | [Download existing export]           |
-| [Desktop required] Create new export |
+| [Create new internal export]         |
 | Not authorized for external use.     |
 +--------------------------------------+
 ```
 
-### WF-SM-05 — Continue-on-desktop handoff
+### WF-SM-05 — Optional saved-context handoff
 
-**Frame contract:** prohibited small-screen action in exact context; Individual Banker; 390. Goal is to preserve progress and move safely to a complete desktop workspace. Visible exact scope and reason remain present. Handoff links are enabled only after safe Draft save. Primary actions copy or email an expiring secure link; action execution on small-screen is prohibited. Traces UF-38.
+**Frame contract:** optional handoff from any layout. User may continue the permitted Web action here or save exact context and open it elsewhere. Handoff requires durable Draft save and reauthorization on return; it is never forced by width.
 
 ```text
 +--------------------------------------+
-| H1 Continue on desktop               |
+| H1 Continue here or elsewhere        |
 | This action changes Claim CLM-018 v2 |
 | and its affected downstream scope.   |
 |                                      |
@@ -1329,13 +1335,13 @@ STATUS
 |                                      |
 | [Copy secure link]                   |
 | (Send link to my account email)      |
-| (Return to read-only object)         |
+| [Continue this action here]          |
 +--------------------------------------+
 ```
 
 ### WF-SM-06 — Cancellation and destructive-action projection
 
-**Frame contract:** Account cancellation or Deal/Account deletion; Individual Banker; 390/768. Goal is to complete explicitly permitted exit tasks with the same consequence, fresh-Passkey and single-use Sensitive Action Grant controls as desktop. Primary action names the exact result; typed identity remains required for deletion. No material Deal work becomes available. Traces UF-32–UF-34, UF-38.
+**Frame contract:** Account cancellation or Deal/Account deletion; Individual Banker; 390/768. Goal is to complete explicitly permitted exit tasks with the same consequence, fresh-Passkey and single-use Sensitive Action Grant controls as desktop. Primary action names the exact result; typed identity remains required for deletion. The same layout also exposes other permitted Deal work; this frame changes no permission. Traces UF-32–UF-34, UF-38.
 
 ```text
 +--------------------------------------+
@@ -1394,7 +1400,7 @@ flowchart LR
     F --> O["WF-OVR-01 Deal Execution Desk Overview"]
 ```
 
-**Control points:** No upload, generation or preview counts as first value. Exact Evidence, typed Decision/correction, deterministic result and visible downstream consequence are all required for First Unmistakable Value; the first permitted Internal Controlled Export and explicit Desk entry remain separate graduation milestones.
+**Control points:** Control Loop requires Evidence, typed judgment/correction, deterministic validation and consequence. First Useful Outcome additionally requires selected content completion and verified native/reader export retrieval. Explicit Desk graduation follows; CW-01 defines exact predicates.
 
 ### SB-03 — Continuing Deal execution and material Revision
 
@@ -1746,7 +1752,7 @@ The Wireframes are complete only when all of the following remain true in later 
 
 - every customer surface and all 38 User Flows map to a detailed frame, reusable archetype, storyboard and state variant without an orphan route;
 - the complete acquisition path can reach entitlement and Deal Setup without forcing Project Northstar or accepting real material too early;
-- the First Deal Guide reaches First Unmistakable Value through real canonical objects, creates the first permitted Internal Controlled Export and explicitly graduates into the Deal Execution Desk as separate milestones;
+- the Guide distinguishes control-loop completion, selected useful result/export retrieval and explicit graduation, retaining canonical objects and exact predicate versions;
 - the nine Deal work domains remain stable across stage, guided, restricted, archived and Post-Term modes;
 - exact Evidence, Human Decision, deterministic result, Impact Assessment and affected Revision consequences can be inspected without relying on a chatbot or transient message;
 - Package content, QC, Package Readiness, External-Use Decision, delivery and actual external use remain separate page and record concepts;

@@ -1,0 +1,39 @@
+{
+  "fixture_version": "harbor-v1.0",
+  "contract_versions": ["av-v1.1", "auction-v1.1", "teaser-v1.1", "cim-v1.1", "bid-memo-v1.1"],
+  "units": "USD million",
+  "numeric_truth": {
+    "revenue_growth_2025": "0.125",
+    "reported_ebitda_2025": "8",
+    "accepted_adjustment": "0.6",
+    "adjusted_ebitda_2025": "8.6",
+    "adjusted_margin_display_percent": "15.9",
+    "customer_concentration_2025": "0.24",
+    "customer_concentration_change_percentage_points": "4",
+    "illustrative_ev": ["51.6", "60.2", "68.8"],
+    "equity_before_nwc": ["42.6", "51.2", "59.8"],
+    "equity_at_peg": ["43.3", "51.9", "60.5"],
+    "a_cash_close": "55.7",
+    "b_cash_close": "53.7",
+    "b_total_maximum": "61.7",
+    "b_earnout_break_even_with_a": "2.0"
+  },
+  "cases": [
+    {"id":"HC-01","change":"none","expected":"financial_review complete; matching native/reader and retrieved export still required for milestone","critical":false},
+    {"id":"HC-02","change":"include pending owner adjustment","expected":"reject adjusted EBITDA 9.0; require 8.6","critical":true},
+    {"id":"HC-03","change":"treat B headline 70 as all upfront","expected":"reject B cash-close 61.7; require 53.7 plus conditional 0-8","critical":true},
+    {"id":"HC-04","change":"describe 2026 revenue 60 as actual","expected":"reject historical/forecast conflation","critical":true},
+    {"id":"HC-05","change":"label multiples market-supported","expected":"reject; illustrative assumptions only","critical":true},
+    {"id":"HC-06","change":"include Harbor name in anonymous teaser metadata","expected":"block anonymous circulation even if visible slide is anonymous","critical":true},
+    {"id":"HC-07","change":"omit concentration risk from CIM","expected":"fail content completeness and material qualification","critical":true},
+    {"id":"HC-08","change":"delete forecast source columns","expected":"forecast unavailable; qualified history review allowed; do not synthesize 60","critical":false},
+    {"id":"HC-09","change":"replace B with BID-B-v2 upfront EV 63 and earnout maximum 7","expected":"headline still 70; cash close 54.7; maximum 61.7; invalidate affected comparison and memo, retain v1 history","critical":false},
+    {"id":"HC-10","change":"correct blocker found, no selected outcome retrieved","expected":"control-loop milestone may pass; useful-outcome and guarantee success cutoff remain false","critical":false},
+    {"id":"HC-11","change":"Reader Copy shows 9.0 adjusted EBITDA, native shows 8.6","expected":"parity Critical; no ready Revision or useful outcome","critical":true},
+    {"id":"HC-12","change":"source belongs to different Deal","expected":"deny lookup and generation; no existence leak","critical":true},
+    {"id":"HC-13","change":"template hides risks section","expected":"reject template result; required content cannot be customized away","critical":true},
+    {"id":"HC-14","change":"authorize recipient without actual-use event","expected":"authorized only; never sent, downloaded or read","critical":false},
+    {"id":"HC-15","change":"first native build fails after content acceptance","expected":"retain accepted content version; no blank Revision; retry exact content without duplicate acceptance","critical":false},
+    {"id":"HC-16","change":"new lineage edge commits after impact candidate snapshot","expected":"refresh complete closure before gate; new dependent cannot escape impact","critical":true}
+  ]
+}

@@ -1,5 +1,7 @@
 # Controlled Sell-Side Auction Execution Workspace V1
 
+**Design revised: 2026-09-30.** Detailed [content contracts](contracts/deliverable-content.md), [capacity and outcome predicates](contracts/capacity-and-first-outcome.md), [continuous workflows](../ux/continuous-workflows.md) and [control consistency](../technical/control-consistency.md) are part of this specification. Runtime and historical prototype evidence remain separate.
+
 > 保留设计，待用户优化。此文保留重启前的产品设计内容；既往确认、任务措辞与实施结果仅为历史来源，本阶段没有启用任务队列或实现。
 
 
@@ -230,7 +232,7 @@ V1 succeeds when an eligible Individual Banker can complete the public proof, pu
 159. As an Individual Banker, I want self-serve Deal and account export, closure, and deletion, so that vendor continuity risk is reduced by portability and a defined exit path.
 160. As an Individual Banker, I want normal access removed immediately after a deletion request, active-system deletion completed within 30 days, and ordinary encrypted backup copies expired within 90 days, so that retention behavior matches the stated contract.
 161. As an Individual Banker, I want deletion status and completion evidence without Deal content in telemetry or transactional messages, so that I can verify the lifecycle without creating a new leak.
-162. As an Individual Banker, I want Archived Deals to remain read-only for search, Evidence inspection, download, export, and deletion, so that archival does not consume active processing or rewrite history.
+162. As an Individual Banker, I want Archived Deals to retain inspection/export/deletion and exact sharing-revocation actions without reactivation, so that archival does not consume active processing or rewrite history.
 
 ### Security, observability, evaluation, and operations
 
@@ -314,9 +316,9 @@ V1 succeeds when an eligible Individual Banker can complete the public proof, pu
 - The pre-payment qualification preview collects no real Confidential Deal Materials. It exposes supported formats, current compatibility classes, operational envelope, minimum Source Packet, authority questions, intended-use boundaries, known unsupported behavior, and the security facts required for a qualified purchase.
 - Successful payment creates account entitlement and the two Active Deal slots. Before real upload, paid preflight records purchase authority, exact Deal identity and use, source/use authority, confidentiality, processing-path compatibility, file and template posture, minimum security status, minimum Source Packet status, and guarantee eligibility.
 - The First Deal Guide is a mode inside the Deal Workspace. It is resumable, reopenable, and records completed, blocked, waiting, and recovered steps. It does not create a second onboarding data model.
-- First unmistakable value is recorded only when one real supported Deal has exact Source Record and Evidence inspection, one material typed Banker correction or Fact/Assumption/Claim/conflict Decision, applicable deterministic validation, affected Native Artifact and exact Reader Copy result or correct blocker, visible Impact Assessment/QC/Package Readiness/authorization consequence, and no unresolved product-side failure preventing that result.
+- First Control Loop records Evidence inspection, scoped judgment/correction, deterministic validation and visible consequence, including an honest blocker. First Useful Outcome (the v2 First Unmistakable Value predicate) additionally requires the selected content contract, exact native/reader result, applicable controls and verified retrieval of its Internal Controlled Export; a blocker alone cannot complete it.
 - A real Deal without a genuine source conflict or extraction error uses a normal material proposition review and valid deterministic check. The product never injects a false exception to satisfy activation or guarantee criteria.
-- After First Unmistakable Value, the first permitted Internal Controlled Export proves exact portability without creating external-use authority. Completion of that export plus explicit entry graduates the user into the persistent Deal Execution Desk, changing the primary navigation and next-action surface without changing the Deal identity or stored objects. The First Deal Guide and its history remain accessible.
+- The Guide sequences selected outcome, inputs, control loop, completed result, export/retrieval and First Useful Outcome, followed by explicit graduation into the persistent Deal Execution Desk. The same Deal objects and Guide history remain available; export never creates external-use authority.
 
 ### Deal, lifecycle, and state behavior
 
@@ -325,7 +327,7 @@ V1 succeeds when an eligible Individual Banker can complete the public proof, pu
 - The canonical business-stage path is Initiated, Preparation, In Market, Bid Evaluation, Exclusive Execution, Signed, and Closed, with Terminated as a distinct end state. Paused is an independent activity posture and Archived is an independent record posture.
 - Stage transitions require a valid transition command, applicable Human Decision, and supporting Process Event or Evidence. AI may recommend a transition but may not apply it. In Market requires an occurred authorized outreach event; Signed requires the controlling definitive-agreement event; Closed requires the completion event.
 - Backward transitions are permitted where the real process requires them. Every transition appends history and records its supporting Decision and Process Event. No transition deletes or rewrites prior stage history.
-- Active Deal Workspace permits new Source Records, material analysis or package work, Revisions, and Package Readiness advancement. Archived Deal Workspace is read-only for search, Evidence inspection, download, export, and deletion. Reactivation returns to an explicit stage, consumes an Active Deal slot, and preserves the same Deal history.
+- Active Deal Workspace permits new Source Records, material analysis or package work, Revisions, and Package Readiness advancement. Archived Deal Workspace permits search, Evidence inspection, download, export, deletion and exact Decision/Access revocation, while blocking new substantive work. Reactivation returns to an explicit stage, consumes an Active Deal slot, and preserves the same Deal history.
 - Source Reliance State, Analysis State, Deliverable Readiness, Process State, Deal Business Stage, information freshness, conflict, disposition, Origin, and Human Confirmation are separate dimensions. Package Readiness may aggregate them for action but may not store a contradictory independent truth.
 - Buyer Candidate, Approved Buyer, Outreach Wave, actual outreach, interest, NDA, disclosure, Data-Room Access, Bid receipt, selection, exclusivity, signing, and closing remain separate. The product does not infer an event from a plan, silence, schedule, AI recommendation, or tracker label alone.
 - Diligence Issue, Information Request, and Open Item remain independent. A Diligence Issue changes state only through its resolution criteria and explicit Banker disposition, not because linked requests or tasks closed.
@@ -391,10 +393,10 @@ V1 succeeds when an eligible Individual Banker can complete the public proof, pu
 ### Commercial entitlements and lifecycle
 
 - Individual Deal Desk entitlement is one named user, two concurrent Active Deals, complete Individual capability, and the confirmed monthly or annual term. Account sharing is prohibited. Team collaboration is not simulated through shared credentials.
-- Each Active Deal receives 250 newly processed files, 2,500 newly processed logical pages, 25 GB active storage, and 20 full-workflow operations per billing month. Logical-page and full-workflow-operation definitions match the confirmed monetization contract and are displayed before work.
+- Each stable Active Deal Slot and occupying Deal has 250 new processed files, 2,500 logical pages and 20 full-workflow operations per monthly allowance period; base consumption debits both ledgers. Each occupied slot includes 25 GB retained storage; active overflow and archived material share the 250 GB Account pool. Storage occupancy does not reset monthly. Exact allocation and recovery follow commercial-v1.1.
 - Targeted extraction correction, Evidence inspection, Claim/Fact/Assumption disposition, conflict review, deterministic recalculation and validation, normal correction-driven targeted regeneration, QC, Package Readiness review, Human and External-Use Decisions, normal native/reader/control/archive export, and product-failure recovery do not consume a buyer-visible paid unit.
 - At 70 percent of a Deal allowance the product forecasts use; at 90 percent it shows exact remaining capacity and archive/sequence/pack options; before an operation would exceed allowance it pauses and requires an explicit pack purchase or renewal. It never creates retroactive or surprise overage.
-- Additional Active Deal capacity is $500 monthly or $5,500 annually with the same capability and allowance, co-termed and prorated. The intensive-processing pack is $1,000 for one affected Active Deal-month and adds 5,000 logical pages and 20 full-workflow operations. Archive capacity is $50 monthly per additional 250 GB after export/delete is offered.
+- Additional Active Deal capacity is $500 monthly or $5,500 annually, co-termed/prorated. The $1,000 intensive-processing pack adds 250 new files, 5,000 pages and 20 full-workflow operations for the exact Deal-month. The $50 monthly Retained Storage Capacity Pack adds 250 GB to the shared pool, serving active overflow and archived material after export/delete options are shown. Every purchase requires explicit checkout; no surprise overage.
 - The first subscription payment is refundable only under the exact confirmed 14-day guarantee conditions. The eligibility engine uses Source Packet, preflight, work, failure, milestone, account, and payment-instrument records; it does not rely on a support agent's unstructured judgment.
 - Referral credit is $250 after a referred buyer pays full displayed price, reaches first unmistakable value, and exits the guarantee window without refund, capped at three credits per referrer per year. No referred-buyer discount, confidential story, contact upload, automatic posting, or self-referral is allowed.
 - Future Team entitlement is not implemented. Any Team signal is an event derived from explicit multi-actor, template, approval, policy, billing, or concurrent-Deal need and cannot disable or hide Individual capability.
@@ -445,9 +447,9 @@ V1 succeeds when an eligible Individual Banker can complete the public proof, pu
 - **AC-013:** Paid preflight returns pass, limited-proceed, blocked, or waiting-for-user with an exact non-sensitive reason and recovery action for purchase authority, intended use, source rights, confidentiality, processing path, compatibility, and minimum packet.
 - **AC-014:** A buyer can replace or remove a blocked source, narrow the intended use, save progress, and resume without a sales or implementation handoff.
 - **AC-015:** A product-side job failure restores any consumed allowance exactly once and retains guarantee eligibility where the confirmed conditions remain satisfied.
-- **AC-016:** The guarantee engine cannot approve a refund after first unmistakable value, for a repeated account/payment instrument, or for an explicitly ineligible source/authority condition, and it approves the fixture representing incorrect product preflight acceptance followed by supported processing failure.
+- **AC-016:** Guarantee assessment uses the purchased terms/predicate version. Under commercial-v1.1 a correct blocker or control-loop completion without the selected useful result cannot end eligibility; a completed retrieved First Useful Outcome can. Repeated account/payment instruments and explicitly ineligible authority/source conditions remain excluded; incorrect product preflight acceptance followed by supported processing failure follows the refund contract.
 - **AC-017:** Cancellation preserves processing through the paid term, then disables new work and starts the 30-day read-only export window.
-- **AC-018:** Additional Active Deal, intensive processing, and archive capacity purchases require explicit preview and consent and cannot be applied retroactively.
+- **AC-018:** Additional Active Deal, intensive processing, and retained-storage capacity purchases require explicit preview and consent and cannot be applied retroactively; commercial-v1.1 tests include file-count exhaustion, active overflow and slot reuse.
 
 #### Deal and source contracts
 
@@ -651,7 +653,7 @@ V1 succeeds when an eligible Individual Banker can complete the public proof, pu
 
 ### Unresolved implementation questions
 
-The following questions are explicitly implementation-deferred. They do not reopen the locked product decisions and should be resolved through technical design or implementation tickets with acceptance evidence:
+The following list is the original implementation-question inventory. Existing Technical Design, API/ERD/Permission specifications, accepted ADRs and the 2026-09-30 control-consistency contract now resolve their design choices. Only unverified implementation/provider/compatibility evidence and explicitly registered deferrals remain open; this list is not permission to choose a contradictory stack or reopen resolved contracts:
 
 1. Which application stack, deployment platform, geographic region, relational database, object store, queue, cache, search/retrieval index, and infrastructure isolation mechanisms will implement the control-plane and worker architecture?
 2. Which authentication and account-recovery approach will support one named Individual Banker, strong session security, enforce the no-content-support boundary, and preserve a future organization migration path without implementing Team now?
@@ -684,8 +686,8 @@ The following questions are explicitly implementation-deferred. They do not reop
 These questions require representative evidence and do not weaken the binary deterministic and Critical-sentinel gates:
 
 1. What representative, rights-cleared benchmark corpus covers U.S. Sell-Side Auction Sources, financial statements, Models, Bids, public filings, OCR and tables, native artifacts, revisions, templates, and adversarial cross-Deal cases?
-2. Which people are qualified to adjudicate extraction, source sufficiency, materiality, professional usability, recommendation suitability, visual quality, and readiness for each work type?
-3. What adjudication protocol, reviewer count, disagreement resolution, inter-rater reporting, and conflict-of-interest controls will produce defensible ground truth?
+2. The fixed reference packet and deterministic expected results in the content contract supply initial truth. Three blinded AI judges evaluate narrative usefulness under the AI contract; this is not independent Banker adjudication. Broader representative coverage must be evidenced without adding external advisors or pooling customer content.
+3. Apply the existing versioned three-judge disagreement protocol, zero-Critical and per-dimension must-pass gates. Expand cases and report judge agreement without turning agreement into an independent professional-validation claim.
 4. What materiality tiers map each failure class to working-draft, analysis-ready, senior-review-ready, circulation-candidate, blocked, or release-blocking consequences?
 5. What statistical thresholds and confidence intervals are justified for extraction, OCR/table recognition, citation correctness and completeness, conflict detection, abstention, change-impact recall, AI unsupported-Claim rate, readiness classification, visual defects, and professional usability?
 6. What exact formula/function, application/version, template, render, round-trip, and native-edit task coverage must pass before a file family is declared supported?

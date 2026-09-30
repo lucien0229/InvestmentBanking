@@ -1,5 +1,7 @@
 # Integration Spec
 
+**Design revision: 2026-09-30.** Read the [control consistency contract](control-consistency.md), [content contract](../product/contracts/deliverable-content.md) and [capacity/outcome contract](../product/contracts/capacity-and-first-outcome.md) with this specification. These are design requirements, not current runtime evidence.
+
 **Product:** HelloX Investment Banking — Individual-First V1
 
 **Status:** Confirmed integration baseline with explicit deferred launch decisions
@@ -777,14 +779,19 @@ Provider connect/read/retry budgets must fit inside these totals and are set onl
 
 ### 12.4 First-party rate and concurrency policy
 
-The initial `rate-policy-v1.0.0` uses token buckets with the listed sustained window and burst. Every applicable scope must have capacity; limits are not pooled across Accounts. Successful idempotent replay of the same command still counts as a request but cannot duplicate its effect.
+Exact class membership, no bulk grant, fresh authentication,20-Access acceptance and preserved progress follow [scoped budgets](control-consistency.md#6-recovery-session-cookie-and-scoped-rate-budgets). Scheduler admission and fairness are separate from ingress rate limits.
+
+The initial `rate-policy-v1.1.0` uses token buckets with the listed sustained window and burst. Every applicable scope must have capacity; limits are not pooled across Accounts. Successful idempotent replay of the same command still counts as a request but cannot duplicate its effect.
 
 | Surface / operation class | Exact initial quota | Scope |
 |---|---:|---|
 | Anonymous/public API reads and proof state | 120 requests/minute; burst 30 | source IP |
 | Authenticated ordinary reads/queries | 600 requests/minute; burst 100 | Actor and Account independently |
 | Authenticated non-Job mutations | 120 requests/minute; burst 20 | Actor and Account independently |
-| Sensitive Action Grant issuance | 10 per 10 minutes; burst 2 | Actor and Account independently |
+| Sensitive grant: export | 20/minute; burst 5 | Actor and Account independently |
+| Sensitive grant: expansion / ordinary sensitive mutation | 30/minute; burst 10 | Actor and Account independently |
+| Sensitive grant: revocation | 60/minute; burst 20 | Actor and Account independently |
+| Sensitive grant: security recovery | 5/10 minutes; burst 2 | Actor and Account independently |
 | Expensive Job creation, including AI/OCR/artifact/full-workflow commands | 12/minute per Account and 6/minute per Actor; burst 2 | both scopes, plus entitlement and scheduler concurrency |
 | Checkout, Portal, cancellation, guarantee/refund, and billing-control session creation | 20/hour; burst 3 | Account; anonymous pre-Account abuse also scoped by IP |
 | Upload Session create/finalize | 30/hour; burst 5 | Account |

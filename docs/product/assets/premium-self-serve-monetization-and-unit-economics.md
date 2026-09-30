@@ -1,6 +1,6 @@
 # Premium Self-Serve Monetization and Unit Economics
 
-> 保留设计，待用户优化。此文保留重启前的产品设计内容；既往确认、任务措辞与实施结果仅为历史来源，本阶段没有启用任务队列或实现。
+> 2026-09-30 已修订相关现行设计。历史研究、日期与任务语境保留用于追溯；当前规范见[内容合同](../contracts/deliverable-content.md)、[容量与首次成果](../contracts/capacity-and-first-outcome.md)及[修订记录](../../reviews/design-revision-2026-09-30.md)。没有启用旧任务或实现。
 
 Status: Product design decision for Ticket 10  
 Decision date: 2026-08-01  
@@ -22,7 +22,7 @@ The Individual-First Release will sell **complete Controlled Auction Execution P
 | Additional Active Deal | **$500/month** or **$5,500/year**, co-termed and prorated at purchase |
 | Core capability | Every core Controlled Auction Execution Package capability is included; no core outcome is reserved for Team |
 | Operational allowance | Per Active Deal per billing month: 2,500 newly processed logical source pages and 20 defined full-workflow operations; targeted correction, QC, review and recovery are not counted |
-| Exception pack | **$1,000 per affected Active Deal-month** for 5,000 additional newly processed pages and 20 additional full-workflow operations, shown before execution and purchased with explicit consent |
+| Exception pack | **$1,000 per affected Active Deal-month** for 250 additional new files, 5,000 additional newly processed pages and 20 additional full-workflow operations, shown before execution and purchased with explicit consent |
 | Preview/risk reversal | Public interactive proof plus downloadable synthetic workspace; no free trial and no confidential upload before payment; conditional 14-day First-Deal Control-Loop Guarantee |
 | Gross-margin target | Cash gross margin at least 80% at target and 85% at steady state; contribution margin including support at least 75% at steady state |
 | Base monthly economics | $995 revenue; $217.62 estimated cash cost; 78.1% cash gross margin; $292.62 including support; 70.6% contribution margin |
@@ -85,11 +85,11 @@ Internally these operations still have costs and must be measured. They are not 
 | Price and term | $995 monthly, cancel for the next renewal; or $10,950 annually, paid upfront |
 | Identity | One named Individual Banker; account sharing prohibited |
 | Active Deals | Two concurrent Active Deal Workspaces |
-| Archived Deals | No count limit while the subscription is paid, within 250 GB account archive storage; read/search/inspect/export/delete remain available |
-| Active storage | Up to 25 GB per Active Deal |
-| Sources | Up to 250 newly processed files and 2,500 newly processed logical pages per Active Deal per billing month; two included slots therefore carry an account total of 500 files and 5,000 pages before exception packs |
+| Archived Deals | No count limit while the subscription is paid, within 250 GB shared Account retained-storage pool for archived material and active overflow; read/search/inspect/export/delete remain available |
+| Included Active storage | 25 GB per occupied stable Active Deal Slot; overflow uses shared retained-storage pool after explicit Operation Preview; storage never resets monthly |
+| Sources | 250 new files and 2,500 pages per stable Slot and Deal monthly period; both base buckets debit together; slot reuse/Deal reassignment cannot refresh consumed allowance; exact Deal processing packs cover excess |
 | Logical page | PDF page; presentation slide; spreadsheet worksheet/tab; image; or each 3,000 characters of DOCX/HTML/text, matching the external parser's economically relevant counting concept |
-| Full-workflow operations | 20 per Active Deal per billing month: a complete Source Packet ingest/re-ingest, full Controlled Auction Execution Package build, or material cross-artifact Revision/refresh; two included slots carry 40 in aggregate |
+| Full-workflow operations | 20 per stable Slot and Deal monthly period, with both base buckets debited: a complete Source Packet ingest/re-ingest, full Controlled Auction Execution Package build, or material cross-artifact Revision/refresh; two included slots carry 40 in aggregate |
 | Targeted work | Included and not counted: scoped extraction correction, deterministic recalculation, cited evidence inspection, targeted artifact regeneration, QC, review, blocker recovery and exact-version Human Decisions |
 | Deliverables | Both workbook spines; stage-triggered native PPTX/DOCX; exact reader PDFs; structured control records; in-product Package Readiness; archive package |
 | Exports and downloads | Included without count pricing; abuse and bandwidth safety controls may rate-limit automation but do not sell export credits |
@@ -103,8 +103,8 @@ No secondary functional tier launches with V1. A cheaper tier would either remov
 ### Capacity and exception purchases
 
 - **Additional Active Deal:** $500/month or $5,500/year. It has the same complete product and allowances, is co-termed with the base plan, and is prorated at purchase.
-- **Large Source Packet & Intensive Processing Pack:** $1,000 for one affected Active Deal in one billing month. It adds 5,000 newly processed logical pages and 20 full-workflow operations. The product shows exact packet size, current allowance, price and consequence before work; checkout requires explicit consent.
-- **Archive Capacity Pack:** $50/month for an additional 250 GB, if the account exceeds the included 250 GB. It changes storage only, not Deal capability. The first response at the threshold is export/delete guidance, not automatic billing.
+- **Large Source Packet & Intensive Processing Pack:** $1,000 for one affected Active Deal in one billing month. It adds 250 newly processed files, 5,000 logical pages and 20 full-workflow operations. The product shows exact packet size, current allowance, price and consequence before work; checkout requires explicit consent.
+- **Retained Storage Capacity Pack:**$50/month adds250 GB to the Account shared pool for active overflow or archived material. Export/delete is offered first; allocation, cancellation/over-capacity behavior and byte counting follow commercial-v1.1. No automatic purchase or processing-limit change.
 
 The exception pack is not a disguised AI-credit system: its user-visible object is an identified unusually large Deal processing window. It cannot be consumed by citations, corrections, QC, review, decisions, product retries or downloads.
 
@@ -343,14 +343,14 @@ High usage breaks unit economics when a two-slot account processes roughly 10,00
 ## 8. Usage controls
 
 1. **Active capacity:** two Active Deals. Archive is immediate and preserves read/search/export/delete. Reactivation consumes a slot; if both are occupied, the Banker archives another or buys a slot. Cycling Deal identities through a slot does not reset that slot's monthly page or full-workflow allowance.
-2. **Source allowance:** each Active Deal receives 250 new files, 2,500 new logical pages and 25 GB active storage per billing month; the two-slot account total is 500 files and 5,000 pages. Existing sources can be inspected repeatedly without reprocessing charges. If necessary sources exceed capacity, readiness stays blocked until the Banker approves the visible exception pack or the allowance renews—the product never recommends omitting evidence to save money.
-3. **Unusually large packets:** preflight estimates logical pages, file types, parse risk and full-workflow operations before processing. A pack adds 5,000 pages and 20 full-workflow operations to that Deal-month for $1,000.
+2. **Source allowance:**250 new files,2,500 pages and 20 full-workflow operations per stable Slot/Deal monthly period; reserve against both base ledgers.25 GB is dedicated retained storage, not a monthly-reset allowance. Active overflow and archived bytes use the shared250 GB pool. Processing and storage packs provide distinct explicit recovery paths under commercial-v1.1; never omit required evidence to fit capacity.
+3. **Unusually large packets:** preflight estimates logical pages, file types, parse risk and full-workflow operations before processing. A pack adds 250 newly processed files, 5,000 pages and 20 full-workflow operations to that Deal-month for $1,000.
 4. **Model-intensive work:** the visible unit is a defined complete ingest/full-package/material cross-artifact refresh, not a model call. Internal routing, prompts, tokens, reasoning and evaluation remain hidden cost instrumentation.
 5. **Artifacts and Revisions:** targeted generation and normal correction-driven refresh are included. Only a declared complete rebuild/material global refresh consumes a full-workflow operation.
 6. **Exports:** normal native, reader and archive exports are included. Automated bulk abuse can be rate-limited; a user is never charged to obtain their own normal Deal package.
 7. **Retries:** product failure returns the consumed operation immediately. A user-requested new scope is new work; recovery of the prior scope is not.
 8. **Overage:** no surprise invoice and no retroactive overage. Price and exact effect appear before work; explicit consent is required.
-9. **Archive:** Deal count is not priced. 250 GB is included; extra archive capacity is a transparent storage pack, with export/delete offered first.
+9. **Archive:** no paid Deal-count limit. Archived bytes and active overflow share the 250 GB pool; preview archive occupancy before transition, retain revoke/export/delete while over capacity, and offer the explicit storage pack.
 10. **Rights and security:** no allowance permits unauthorized data, pooled licensed content or bypass of confidentiality controls.
 
 ## 9. Preview, trial, refund and first-value risk reversal
@@ -372,7 +372,7 @@ The first subscription payment is refundable when all of the following are true:
 1. the request is submitted within 14 calendar days of the first successful payment;
 2. the first real Deal's files are authorized and pass the published file/security/rights preflight;
 3. the minimum Source Packet required by the selected first-value route is present;
-4. the product nevertheless fails, for a product-side reason, to complete the defined first-value control loop: exact-source evidence, one material Fact/Assumption/Claim review, deterministic validation, and at least one editable native artifact with its exact reader preview; if a real correction or conflict exists, its decision and deterministic recovery are also required, but the product must never invent one merely to satisfy the milestone;
+4. the product nevertheless fails, for a product-side reason, to complete the selected First Useful Outcome under the purchased contract version, including required content/controls and verified retrieval of its matching native/reader export; control-loop completion or a correct blocker alone does not satisfy success;
 5. the account has not already reached and recorded that milestone; and
 6. the account/payment instrument has not previously used the guarantee.
 

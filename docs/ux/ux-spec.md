@@ -1,5 +1,7 @@
 # UX Spec — Controlled Sell-Side Auction Execution Workspace V1
 
+**Design revised: 2026-09-30.** [Continuous workflows CW-01–CW-07](continuous-workflows.md) specify outcome selection, mixed intake/consent, sequential review, Deal search, external correction, sharing recovery and narrow layouts. These are current design inputs; historical prototype outcomes are not implementation evidence.
+
 Status: confirmed
 
 Confirmed on: 2026-08-08
@@ -69,7 +71,7 @@ Senior bankers, specialists, management, sellers, Buyers and counterparties are 
 6. **Accepted progress survives failure.** Retry, reauthentication, viewport change, navigation and session recovery preserve every durable checkpoint and safe draft.
 7. **Readiness is not authorization.** Content, QC, Package Readiness, External-Use Decision, delivery creation and actual external use remain separate.
 8. **Mechanism-bound language.** Copy says what the product inspected, traced, calculated, preserved, blocked or recorded; it never asserts unsupported accuracy, autonomy or professional approval.
-9. **Desktop is complete; small-screen is bounded.** Smaller viewports preserve inspection and exit tasks without compressing material decisions into unsafe controls.
+9. **Layout is responsive; permission is domain-based.** Narrow viewports and 200% zoom preserve complete critical Web actions through stacked review and context navigation; native Office editing uses a supported external application.
 10. **Accessibility is release behavior.** All customer surfaces target WCAG 2.2 AA; a critical flow that cannot be completed accessibly is not complete.
 
 ## Cross-surface shell contract
@@ -721,9 +723,9 @@ Sources uses the confirmed subareas: Source Overview, Source Records, Source Pac
 
 #### Add Source
 
-Source intake has four phases.
+Source intake has four phases, with local selection and explicit work consent in [CW-02](continuous-workflows.md#cw-02--mixed-source-batch-and-work-consent). Local selection precedes transfer and is not authority acceptance.
 
-**1. Source declaration**
+**1. Local selection and Source declaration**
 
 | Field | Required | Behavior |
 |---|---:|---|
@@ -735,9 +737,9 @@ Source intake has four phases.
 | `Processing restrictions` | Yes | `None known` is explicit |
 | `Known special structures` | No | Encryption, macros, connections, embedded or active content |
 
-**2. Safe receive**
+**2. Operation Preview consent and safe receive**
 
-Batch file selection is allowed, but safety and authority outcomes remain per Source. Files pass type, size, archive, malware and active-content screening before AI, parsing or rendering. Rejected and quarantined inputs never enter substantive processing.
+Local multi-file selection remains browser-local until declarations. Explicit shared declarations may be applied to selected rows, with visible per-item exceptions; undeclared rows cannot transfer. Every accepted batch subset passes Operation Preview and explicit `Start this work` before Upload Session creation. Safety and authority outcomes remain per Source. Files pass type, size, archive, malware and active-content screening before AI, parsing or rendering. Rejected and quarantined inputs never enter substantive processing.
 
 **3. Source Record inspection**
 
@@ -1255,40 +1257,11 @@ Responsive behavior is based on CSS viewport, not device detection.
 - split views allow pane switching or controlled resizing; and
 - complete V1 Banker actions remain available.
 
-### Bounded small-screen — below 1024px
+### Narrow workspace — below 1024px
 
-Primary navigation is reduced to:
+The same permitted Web actions remain available: Source intake/reimport, Evidence review, typed Human Decision, stage change, new Internal Controlled Export, External-Use Decision and Recipient Access. Use labeled navigation drawers, stacked forms, tabbed Evidence/Decision context and table row-detail views. Preserve exact scope, required review, Drafts and durable checkpoints across breakpoints. Native Office editing remains in a supported external application.
 
-- Deals;
-- Overview;
-- Action Center;
-- Read-only Object Viewer;
-- History & Internal Exports; and
-- Account.
-
-| Action | Small-screen behavior |
-|---|---|
-| Account access and recovery | Supported |
-| Safe notification return | Supported |
-| Read-only object, Evidence and status inspection | Supported |
-| Job/status inspection | Supported |
-| Existing Internal Controlled Export access | Supported |
-| Create new Internal Controlled Export | Visible, blocked with desktop handoff |
-| Subscription cancellation | Supported |
-| Deal or Account deletion | Supported with fresh-Passkey, Sensitive Action Grant and typed confirmation |
-| Source upload or reimport | Visible, blocked with desktop handoff |
-| Native Artifact editing | Native application/desktop only |
-| Material Human Decision | Visible, blocked with desktop handoff |
-| Deal Business Stage change | Visible, blocked with desktop handoff |
-| External-Use Decision | Visible, blocked with desktop handoff |
-| Create Recipient Access or Delivery | Visible, blocked with desktop handoff |
-
-Crossing into small-screen mode preserves every Draft and durable checkpoint. A prohibited action remains visible in exact context with:
-
-> Continue on desktop
-> This action requires the complete workspace because it changes {exact scope}. Your current progress is saved.
-
-Available handoff actions are `Copy secure link` and `Send secure link to my account email`. The link carries authorized return context without payload, expires, and reauthorizes Account, Deal, object and version on open. It is created only after safe Draft save succeeds.
+No CSS-width gate may emit `desktop_required`. Optional secure handoff is offered on user request after safe Draft save, regardless of width. Entitlement, posture, rights and content gates remain unchanged. See [CW-07](continuous-workflows.md#cw-07--layout-changes-permissions-do-not) for layout and acceptance.
 
 ## Accessibility interaction contract
 
@@ -1359,7 +1332,7 @@ The following English copy is normative except where bracketed content must be s
 | Completed Job | `Declared task scope completed` | `{result} completed for {object/version}. This does not establish unrelated readiness or authorization.` | `View result` |
 | Historical object | `Historical version` | `You are inspecting {object/version}. It cannot be edited in place.` | `Open current version` |
 | Not stage-required | `Not required for the current stage` | `This Deliverable is not applicable to the current Deal Business Stage and does not count as a blocker.` | `View applicability` |
-| Archived Deal | `Archived Deal Workspace` | `This Deal is read-only. You may inspect, export, delete or reactivate it if capacity and controls permit.` | `Review lifecycle options` |
+| Archived Deal | `Archived Deal Workspace` | `You may inspect, export, stop existing access or delete this archived Deal. New work requires reactivation and capacity.` | `Review lifecycle options` |
 | Post-Term | `Post-Term Access ends {time}` | `Inspection, permitted Internal Controlled Export and deletion remain available. New work and external delivery are unavailable.` | `Review export and deletion` |
 | Safe denial | `This access is unavailable` | `The requested content cannot be opened with the current access.` | `Return to account access` |
 | Internal export success | `Internal Controlled Export created` | `The export preserves exact identity, posture and limitations. It does not authorize external circulation.` | `View export record` |
@@ -1414,7 +1387,7 @@ The experience conforms to this UX Spec only when it can demonstrate all of the 
 
 - every V1 surface enters the correct information and authority domain;
 - every durable object/version has a full canonical page and safe return path;
-- the complete First Deal Guide uses real Deal objects, reaches First Unmistakable Value, creates the first permitted Internal Controlled Export and requires explicit graduation;
+- the First Deal Guide uses real canonical objects, distinguishes the control loop from the selected useful result, verifies export retrieval, and requires explicit graduation;
 - fields, Drafts, validation and Control Reviews preserve exact scope and authority;
 - every Sensitive Action Grant flow preserves its safe Draft and exact pending command through Passkey reauthentication, resumes only an unchanged command and returns changed bindings to explicit review;
 - long-running work exposes independent durable Job states and recovery;
@@ -1423,7 +1396,7 @@ The experience conforms to this UX Spec only when it can demonstrate all of the 
 - Internal Controlled Export remains distinct from Externally Authorized Delivery under ADR 0001;
 - empty, waiting, blocker, failure and denial states preserve accepted state and name the next valid action;
 - all 38 User Flows are represented through the traceability table and page contracts;
-- desktop supports the complete workflow while bounded small-screen mode preserves its exact allowed actions and desktop handoff;
+- Full, compact and narrow layouts preserve the same permitted critical Web flows, including at 200% zoom; optional handoff does not replace required Web capability;
 - all customer surfaces target WCAG 2.2 AA and critical flows pass the required interaction contract;
 - Capability and Compatibility language is bound to verified versioned records; and
 - no implementation-deferred vendor, numeric limit, compatibility range or performance claim is invented by the UX layer.

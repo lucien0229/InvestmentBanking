@@ -1,5 +1,7 @@
 # Technical Design Doc
 
+**Design revision: 2026-09-30.** Read the [control consistency contract](control-consistency.md), [content contract](../product/contracts/deliverable-content.md) and [capacity/outcome contract](../product/contracts/capacity-and-first-outcome.md) with this specification. These are design requirements, not current runtime evidence.
+
 **Product:** HelloX Investment Banking — Individual-First V1
 
 **Status:** Confirmed technical baseline
@@ -58,7 +60,7 @@ There is no V1 support-personnel role, Banker impersonation, administrative Deal
 The baseline Individual entitlement includes:
 
 - two concurrent Active Deal Workspaces;
-- per Active Deal per billing month: 250 newly processed files, 2,500 newly processed logical pages, 25 GB active storage, and 20 defined full-workflow operations;
+- per stable Active Slot and Deal monthly period: 250 new files, 2,500 logical pages and 20 full-workflow operations;25 GB retained allocation per occupied slot plus250 GB shared pool; active overflow/archives and pack recovery follow commercial-v1.1; storage does not reset monthly;
 - all complete V1 workflow capabilities rather than feature-gating core professional work;
 - explicit add-on purchase before capacity is exceeded; and
 - no retroactive overage or token-based user-facing metering.
@@ -226,7 +228,7 @@ The modules below are code boundaries within one control plane, not separately d
 
 Each module exposes commands and queries through application interfaces. Direct cross-module table mutation is prohibited. Cross-module effects use a transactionally recorded domain result and Outbox message.
 
-The First Deal Guide is an orchestration projection over these same modules. It stores durable checkpoint and recovery state but does not create alternate Source, Evidence, Decision, Job, or Deliverable records. First Unmistakable Value, the first permitted Internal Controlled Export, and explicit Guide graduation are separate durable milestones. Graduation to the Deal Execution Desk changes presentation and next-action guidance, not the underlying Deal model.
+The First Deal Guide projects canonical objects, Outcome Selection, First Control Loop and First Useful Outcome. Useful outcome includes verified retrieval of the required Internal Controlled Export; explicit graduation is separate. Historical first-value predicate versions remain distinct. No duplicate onboarding domain or analytics-dependent guarantee is introduced.
 
 ## 6. Authoritative data design
 
@@ -715,6 +717,8 @@ A new Revision, revoked or invalidated decision, Circulation Blocked Impact Asse
 
 ## 11. Durable Job orchestration
 
+Scheduling uses [class queues, Account fairness, bounded steps and queue budgets](control-consistency.md#8-fair-scheduling-and-visible-waiting). Preserved Pause-blocked work uses the [typed posture recovery](control-consistency.md#7-resume-preserved-work-after-pause), not generic retry.
+
 ### 11.1 Job model
 
 A Job is a dependency-directed graph of Job Steps. Persistence includes Job, JobStep, JobDependency, JobAttempt, JobLease, JobEvent, TransactionalOutbox, IdempotencyRecord, and UsageReservation.
@@ -891,7 +895,7 @@ The first sellable release defines these concrete Task Definitions:
 | Deliverable drafting | teaser_content_draft, cim_content_draft, management_presentation_content_draft, bid_evaluation_memo_draft, workbook_commentary_draft, process_communication_draft, meeting_preparation_question_draft |
 | QC, Revision, and repair | deliverable_semantic_qc, native_reader_semantic_parity_review, semantic_change_impact_proposal, contract_repair |
 
-Extraction tasks require an exact Source Record, Source Representation, Processing Coverage, pre-issued fragments, and Work Objective. Evidence and conflict tasks add atomic propositions, locators, definitions, periods, and units. Analysis and Recommendation tasks consume only the exact accepted Evidence, Facts, Assumptions, Calculations, Models, Scenarios, and intended use required by the Task Definition. Deliverable tasks add the Artifact Template or section contract, audience, purpose, and current Revision. QC tasks add exact Native Artifact, Reader Copy, Artifact Manifest, lineage, Revision, and audience contract. Impact tasks add the changed object/version, deterministic candidate dependency closure, and current independent states. contract_repair receives only the invalid response and contract data defined below.
+Extraction tasks require an exact Source Record, Source Representation, Processing Coverage, pre-issued fragments, and Work Objective. Evidence and conflict tasks add atomic propositions, locators, definitions, periods, and units. Analysis and Recommendation tasks consume only the exact accepted Evidence, Facts, Assumptions, Calculations, Models, Scenarios, and intended use required by the Task Definition. Deliverable tasks add the Artifact Template or section contract, audience, purpose, accepted content version and optional current Revision (null on first creation). QC tasks add exact Native Artifact, Reader Copy, Artifact Manifest, lineage, Revision, and audience contract. Impact tasks add the changed object/version, deterministic candidate dependency closure, and current independent states. contract_repair receives only the invalid response and contract data defined below.
 
 ### 12.4 Official workflow reference mapping
 
@@ -1289,14 +1293,16 @@ V1 has no self-service Legal Hold feature. A legally compelled preservation exce
 
 ## 17. Backup and recovery
 
+The [scenario-specific recovery contract](control-consistency.md#9-recoverable-data-not-unrelated-rpo-numbers) governs applicability: daily logical-copy fallback can lose up to 24 hours; DB/object/key/tombstone completeness determines a common restore point; simultaneous loss of primary and sole mirror or irreversible key loss has no recovery promise. These objectives require configuration and drill evidence.
+
 ### 17.1 Objectives
 
 | Scope | Objective |
 |---|---:|
-| Transactional data RPO | 5 minutes or less |
-| Object recovery-copy RPO | 15 minutes or less |
-| Current Active Deal RTO | 8 hours or less |
-| Full historical restoration RTO | 24 hours or less |
+| Transactional data RPO with available, configured PITR | ≤5 minutes; common DB/object recovery point may be up to 15 minutes |
+| Object recovery-copy RPO | ≤15 minutes; verify all references at the selected DB point |
+| Current Active Deal RTO with available recovery dependencies | ≤8 hours; outage/key-loss exceptions below |
+| Full historical restoration RTO with available recovery dependencies | ≤24 hours |
 | Supabase PITR window | 7 days from first Confidential pilot |
 
 Supabase database backups do not cover Storage objects; object recovery is independent.
@@ -1410,13 +1416,13 @@ Supported matrix is versioned in the Capability Manifest:
 | Windows 11 | latest two Chrome and Edge releases | full desktop workflow |
 | macOS current/current-1 | latest two Safari and Chrome releases | full desktop workflow |
 | Desktop | latest two Firefox releases | core workflow and semantic/keyboard verification |
-| iOS current/current-1 | Safari | bounded essential mobile actions only |
+| iOS current/current-1 | Safari | narrow-layout critical Web tasks; native Office editing remains external |
 
 Primary assistive-technology pairs:
 
 - NVDA latest stable + Chrome on Windows 11;
 - VoiceOver + Safari on current macOS;
-- VoiceOver + Safari on current iOS for essential mobile actions;
+- VoiceOver + Safari on current iOS for narrow-layout critical Web actions;
 - JAWS latest + Chrome on Windows as release smoke and quarterly verification, not a broader public claim until evidence supports it.
 
 Critical flows require:

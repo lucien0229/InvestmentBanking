@@ -1,6 +1,6 @@
 # V1 Productization Blueprint
 
-> 保留设计，待用户优化。此文保留重启前的产品设计内容；既往确认、任务措辞与实施结果仅为历史来源，本阶段没有启用任务队列或实现。
+> 2026-09-30 已修订相关现行设计。历史研究、日期与任务语境保留用于追溯；当前规范见[内容合同](../contracts/deliverable-content.md)、[容量与首次成果](../contracts/capacity-and-first-outcome.md)及[修订记录](../../reviews/design-revision-2026-09-30.md)。没有启用旧任务或实现。
 
 Status: Confirmed product authority for `/to-spec`  
 Confirmation date: 2026-08-01  
@@ -545,7 +545,7 @@ Before real upload, the product records:
 12. Export the exact Revision with manifest.
 13. Graduate into the persistent Deal Execution Desk.
 
-`first_unmistakable_value` requires the complete Evidence → typed decision → deterministic validation → affected native/reader/readiness consequence loop on one real supported Deal. If no real conflict or extraction error exists, a normal material Fact/Assumption/Claim review and valid deterministic check are used; the product never invents a conflict.
+`first_unmistakable_value` v2 aliases First Useful Outcome: selected content and controls complete, matching native/reader artifacts and verified Internal Controlled Export retrieval. First Control Loop remains a distinct teaching milestone that may end in an honest blocker; its completion cannot satisfy guarantee success. No conflict is fabricated. See commercial-v1.1.
 
 ### Recovery, export, and return
 
@@ -640,11 +640,11 @@ The stages above may be implemented internally in sequence, but stages 1–6 tog
 | Monthly price | **$995/month** |
 | Annual price | **$10,950/year paid upfront**, equivalent to $912.50/month and 8.3% below twelve monthly payments |
 | Included Active Deals | Two concurrent Active Deal Workspaces |
-| Per Active Deal per billing month | 250 newly processed files, 2,500 newly processed logical pages, 25 GB active storage, and 20 defined full-workflow operations |
+| Per stable Active Slot and Deal monthly period |250 new files,2,500 pages,20 full-workflow operations with both base ledgers debited;25 GB dedicated retained storage per occupied slot, active overflow against shared pool; storage never resets monthly |
 | Additional Active Deal | **$500/month** or **$5,500/year**, same complete capability/allowances, co-termed and prorated |
-| Large Source Packet & Intensive Processing Pack | **$1,000 per affected Active Deal-month**, adding 5,000 newly processed pages and 20 full-workflow operations after explicit preview and consent |
-| Archived Deals | No count limit while paid, within 250 GB account archive storage |
-| Archive Capacity Pack | **$50/month** per additional 250 GB; offer export/delete first |
+| Large Source Packet & Intensive Processing Pack | **$1,000 per affected Active Deal-month**, adding 250 newly processed files, 5,000 pages and 20 full-workflow operations after explicit preview and consent |
+| Archived Deals | No count limit while paid, within 250 GB shared Account retained-storage pool for archived material and active overflow |
+| Retained Storage Capacity Pack | **$50/month** per additional 250 GB; offer export/delete first |
 | Risk reversal | Public synthetic proof, no real confidential free trial, and conditional 14-day First-Deal Control-Loop Guarantee |
 
 ### Active Deal metric
@@ -747,7 +747,7 @@ No normal step uses “book a call,” direct outreach, manual implementation, s
 
 - commercial activation begins at `checkout_completed`;
 - product activation begins at `minimum_source_packet_accepted`;
-- first unmistakable value requires the complete real control loop in §8;
+- first useful outcome requires the selected complete real result, controls and retrieved matching export; control-loop teaching is a separate milestone;
 - first export proves portability, not retention;
 - a second material Revision or later qualifying lifecycle return is the primary repeated-value evidence.
 

@@ -1,6 +1,6 @@
 # Self-Serve Acquisition and Conversion System
 
-> 保留设计，待用户优化。此文保留重启前的产品设计内容；既往确认、任务措辞与实施结果仅为历史来源，本阶段没有启用任务队列或实现。
+> 2026-09-30 已修订相关现行设计。历史研究、日期与任务语境保留用于追溯；当前规范见[内容合同](../contracts/deliverable-content.md)、[容量与首次成果](../contracts/capacity-and-first-outcome.md)及[修订记录](../../reviews/design-revision-2026-09-30.md)。没有启用旧任务或实现。
 
 Status: Product design decision for Ticket 11  
 Decision date: 2026-08-01  
@@ -291,7 +291,7 @@ Trust proof is not a logo wall. Each answer links to a product control, first-pa
 | Paid authority/confidentiality preflight | “May this exact material be processed?” | Separate source/use authority, data class, provider path, confidentiality, compatibility and minimum packet result | Confirm and create Deal | Retain source-level responsibility/security gate; remove repeated answered fields | Replace/remove source, narrow intended use, save/resume, use controlled synthetic path | `paid_preflight_completed/blocked` → Deal creation |
 | First Deal creation | “What transaction and work scope owns this state?” | Deal identity, banker role/side, business stage, intended use and first target | Create Deal | Retain identity and intended use; remove optional process configuration | Save draft, correct identity, start from controlled sample | `first_deal_created` → source intake |
 | Source intake | “What arrived, what is supported and what is missing?” | Exact inventory, versions, rights, locators, compatibility, sufficiency and readiness ceiling | Accept minimum Source Packet | Retain missing/material gap visibility; remove manual folder organization | Replace file, use supported export, exclude unsupported scope, resume later | `minimum_source_packet_accepted` → first work |
-| First control loop | “Can I trust and control the first material result?” | Evidence inspection, typed correction/decision, deterministic closure and downstream impact | Complete control loop | Retain Banker decision and review; remove blank chat/prompt design | Retry product failure without allowance; guided recovery; no human onboarding fallback | `first_unmistakable_value` → package preview |
+| First control loop | “Can I trust and control the first material result?” | Evidence inspection, typed correction/decision, deterministic closure and downstream impact | Complete control loop | Retain Banker decision and review; remove blank chat/prompt design | Retry product failure without allowance; guided recovery; no human onboarding fallback | `first_control_loop_completed` → selected result and export retrieval |
 | Controlled Package preview | “What is now usable, blocked or not stage-required?” | Native/reader artifacts, QC, Package Readiness, exact Revision and authorization gap | Review package / export | Retain independent gates; remove scavenger hunt across tools | Open blockers and exact remediation; do not fake completeness | `package_previewed` → first export |
 | First export | “Can I take an editable, exact and auditable result out?” | Native artifacts, reader copies, records, manifest and archive receipt | Export exact Revision | Retain Revision/audience checks; remove export credits | Repair failed product export without charge; choose partial visibly blocked export only where safe | `first_export_completed` → persistent desk |
 | Second material Revision | “Will it survive the next source update?” | Append Source Record, Impact Assessment, targeted recalc/regeneration/re-review, immutable prior Revision | Review affected scope | Retain new review/authorization; remove rebuild-from-zero | Save pending impact, notify safely, resume; product failures restore capacity | `second_material_revision_completed` → retained lifecycle |
@@ -312,11 +312,11 @@ No stage uses “book a call” as the normal next action. Asynchronous product/
 | Individual plan | **$995/month**, cancel for next renewal, or **$10,950/year paid upfront**; show `$912.50/month equivalent`, `$990 / 8.3%` below 12 monthly payments, and identical core capability |
 | Identity | One named Individual Banker; no account sharing |
 | Included Active Deals | Two concurrent Active Deal Workspaces; an Archived Deal is read-only except search/evidence inspection/download/export/deletion; reactivation consumes a slot |
-| Included active capacity | Per Active Deal per billing month: 250 newly processed files, 2,500 newly processed logical pages, 25 GB active storage and 20 defined full-workflow operations |
-| Included archive | Unlimited Archived Deal count while paid within 250 GB account archive storage |
+| Included active capacity | Per stable Slot and Deal monthly period:250 new files,2,500 pages,20 full-workflow operations;25 GB dedicated retained storage per occupied slot. Dual-ledger/no-reset and active-overflow rules follow commercial-v1.1 |
+| Included archive | Unlimited Archived Deal count while paid within 250 GB shared Account retained-storage pool for archived material and active overflow |
 | Additional Active Deal | **$500/month** or **$5,500/year**, same complete capability/allowances, co-termed and prorated at purchase |
-| Large Source Packet & Intensive Processing Pack | **$1,000 per affected Active Deal-month**, adds 5,000 newly processed logical pages and 20 full-workflow operations; exact packet/allowance/consequence shown before explicit purchase |
-| Archive capacity | **$50/month per additional 250 GB**; offer export/delete first; storage only, no capability change |
+| Large Source Packet & Intensive Processing Pack | **$1,000 per affected Active Deal-month**, adds 250 newly processed files, 5,000 logical pages and 20 full-workflow operations; exact packet/allowance/consequence shown before explicit purchase |
+| Retained storage capacity | **$50/month per additional 250 GB**; offer export/delete first; storage only, no capability change |
 | Included and deliberately unmetered | Evidence inspection, source/citation/lineage navigation, scoped corrections, conflict review, Fact/Assumption/Claim disposition, deterministic recalc/validation/tie-outs, normal correction-driven targeted regeneration, QC, readiness review, Human and External-Use Decisions, reviewer actions, normal native/reader/control/archive exports, and product-failure recovery |
 | Never a buyer-visible meter | Tokens, prompts, model calls/selection, citations, corrections, QC, reviewer actions, Human Decisions, retries caused by product failure or normal downloads |
 | Support | Asynchronous product, billing and defect support; no Deal advice, source-cleanup service, professional judgment, custom implementation, live training, SLA or founder-operated workflow |
@@ -352,7 +352,7 @@ The first plan charge is self-serve refundable only when:
 1. the request is submitted within 14 calendar days of the first successful payment;
 2. the first real Deal's files are authorized and passed the published file/security/rights preflight;
 3. the selected route's minimum Source Packet is present;
-4. a product-side failure nevertheless prevents the defined first-value control loop: exact-source evidence, one material Fact/Assumption/Claim review, deterministic validation, and at least one editable native artifact with its exact reader preview; when a real correction/conflict exists, its decision and deterministic recovery are also required, but the product never invents one;
+4. a product-side failure prevents the selected First Useful Outcome, including required content and controls, native/reader parity and verified export retrieval; a teaching control loop or correct blocker does not count as success under commercial-v1.1;
 5. that milestone has not already been recorded; and
 6. the account/payment instrument has not previously used the guarantee.
 
@@ -392,21 +392,16 @@ No contradiction with Ticket 10 was found. Checkout wording may be refined by Ti
 | 9. Deterministic closure | Recalculate and run applicable deterministic checks; show coverage, pass/fail and unresolved nonmechanical questions | `deterministic_recovery_completed` or valid pass; no false professional-usable promotion |
 | 10. Downstream impact | Show changed workbook cells, native slides/text, reader copy, QC findings, Impact Assessment, Package Readiness and authorization consequence | Affected dependency graph and exact Revision updated |
 | 11. Package/readiness preview | Show applicable workbook spines, stage artifacts, reader/control/archive objects, blockers and not-stage-required items | `package_previewed` |
-| 12. First native/reader export | Create at least one editable native artifact plus exact reader representation and manifest | `first_export_completed`; product failures restore capacity |
+| 12. First native/reader export and useful outcome | Complete selected content/controls and retrieve the exact permitted native/reader archive | Server milestone with immutable completed stream receipt; product failures restore exact allocation |
 | 13. Graduation | Replace the forced guide with the persistent Deal Execution Desk while keeping guide/history/help available | `activation_graduated`; Event Inbox and Package Readiness become default control views |
 
 ### Activation and first-value events
 
 **Commercial activation start:** `checkout_completed`.  
 **Product activation start:** `minimum_source_packet_accepted`.  
-**Activation event / first unmistakable value:** `first_unmistakable_value` fires when one real supported control loop has all of:
+**Teaching milestone:** `first_control_loop_completed` records the Evidence → typed judgment → deterministic validation → consequence loop, including a correct blocker.
 
-- exact Source Record and native Evidence location inspected;
-- one material Fact/Assumption/Claim/correction/conflict disposition recorded by the Banker for a stated scope;
-- applicable deterministic calculation/validation completed and any product-observed failure recovered;
-- affected native artifact and exact reader preview show the result or an explicit, correct blocker;
-- Impact Assessment/QC/Package Readiness and exact-Revision authorization consequence are visible; and
-- no unresolved product-side failure prevents the defined result.
+**Activation event:** `first_useful_outcome_completed` requires the selected result's content/controls, matching native/reader artifacts and verified full Internal Controlled Export retrieval. `first_unmistakable_value` is a v2 naming alias, not a second event; v1 cohorts retain their old predicate. Outcome Selection and server-side receipt are authoritative even if analytics collection is disabled. The [exact predicate](../contracts/capacity-and-first-outcome.md#two-useful-milestones) owns guarantee/referral success. A correct blocker cannot complete useful outcome.
 
 For the public synthetic Deal, first value is the exact Ticket 9 moment: the user sees `$18.4m` versus `$17.8m`, corrects Cash from `$6.2m` to `$4.7m` without erasing history, restores the `$1.5m` tie-out, and sees downstream artifact/QC/readiness/authorization consequences. A real Deal without a genuine conflict or extraction error uses an applicable Fact/Assumption/Claim review and valid deterministic check; the product never fabricates an exception.
 
@@ -531,7 +526,7 @@ Security, billing, export and deletion messages remain transactional. Workflow a
 | `correction_or_human_decision_completed` | Append-only extraction correction or typed Fact/Assumption/Claim/conflict Human Decision is recorded for exact scope. Rate = completed / eligible evidence-inspected first routes. | UI clicks without persisted exact decision; simulated actions excluded | Diagnoses Banker-control comprehension and decision burden |
 | `deterministic_validation_completed` | Applicable defined check set completes with coverage/result after current inputs/decisions. Rate = completed / routes with applicable check. | No-applicable-check routes separately classified; professional review not inferred | Tests deterministic closure coverage/reliability |
 | `deterministic_recovery_completed` | A prior real check failure caused by an identified source/extraction/calculation issue moves to pass/currently valid after correction/recalc, preserving both states. Rate = recovered / first routes with a recoverable real failure. | No-failure Deals are not failures of conversion; invented/synthetic exceptions excluded from paid rate | Measures recovery mechanism only where applicable; informs defect/check design |
-| `first_unmistakable_value` | All Section 9 exact conditions persist on one real Deal. Activation rate = accounts reaching event / paid accounts with eligible accepted minimum packet; also show / all clean paid accounts. | Synthetic proof, unsupported/ineligible accounts, duplicate event excluded from eligible denominator but visible in all-paid view | Central activation diagnostic and guarantee fact |
+| `first_unmistakable_value` / v2 alias | Selected First Useful Outcome completed including retrieved export; exact purchased predicate version recorded; alias never double-counted | Synthetic/ineligible/duplicate events excluded; v1 control-loop cohort reported separately | Activation and guarantee fact derived from domain milestone, not analytics availability |
 | `package_previewed` | User opens exact current Package Readiness and at least one applicable native/reader artifact after first value. Rate = previews / first-value accounts. | Public sample excluded | Tests whether first control value connects to premium outcome |
 | `first_export_completed` | First real exact-Revision native/reader/control/archive export requested by user completes with manifest/receipt. Rate = exporters / first-value accounts. | Automated test, failed job, repeated download excluded from unique conversion | Indicates portable outcome; informs export reliability and ongoing value |
 | `second_material_revision_completed` | Same real Deal completes a second material Impact Assessment and required recalc/regenerate/re-review into a new immutable Revision. Rate = accounts with event / first-value accounts whose Deal has had a qualifying return event. | Cosmetic/minor changes, retries and synthetic return excluded; by event/source class | Strong repeated-work evidence; informs retention mechanism |

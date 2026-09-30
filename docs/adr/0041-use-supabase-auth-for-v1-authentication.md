@@ -26,7 +26,7 @@ V1 replaces Clerk with Supabase Auth for Account-side authentication while retai
 - The Product API alone idempotently creates or links `external_identity → Actor → Account` after verified authentication. V1 removes the Clerk Webhook and adds no general Supabase Auth Hook, Database Webhook, or `auth.users` Trigger that can create or mirror product identity or authority.
 - Product-controlled recovery, logout, and final identity deletion use narrow Supabase Auth administration operations and advance the product security epoch where applicable.
 - External Recipients remain outside Supabase Auth and continue to use the product-owned one-time-link, email-code, and isolated Recipient Session contract.
-- An accepted Account or Deal deletion removes every ordinary product relationship and Session but retains the minimal Supabase issuer-and-subject binding required by the Deletion Status Claimant. That identity can obtain only a short-lived Deletion Status Grant and is deleted 30 days after terminal deletion completion or resolution of any preservation exception.
+- An accepted Deal deletion removes authority only for that Deal, preserving the Account, Actor, unrelated Deals, billing and ordinary session. Account deletion removes its ordinary relationships and Sessions. Both retain an exact request-scoped Deletion Status Claimant; claimant-only authentication applies only when no ordinary relationship remains. Final Supabase identity deletion follows terminal claimant retention and requires no other lawful relationship or active claimant. See [scope contract](../technical/control-consistency.md#5-sharing-and-deletion-scope).
 
 ## Consequences
 

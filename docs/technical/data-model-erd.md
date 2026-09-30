@@ -1,8 +1,10 @@
 # Data Model / ERD
 
+**Design revision: 2026-09-30.** Read the [control consistency contract](control-consistency.md), [content contract](../product/contracts/deliverable-content.md) and [capacity/outcome contract](../product/contracts/capacity-and-first-outcome.md) with this specification. These are design requirements, not current runtime evidence.
+
 Status: Technical Design baseline for the first sellable release
 
-Last updated: 2026-08-08
+Last updated: 2026-09-30
 
 Primary store: United States-region Supabase Pro PostgreSQL
 
@@ -228,8 +230,12 @@ Sensitive Action Grant target extensions are explicit, for example `sensitive_gr
 | `commerce.payment_dispute_event` | `id`, Payment Dispute, optional Provider Event/current-object reconciliation identity, from/to posture, effective/recorded times, reason code | Append-only reconciliation history; provider status is evidence rather than direct Product Entitlement authority |
 | `commerce.product_entitlement` | `id`, `account_id`, product code, term start/end, capability set version, active-deal capacity, status, `row_version` | Product-authoritative current grant; one active Individual entitlement per product/term scope |
 | `commerce.entitlement_mutation` | `id`, `account_id`, `entitlement_id`, mutation type, before/after capacity and term, commercial receipt, effective/recorded times, reason | Append-only; duplicate callbacks cannot create duplicate capacity |
-| `commerce.usage_reservation` | `id`, `account_id`, optional `deal_id`, allowance class, quantity, command/job ID, status, reserved/expires/committed/released times | Unique per chargeable command; cannot exceed confirmed entitlement |
-| `commerce.usage_ledger_entry` | `id`, `account_id`, optional `deal_id`, entitlement ID, reservation ID, allowance class, entry type, exact quantity, period, effective/recorded times, predecessor balance digest | Append-only grant/reserve/commit/release/expire/adjust entries; provider tokens and Job counts are not buyer-visible units |
+| `commerce.usage_reservation` | `id`, `account_id`, optional `deal_id`, exact slot/Deal/pack bucket allocation, allowance class, quantity, command/job ID, status, reserved/expires/committed/released times | Unique per chargeable command; cannot exceed confirmed entitlement |
+| `commerce.active_deal_slot` | ID, Account, entitlement source, current Deal assignment, row version | Stable across Deal reuse; assignments preserve history |
+| `commerce.allowance_period` | ID, Account, explicit UTC start/end, billing anchor, contract version | Monthly windows also for annual plans; no calendar-time inference |
+| `commerce.capacity_bucket` | ID, Account, optional exact slot/Deal/pack, allowance class, period, granted/reserved/consumed, row version | Reserve all required base buckets atomically; no reset on archive/move |
+| `commerce.retained_storage_allocation` | Account, Deal, protected payload digest/size, dedicated or shared allocation, retained/released times | Occupancy not periodic consumption; unique within Deal; no cross-Deal deduplication |
+| `commerce.usage_ledger_entry` | `id`, `account_id`, optional `deal_id`, entitlement ID, reservation ID, stable slot ID, exact Deal-period/slot-period/pack bucket allocation, allowance class, entry type, exact quantity, period, effective/recorded times, predecessor balance digest | Append-only grant/reserve/commit/release/expire/adjust entries; provider tokens and Job counts are not buyer-visible units |
 | `commerce.commercial_receipt` | `id`, `account_id`, order/provider event, receipt type, amount/currency, tax, provider object ID, occurred/recorded times | Immutable, idempotent provider reconciliation evidence |
 | `commerce.refund_effect` | `id`, `account_id`, refund Commercial Receipt, exact prior receipt/Entitlement Mutation, closed refund reason type, mapping-policy version, entitlement/capacity delta, outcome, effective/recorded times | One product-owned effect per refund receipt; duplicate-charge/tax corrections preserve entitlement; unmapped refund creates no mutation |
 | `commerce.invoice_projection` | `id`, `account_id`, provider invoice identity, billing period, exact amount/currency/tax/status, issued/due/paid times, updated_at | Product-visible projection; provider event remains payment evidence |
@@ -286,7 +292,9 @@ erDiagram
 | `deal.output_ceiling_operation` | `id`, tenant keys, Output Ceiling Assessment, operation code, posture, conditions | `posture` is permitted or prohibited; closed operation codes |
 | `deal.output_ceiling_blocker` | `id`, tenant keys, Output Ceiling Assessment, blocker code, affected scope, smallest recovery action, Evidence/Decision basis | Exact actionable blocker rather than a global level |
 | `deal.first_deal_guide_checkpoint` | `id`, tenant keys, checkpoint code, status, canonical object reference through typed extension, completed_at | Orchestration state only; never duplicates domain objects |
-| `deal.guide_graduation` | `id`, tenant keys, FUV evidence, first Internal Controlled Export, actor Decision, occurred_at | First value, export, and explicit graduation are separate required facts |
+| `deal.guide_graduation` | `id`, tenant keys, First Useful Outcome milestone, retrieved Internal Controlled Export, explicit actor entry, occurred_at | Outcome includes result and retrieval; explicit graduation is a separate fact |
+| `deal.outcome_selection` | ID, tenant keys, type, required content/result set, purpose, ceiling, predicate version, predecessor, actor/reason/time | Immutable selection history; current choice CAS-bound to Deal |
+| `deal.outcome_milestone` | ID, tenant keys, exact Outcome Selection, predicate/version, typed evidence and completed stream receipt, occurred_at | Server-derived; unique per selection/predicate; no dependency on analytics enabled state |
 
 ### 6.2 Execution Package tables
 
@@ -329,7 +337,7 @@ erDiagram
 | `source.quarantine_assessment` | `id`, quarantined upload, scanner/profile versions, integrity/type/archive/active-content/malware results, rights/compatibility prerequisites, outcome, assessed_at | Append-only attempts; incomplete assessment fails closed |
 | `object_store.protected_object` | `id`, `account_id`, optional `deal_id`, scope code, immutable storage key, ciphertext/plaintext digests, byte length, media type, chunk/envelope version, KMS key version, wrapped DEK, lifecycle status, created_at | New content-addressed key; upsert prohibited; Deal attachments require Deal scope; typed Account attachments use Account scope; common physical byte identity only, not a generic domain object |
 | `object_store.protected_object_replica` | `id`, protected object, replica purpose/location, ciphertext digest, copied/verified/deletion times, status | Recovery-copy control; no live authority |
-| `object_store.protected_stream_access_receipt` | `id`, `account_id`, optional `deal_id`, Stream Grant hash identity, principal, exact Protected Object, typed immutable attachment, applicable Revision, purpose/range, receipt kind, occurred_at, idempotency identity | Immutable narrow Gateway receipt for Account or Deal streams; only a first qualifying Recipient Reader Copy first-byte receipt may create an External-Use Event through control-plane commitment |
+| `object_store.protected_stream_access_receipt` | `id`, `account_id`, optional `deal_id`, Stream Grant hash identity, principal, exact Protected Object, typed immutable attachment, applicable Revision, purpose/range, completed byte coverage/digest, receipt kind, occurred_at, idempotency identity | Immutable narrow Gateway receipt for Account or Deal streams; Banker export full-coverage receipts support outcome retrieval; a preview first byte cannot do so; only a first qualifying Recipient Reader Copy first-byte receipt may create an External-Use Event through control-plane commitment |
 
 `protected_object` is attached only through typed domain tables. Representative typed attachments are `commerce.invoice_object`, `commerce.account_data_export_object`, `deliverable.artifact_template_version_object`, `source.accepted_source_object`, `source.source_representation_object`, `deliverable.artifact`, `external_use.internal_export_object`, `external_use.delivery_object`, and `external_use.archive_object`. A generic `attachment_type/attachment_id` authority table is prohibited.
 
@@ -369,7 +377,7 @@ Classification dimensions are stored independently. No `data_class` column may c
 | `source.rights_posture_operation` | `id`, tenant keys, Rights Posture Assessment, operation code, posture, conditions | Typed permitted/prohibited operations; no free JSON authority |
 | `source.source_reliance_assessment` | `id`, tenant keys, Source Record ID, purpose/use scope, reliance state, evidence/conflict/Decision basis, limitations, effective/recorded/expiry times, supersedes ID | Immutable; state is `unassessed`, `reliance_limited`, `reliance_eligible`, or `blocked` for the exact purpose |
 | `source.source_condition_assessment` | `id`, tenant keys, Source Record ID, purpose/use scope, freshness code, conflict code, disposition code, basis, effective/recorded times, supersedes ID | Keeps current/stale, conflicted, and active/superseded/withdrawn/historical dimensions independent |
-| `source.classification_current_selection` | tenant keys, typed material scope extension, current classification assessment ID, `row_version`, updated_at | Authoritative current pointer selected by controlled command; earlier Jobs and Decisions bind exact assessment ID |
+| `source.classification_current_selection` | tenant keys, exact typed material, selected Classification Assessment, `row_version` | Explicit typed selection command with CAS; assessment append alone does not replace selection |
 | `source.rights_current_selection` | tenant keys, Source Record ID, purpose code, current rights assessment ID, `row_version` | One current selection per exact Source Record/purpose; historical use never retargets |
 | `source.reliance_current_selection` | tenant keys, Source Record ID, purpose code, current reliance assessment ID, row version | One current Source Reliance State per exact purpose |
 | `source.condition_current_selection` | tenant keys, Source Record ID, purpose code, current condition assessment ID, row version | Current display/query pointer only; does not rewrite source history |
@@ -470,6 +478,9 @@ Each Decision has exactly one typed extension row, enforced by the command path 
 | `knowledge.information_request_event` | `id`, request ID, Process Event/Source Record, event kind, effective/recorded times | Tracks draft, issued-outside-product, response received, clarified, closed without conflation |
 | `knowledge.open_item` | `id`, tenant keys, item type, exact next action, owner, due date, current posture, linked typed domain object, `row_version` | Tracks work, not Evidence, risk, Decision, or Process Event |
 | `knowledge.open_item_transition` | `id`, open item ID, from/to posture, actor/event/Decision basis, effective/recorded times | Append-only status history |
+| `knowledge.external_correction_item` | tenant keys, Open Item ID, Impact ID, old/new Revision, exact Recipient or explicitly recorded external Party, acknowledgment requirement | One typed Open Item extension; unique Impact/old-Revision/recipient identity; no inferred delivery |
+| `knowledge.external_correction_use_basis` | tenant keys, correction item, typed Delivery/Access/External-Use Event link | Exact evidence of known use; unknown off-platform use remains explicit |
+| `process.external_correction_event` | tenant keys, Process Event ID, correction item, action code, exact recipient/old-new Revisions, occurred time/channel, evidence/declaration | Append-only reported send/withdrawal/acknowledgment/no-action; not an automated communication |
 
 ### 8.5 Evidence and judgment ERD
 
@@ -551,6 +562,8 @@ Current state selection tables are separate per target class. State values descr
 
 ### 9.4 Authoritative Lineage and derived dependency graph
 
+Action-center root-cause groups and Deal search are derived projections. Search stores tenant, exact typed object/version/locator, permitted search text, current/history posture, indexed authority version and coverage watermark; removal/restriction invalidation is enforced at query. Neither grouping nor search can authorize a Decision or prove Impact completeness.
+
 The typed relationship tables above are authoritative Lineage. Additional cross-domain Lineage uses named relations such as:
 
 - `analysis.calculation_run_source_record`;
@@ -573,13 +586,15 @@ Each relation binds exact immutable upstream and downstream versions, a dependen
 - authoritative source relation name/key digest;
 - projection build version and built time.
 
-It is fully rebuildable and may be stale. An Impact Assessment uses it only to create the deterministic candidate closure, then resolves every candidate back to a typed authoritative relationship.
+It is fully rebuildable and may be stale. Candidate use requires a proven complete consumed watermark for the authoritative Deal lineage snapshot, followed by typed-edge resolution. A lagging projection triggers bounded wait, authoritative traversal or incomplete/fail-closed posture; candidate validation alone cannot prove recall. Publication/gate transactions recheck the lineage head. See [complete Impact closure](control-consistency.md#2-complete-impact-closure).
 
 ### 9.5 Impact Assessment tables
 
+`deal.deal_lineage_head(account_id, deal_id, commit_seq)` advances transactionally under a head lock for every relevant typed authority change. Projection builds record contiguous `consumed_through_seq`; Outbox sequence gaps cannot be treated as consumed. Completed assessments are immutable snapshots; current gates require fresh head validation.
+
 | Table | Core fields | Constraints and lifecycle |
 |---|---|---|
-| `analysis.impact_assessment` | `id`, tenant keys, trigger kind, triggering exact typed object/change, candidate-closure build version, overall status, created_by/origin, started/completed times | Immutable completed assessment; rerun creates another assessment |
+| `analysis.impact_assessment` | `id`, tenant keys, trigger kind, triggering exact typed object/change, candidate-closure build version, `basis_commit_seq`, `closure_complete`, closure digest, authority/projection path, overall status, created_by/origin, started/completed times | Immutable completed assessment; rerun creates another assessment |
 | `analysis.impact_candidate_edge` | `id`, assessment ID, projection edge identity/digest, resolution status, authoritative relation reference through typed extension | Preserves why an object entered the candidate closure |
 | `analysis.impact_calculation_item` | assessment ID, exact Calculation Version/Run, impact code, recalculation required, basis, Human Decision where material | Typed affected item |
 | `analysis.impact_model_item` | assessment ID, exact Model Version, impact code, recalculation required, basis | Typed affected item |
@@ -703,15 +718,20 @@ erDiagram
 
 ## 11. Deliverables, artifacts, Review, and QC
 
+External correction reuses typed Open Items and Process Events under [CW-05](../ux/continuous-workflows.md#cw-05--correct-materials-already-used-externally). Correction states belong to that extension; they do not replace the general Open Item or delivery state machine.
+
 ### 11.1 Deliverable and Revision tables
+
+[ADR 0044](../adr/0044-accept-narrative-content-before-artifact-revisions.md) defines first creation: Deliverable → Accepted Content Version → verified build → atomic Revision/artifact binding. A failed build leaves no blank Revision and keeps accepted content.
 
 | Table | Core fields | Constraints and lifecycle |
 |---|---|---|
-| `deliverable.deliverable` | `id`, tenant keys, deliverable type, stable title, purpose, stage applicability, audience class, confidentiality class, owner, current Revision ID, row version, created_at | Stable business object; filename is not identity |
+| `deliverable.deliverable` | `id`, tenant keys, deliverable type, stable title, purpose, stage applicability, audience class, confidentiality class, owner, nullable current Revision ID, content-acceptance version, row version, created_at | Stable business object; filename is not identity |
 | `deliverable.deliverable_revision` | `id`, tenant keys, Deliverable ID, revision ordinal, revision kind/origin, purpose/audience snapshot, confidentiality assessment, source/model/process basis digest, predecessor/supersedes Revision ID, created_by, created_at | Immutable; unique Deliverable-local ordinal; no Review/QC/readiness/authorization inheritance |
 | `deliverable.content_contract` | `id`, deliverable type, semantic schema version/digest, generator compatibility version, lifecycle status, enabled/retired times | Immutable contract version; closed JSON Schema and validators are release-owned |
-| `deliverable.deliverable_revision_content` | `id`, tenant keys, Revision ID, Content Contract ID, semantic payload JSONB, canonical payload digest, validation outcome/version, origin AI Proposal/import, created_at | At most one canonical narrative payload per Revision; strict closed schema; not used as workbook financial authority |
-| `deliverable.content_region` | `id`, tenant keys, Revision Content ID, stable region key, section/region type, sequence, reader-facing purpose, payload pointer, content digest | Stable within Revision; region key declared by Content Contract |
+| `deliverable.accepted_content_version` | `id`, tenant keys, Deliverable ID, ordinal, Content Contract ID, closed semantic JSONB/digest, purpose/audience, exact authority snapshot, origin/disposition, accepted actor/time, predecessor | Immutable; unique Deliverable ordinal; no Revision FK; acceptance validates content and typed bindings atomically |
+| `deliverable.deliverable_revision_content` | tenant keys, Revision ID, Accepted Content Version ID, canonical digest | Immutable one-content binding per narrative Revision; payload is stored once on accepted content; workbook authority unchanged |
+| `deliverable.content_region` | `id`, tenant keys, Accepted Content Version ID, stable region key/type/sequence, payload pointer and digest | Immutable under accepted content; typed basis relations exist before artifact Revision |
 
 Narrative semantic payloads may contain section hierarchy, reader-facing text, tables, chart instructions, citations, qualifications, and refresh instructions. The following authority is normalized outside the payload:
 
@@ -729,7 +749,7 @@ Narrative semantic payloads may contain section hierarchy, reader-facing text, t
 | `deliverable.revision_process_event` | Exact Process Event represented |
 | `deliverable.revision_bid_version` | Exact Bid Version compared or described |
 
-Each relationship carries tenant keys, exact Revision/region identity, role, and recorded time. Financial values repeated for presentation remain tied to their authoritative Calculation Result, Fact, Bid Term, or a typed region-owned Quantitative Measure.
+Each relationship carries tenant keys, exact Accepted Content Version/region identity for narrative content (or exact Revision for revision-specific bindings), role, and recorded time. Financial values repeated for presentation remain tied to their authoritative Calculation Result, Fact, Bid Term, or a typed region-owned Quantitative Measure.
 
 For workbooks, relational Models, Calculations, Scenarios, Buyers, Bids, Process Events, and Decisions are authority. Workbook build mappings can use a schema-governed layout/build contract, but workbook bytes or cached values never replace those relations.
 
@@ -803,8 +823,10 @@ erDiagram
     DELIVERABLE ||--o{ DELIVERABLE_REVISION : versions
     DELIVERABLE ||--o| DELIVERABLE_REVISION : current_pointer
     DELIVERABLE_REVISION ||--o| DELIVERABLE_REVISION_CONTENT : expresses
-    CONTENT_CONTRACT ||--o{ DELIVERABLE_REVISION_CONTENT : validates
-    DELIVERABLE_REVISION_CONTENT ||--o{ CONTENT_REGION : divides
+    DELIVERABLE ||--o{ ACCEPTED_CONTENT_VERSION : accepts
+    CONTENT_CONTRACT ||--o{ ACCEPTED_CONTENT_VERSION : validates
+    ACCEPTED_CONTENT_VERSION ||--o{ DELIVERABLE_REVISION_CONTENT : builds
+    ACCEPTED_CONTENT_VERSION ||--o{ CONTENT_REGION : divides
     DELIVERABLE_REVISION ||--o{ ARTIFACT : represents
     PROTECTED_OBJECT ||--o| ARTIFACT : stores
     ARTIFACT ||--o{ ARTIFACT_REGION : divides
@@ -903,7 +925,7 @@ erDiagram
 | Table | Core fields | Constraints and lifecycle |
 |---|---|---|
 | `jobs.idempotency_record` | `id`, `account_id`, Actor, command type, key hash, canonical request digest, response status/body digest, resulting typed resource/Job link, optional application-encrypted one-time-secret replay body, created/expires times | Unique `(account_id, actor_id, command_type, key_hash)`; same key/different digest is conflict; replay never renews an expired Grant; record remains at least 30 days after terminal Job or non-Job durable result |
-| `jobs.job` | `id`, tenant keys where Deal-scoped, command/idempotency record, job type, current public/internal state, progress contract, requested/cancel times, terminal outcome, row version, created/updated times | Durable user-visible aggregate; accepted command exposes a Job within confirmed latency |
+| `jobs.job` | `id`, tenant keys where Deal-scoped, command/idempotency record, job type, scheduler class, enqueued time, queue budget/deadline, authorization epoch, predecessor/replacement Job, current public/internal state, progress contract, requested/cancel times, terminal outcome, row version, created/updated times | Durable user-visible aggregate; class/fairness/admission rules follow Control consistency; no duplicate live replacement or commercial charge |
 | `jobs.job_step` | `id`, tenant keys, Job ID, step code, operation class, input contract/digest, timeout/resource limits, retry policy, current state, row version | Stable DAG node; unique step code per Job |
 | `jobs.job_dependency` | tenant keys, Job ID, predecessor Step ID, successor Step ID, dependency condition | Unique edge; DAG validated before execution |
 | `jobs.job_attempt` | `id`, tenant keys, Step ID, attempt ordinal, Runtime Principal, exact configuration/engine/provider, start/end times, outcome/failure class/code, usage/cost, protected details | Immutable; unique Step-local ordinal |
@@ -1142,7 +1164,7 @@ Deletion stages are:
 
 Partial or failed deletion remains in durable recovery and cannot report `completed`. Account/Deal top-level deletion is orchestrated; unconditional cascade is prohibited across retained/audited boundaries. Controlled `ON DELETE CASCADE` is allowed only for exclusively owned leaf rows that require no independent proof after the deletion perimeter is frozen.
 
-Deletion acceptance creates the Claimant and initial Grant in the same transaction that removes normal access and freezes the Deletion Scope. The Claimant uses no FK that can re-create or retain deleted Account/Deal/content; its irreversible request binding joins only to the privacy-minimized surviving deletion projection/tombstone. Later Grant issuance first authenticates the same provider issuer/subject, compares the keyed digest, and reveals no request existence on mismatch. The Supabase Auth identity remains authentication-only without an Account relationship until `status_available_until`; a final Retention Task removes the product binding and requests/verifies Supabase Auth identity deletion through the narrow administration API when no other separately lawful product relationship exists.
+Deletion acceptance creates the Claimant and initial Grant atomically with removal of normal access to the exact frozen scope. The Claimant has no FK retaining deleted content. A Deal deletion preserves ordinary Account/Actor/session and other Deal relationships; Account deletion removes its ordinary relationships. Later status Grant authenticates the same issuer/subject without restoring deleted authority. Provider identity becomes claimant-only only if no ordinary relationship remains, and final deletion waits for every other lawful relationship and claimant. See [scope contract](control-consistency.md#5-sharing-and-deletion-scope).
 
 A restore process checks every Deletion Tombstone and reapplies the deletion perimeter before restored data can become accessible. A restore that resurrects a tombstoned scope fails verification.
 
@@ -1324,7 +1346,7 @@ The diagram represents possible exact-purpose readiness assessments, not a singl
 
 Revision lifecycle:
 
-1. validated semantic content or exact workbook authority bindings are frozen;
+1. an exact immutable Accepted Content Version under the Deliverable (no Revision required), or workbook authority bindings, is frozen;
 2. Native Artifact is generated or an external edit is accepted through three-way comparison;
 3. Reader Copies and manifest are generated where applicable;
 4. deterministic and AI-assisted QC Runs execute;
@@ -1494,14 +1516,14 @@ The following operations are single PostgreSQL transactions, excluding staged ex
 | Clear Account Security Restriction | Exact recovery proof, Restriction closure, security-epoch advance, Recovery Session/Grant invalidation, Audit Event, Outbox; no ordinary Session or Recipient Access restoration |
 | Pause Deal | Workspace activity/posture-version advance, new-claim fence, stale Job Scope invalidation, cancellation/block intent, Audit Event, Outbox |
 | Archive Deal | Archive-pending record while mutating Jobs finish/cancel, then record/posture-version advance, capacity release, Audit Event, Outbox; no stale commit or automatic Recipient revocation |
-| Accept uploaded source | Source Material/Record where applicable, Accepted Source Object attachment, classification/rights basis, retention entry, Audit Event, Outbox |
+| Accept uploaded source | Source Material/Record, Accepted Source Object attachment, classification/rights assessments and explicit initial selections, retention entry, lineage head, Audit Event, Outbox; no permissive interval before selection |
 | Accept Fact | Human Decision, Fact, exact Evidence basis, scoped current selection, Impact Assessment intent, Audit Event, Outbox |
 | Adopt Assumption | Human Decision, Assumption, exact intended scope, Impact Assessment intent, Audit Event |
 | Commit calculation result | Calculation Run/results/checks, typed Lineage, state assessment, Usage settlement, Audit Event, Outbox |
 | Promote new current version | Immutable version already present; current pointer and row version update; Impact Assessment/outbox intent |
 | Record Process Event | Event envelope, exactly one typed extension, affected current projection intent, Audit Event, Outbox |
 | Record Human Decision | Decision envelope, exactly one typed extension, scoped current selection/transition, Audit Event, Outbox |
-| Create Revision | Revision, semantic/authority bindings, Artifact attachments already staged, manifest/members, Lineage, Audit Event, Outbox |
+| Create Revision | Exact Accepted Content Version/workbook authority, current-head and Deliverable CAS recheck, new Revision/ordinal, content binding, verified staged Artifact/manifest attachments, current pointer, Lineage, usage settlement, Audit and Outbox; failed build creates no placeholder Revision |
 | Record QC disposition | Finding disposition, Decision where required, readiness invalidation/assessment intent, Audit Event |
 | Authorize external use | Human Decision, External-Use Decision/Scope, frozen artifacts/members, Audit Event, Outbox |
 | Create Recipient Access | Exact eligibility recheck, recipient-specific Delivery/package membership and object links, Access, token/challenge hashes, Audit Event; one atomic transaction and no content transmission claim |

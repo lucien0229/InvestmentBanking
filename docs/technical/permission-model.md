@@ -1,5 +1,7 @@
 # Permission Model
 
+**Design revision: 2026-09-30.** Read the [control consistency contract](control-consistency.md), [content contract](../product/contracts/deliverable-content.md) and [capacity/outcome contract](../product/contracts/capacity-and-first-outcome.md) with this specification. These are design requirements, not current runtime evidence.
+
 **Product:** HelloX Investment Banking — Individual-First V1  
 **Status:** Confirmed design contract  
 **Confirmed:** 2026-08-08\
@@ -241,16 +243,18 @@ Later evaluation cannot restore an action denied earlier.
 |---|---|---|---|
 | Entitled, open, active | base matrix | actions denied by exact resource/control gates | remains independently subject to Decision, Revision, expiry and access posture |
 | Paused Deal | inspect, search, permitted Internal Controlled Export, view/cancel Jobs, revoke Decisions/Access, resume, archive, delete | accept new Source, start substantive processing, commit new domain results, create Revision, advance readiness, authorize external use, deliver, create or resume Recipient Access, progress business stage | not automatically suspended or revoked; valid external reads may continue |
-| Archived Deal | inspect, search, view history/artifacts, permitted Internal Controlled Export/data export, delete, reactivate if capacity permits | mutate Deal work, accept Source, start/retry substantive Job, create Revision/Decision/delivery/Access, revoke or resume Recipient Access, change business stage while archived | not automatically suspended or revoked; the pre-Archive review is the last opportunity to revoke without reactivation |
+| Archived Deal | inspect/search/history, permitted export/delete/reactivate, exact Decision or Recipient Access revocation with ordinary controls and no Active Slot charge | new substantive work, Source, Revision, new Decision/delivery/Access, Access resumption or stage progression | valid reads may continue; Banker can stop future access while archived; prior downloads cannot be recalled |
 | Closed or Terminated Business Stage | no incremental permission reduction | only actions inapplicable under ordinary domain rules | no automatic effect |
 | Post-Term Access | inspect existing Account/Deals, search, retrieve billing/retention status, create permitted Account/Deal portability and Internal Controlled Exports, delete | new Deal/work, Source acceptance, Job retry/rerun, capacity purchase, external Decision, delivery, sharing, new or resumed Recipient Access | all Access revoked before entry; resubscription never restores it |
 | Open Payment Dispute | Account-owner inspection, existing history, permitted Internal Controlled Export, billing correction/reconciliation, deletion | new substantive work, capacity purchase, Account data export, External-Use Decision, delivery, new or resumed Recipient Access, ordinary lifecycle mutation not needed for the allowlist | every otherwise-active Access is suspended and all Sessions/stream grants invalidated |
 | Account Security Restriction | only Security Recovery Session actions in Section 10 | every normal Banker operation, including content read/search/export, billing, capacity, deletion, Deal lifecycle/work, external-use action | every otherwise-active Access is suspended and all Sessions/stream grants invalidated |
-| Deletion locked | obtain/read exact privacy-safe deletion status and completion receipt through Deletion Status Grant | every normal Account/Deal read, Audit read, export, mutation, Job, billing, external-use, recovery, or object-stream action | affected Access revoked; Sessions and grants invalidated |
+| Deletion locked (affected scope only) | exact privacy-safe status through Deletion Status Grant; unrelated Account/Deal authority remains under normal rules | every normal read/export/mutation/Job/grant within the deleted perimeter | affected Access revoked and affected sessions/grants invalidated |
 
 Billing Recovery before the already-paid `paid_through` boundary preserves only the entitlement already purchased; it creates no new term, add-on, or capacity. If unresolved at the boundary it becomes Post-Term Access.
 
 ### 9.3 Pause and Archive concurrency boundaries
+
+After resume, preserved `blocked/workspace_posture_changed` Jobs use the exact `create_job_posture_recovery` action; changed inputs require explicit new scope/preview. Ordinary retry is not a posture bypass. Archived revocation commits only revocation history and invalidation, under the current archived posture.
 
 Pause commits immediately with a new Workspace posture version. The transaction stops new Job claims and invalidates Deal-scoped Job Scopes bound to the prior version. Running attempts may reach the next safe cancellation checkpoint, but every result-commit procedure observes the new version and rejects a new domain attachment. Public Job state becomes `canceled` when cancellation completes or `blocked` with the stable `workspace_posture_changed` reason when preserved work requires explicit recovery after resume. Already-committed immutable results remain history; an irreversible external effect completed before the boundary is recorded rather than hidden.
 
@@ -554,7 +558,7 @@ The claimant is stored outside the normal deletable Account/Deal relationship gr
 
 It contains no display name, unnecessary email, Deal/client/file name, content, artifact, ordinary Actor permission, billing authority, or general Audit link. It cannot enumerate another request. While deletion or a preservation exception remains unresolved, the same authenticated provider identity may obtain another short-lived Grant. After terminal completion, the completion receipt remains available for 30 days; then the claimant is removed and self-service status ends.
 
-The corresponding Supabase Auth identity remains enabled solely as the authentication factor for this claimant until `status_available_until`; every product Account/Deal relationship and ordinary session remains removed. The product stores no duplicate credentials. When the claimant closes, the Retention Executor removes the remaining product identity binding and requests/verifies Supabase Auth identity deletion through the narrow administration API when no other separately lawful product relationship exists. If the provider identity is independently deleted earlier, no fallback bearer or operator path is created and self-service status cannot be reissued.
+Deal deletion removes only the affected Deal relationships and grants; Account, Actor, unrelated Deals, billing and the ordinary session remain usable with the deleted scope denied. Only Account deletion, or absence of every other ordinary relationship, leaves the provider identity authentication-only for the claimant. Final provider identity deletion requires expiry of the claimant and absence of every other lawful relationship or active claimant. See [deletion perimeter](control-consistency.md#5-sharing-and-deletion-scope).
 
 ### 18.3 Deletion Status Grant
 

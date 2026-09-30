@@ -1,5 +1,7 @@
 # Information Architecture — Controlled Sell-Side Auction Execution Workspace V1
 
+**Design revised: 2026-09-30.** [Continuous workflows CW-01–CW-07](continuous-workflows.md) specify outcome selection, mixed intake/consent, sequential review, Deal search, external correction, sharing recovery and narrow layouts. These are current design inputs; historical prototype outcomes are not implementation evidence.
+
 Status: confirmed
 
 Confirmed on: 2026-08-08
@@ -56,7 +58,7 @@ This document excludes:
 6. **Independent states remain independent.** Source Reliance, information freshness/conflict/disposition, Analysis State, Mechanical Validity, Professional Usability, Deliverable Readiness, Process State, Job State and external-use posture are never collapsed into one global status.
 7. **Actions retain context.** State-changing actions originate from an exact Deal, object, version, purpose and authority context. There is no universal creation prompt or chatbot command surface.
 8. **Readiness is not authorization.** Package content, QC/readiness, External-Use Decision, delivery creation and actual external use remain separate information neighborhoods and records.
-9. **Modes reuse the same structure.** Guided, Preflight-Restricted, Archived, Post-Term and small-screen modes restrict actions without creating parallel object stores.
+9. **Modes reuse the same structure.** Guided presentation and narrow layouts reuse the same actions; Preflight-Restricted, Archived and Post-Term domain postures restrict actions without creating parallel object stores.
 10. **Safe return is part of IA.** Authenticated deep links, notifications, durable checkpoints, search results and asynchronous jobs restore the exact authorized object and version.
 
 ## Surface map
@@ -125,7 +127,7 @@ Routes below define the conceptual information contract. Exact identifier syntax
 - Human-readable filenames do not establish business identity.
 - Query parameters may express view filters, sort, search and return context; they do not establish object authority.
 - Every route is reauthorized independently of how the user reached it.
-- A small-screen route resolves to the same object as desktop, with its action set restricted by the device contract.
+- A narrow route resolves to the same object and permitted action set as desktop, with an adapted layout and preserved exact context.
 
 ## Public Site
 
@@ -337,7 +339,7 @@ The First Deal Guide is a recoverable mode inside the same Deal Workspace.
 - Before Guide graduation, it is the initial Deal's default work mode and resumes its durable checkpoint.
 - It sequences Deal identity, authority, Paid Preflight, Source Packet, Work Objective, observable controlled work, Evidence, typed Human Decision or correction, deterministic validation, affected consequences and the first permitted Internal Controlled Export.
 - The normal Workspace navigation remains visible. Only destinations with unmet dependencies are locked; safe independent work remains reachable.
-- Graduation requires the complete First Unmistakable Value loop, the first permitted Internal Controlled Export and an explicit entry into the Deal Execution Desk. These are three independent durable milestones.
+- Graduation requires First Useful Outcome, including the completed and retrieved first Internal Controlled Export, followed by explicit entry. First Control Loop remains a distinct teaching milestone.
 - After graduation, Overview becomes the default and the Guide remains reopenable from Overview and contextual recovery links.
 - Guide state is a view of the same canonical Deal objects, never a parallel onboarding model.
 
@@ -917,22 +919,9 @@ It exposes no Deal navigation, membership, other Revision, editing, onward shari
 
 Desktop Web carries the complete customer IA and every V1 banker action: public proof, purchase, Deal Setup, source intake, Evidence and Human Decisions, Analysis, Auction Process, artifact review, QC/readiness, external-use control, export, lifecycle and continuing execution.
 
-### Mobile or small-screen Web
+### Narrow Web layout
 
-Small-screen Web resolves to the same canonical objects through a reduced navigation projection:
-
-```text
-Deals
-Overview
-Action Center
-Read-only Object Viewer
-History & Internal Exports
-Account
-```
-
-It supports account access/recovery, safe notification return, authenticated read-only review, Job/status inspection, access to existing Internal Controlled Exports, subscription cancellation and deletion.
-
-It does not support source upload, native editing in the browser, creation of a new Internal Controlled Export, material Human Decisions, Deal Business Stage changes, External-Use Decisions or new Recipient Access creation. A prohibited action remains visible in context with a `Continue on desktop` explanation; it cannot be executed through a compressed control.
+Narrow Web resolves to the same canonical objects and permitted actions. Navigation may collapse into a labeled drawer: Deals, Overview, Action Center, Search this Deal, domain objects, History & Exports and Account. Required Web tasks use stacked context/review steps; no width-based prohibition applies to upload, Human Decisions, export creation, stage or Access management. Native Office editing is external. See [CW-07](continuous-workflows.md#cw-07--layout-changes-permissions-do-not).
 
 ### Native Office applications
 
@@ -978,7 +967,7 @@ This Information Architecture succeeds only if the later UX Spec and implementat
 - Internal Controlled Export remains distinct from Externally Authorized Delivery under ADR 0001;
 - the External Recipient can inspect only one exact authorized Revision without gaining Deal membership or download capability;
 - empty, Job, blocker and error states preserve accepted progress and expose the next smallest valid recovery action; and
-- desktop carries the complete workflow while small-screen access remains truthful, useful and action-bounded.
+- Full, compact and narrow layouts preserve complete critical Web flows; CSS width does not change business authority.
 
 ## Deferred to the UX Spec
 

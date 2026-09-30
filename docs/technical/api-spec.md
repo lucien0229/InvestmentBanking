@@ -1,5 +1,7 @@
 # API Spec
 
+**Design revision: 2026-09-30.** Read the [control consistency contract](control-consistency.md), [content contract](../product/contracts/deliverable-content.md) and [capacity/outcome contract](../product/contracts/capacity-and-first-outcome.md) with this specification. These are design requirements, not current runtime evidence.
+
 **Product:** Controlled Sell-Side Auction Execution Workspace V1  
 **Status:** Approved design contract  
 **Confirmed:** 2026-08-08\
@@ -135,7 +137,7 @@ First access uses Supabase's default Magic Link delivered through Resend Custom 
 
 ### 6.1.1 Security Recovery Session
 
-When an Account Security Restriction is open, the API rejects the ordinary Banker authorization sequence even if the Supabase JWT remains cryptographically valid. An existing user's Magic Link authenticates only recovery; after verified mailbox control and product-owned Actor/ownership-continuity verification, `POST /api/v1/security-recovery-sessions` may create a separate opaque `__Host-security_recovery_session` Cookie with `HttpOnly`, `Secure`, `SameSite=Strict`, `Path=/api/v1`, and no `Domain`. Its absolute lifetime is no more than 15 minutes. The database stores only the session hash and binds the exact restriction, Actor, Account security epoch, purpose, issue/expiry, and revocation posture. Although the Cookie accompanies other `/api/v1` requests, the session-mode allowlist rejects every route except the named recovery operations and recovery-scoped Sensitive Action Grant issuance.
+When an Account Security Restriction is open, the API rejects the ordinary Banker authorization sequence even if the Supabase JWT remains cryptographically valid. An existing user's Magic Link authenticates only recovery; after verified mailbox control and product-owned Actor/ownership-continuity verification, `POST /api/v1/security-recovery-sessions` may create a separate opaque `__Host-security_recovery_session` Cookie with `HttpOnly`, `Secure`, `SameSite=Strict`, `Path=/`, and no `Domain`. Its absolute lifetime is no more than 15 minutes. The database stores only the session hash and binds the exact restriction, Actor, Account security epoch, purpose, issue/expiry, and revocation posture. Although the Cookie accompanies requests under `/`, the session-mode allowlist rejects every route except the named recovery operations and recovery-scoped Sensitive Action Grant issuance.
 
 The Recovery Session may call only the operations declared in Section 22.2 and the [Permission Model](permission-model.md). Clearing the restriction invalidates it. It never becomes a Banker Session, and no ordinary Session, Grant, Job Scope, or Recipient Access is restored by clearance.
 
@@ -334,6 +336,8 @@ A version-conflict Problem returns the current authorized ETag and a link to rel
 
 Each generated OpenAPI operation declares one concurrency profile: `none`, `if_match`, `immutable_dependencies`, or `if_match_and_immutable_dependencies`. An operation marked `If-Match <Resource>` in the catalog uses a required header parameter bound to that Resource's ETag; implementation may not infer or omit the header from a vague notion of mutability. Operations that create only a new immutable record use exact dependency IDs and the immutable-dependency profile instead.
 
+Source current-selection creation adds the closed `create_if_absent_or_if_match` profile: absent selection requires `If-None-Match: *`; existing selection requires its strong `If-Match`. Both headers together or a header bound to the Source rather than the selection are rejected. First-creation races return412 and preserve unselected assessment history.
+
 Authenticated Deal JSON uses:
 
 ~~~http
@@ -494,6 +498,13 @@ Once a command is durably accepted, provider throttling, Worker failure, or long
 | `origin_not_allowed` | 403 | no | `return_to_first_party_origin` |
 | `forbidden` | 403 | no | `return_to_authorized_scope` |
 | `resource_not_found` | 404 | no | `return_to_safe_parent` |
+| `selection_not_initialized` | 404 | yes | `create_selection_with_absence_precondition` |
+| `revision_basis_changed` | 409 | yes | `review_current_revision_and_rebuild` |
+| `impact_basis_changed` | 409 | yes | `refresh_impact_assessment` |
+| `impact_dependencies_incomplete` | 409 | yes | `wait_or_rebuild_complete_impact` |
+| `operation_preview_stale` | 409 | yes | `refresh_preview_and_confirm` |
+| `job_basis_changed` | 409 | yes | `review_new_scope_and_preview` |
+| `scheduler_busy` | 429 | yes | `wait_retry_after_then_preview` |
 | `reauthentication_required` | 403 | yes | `complete_strong_reauthentication` |
 | `sensitive_action_grant_required` | 403 | yes | `request_sensitive_action_grant` |
 | `sensitive_action_grant_expired` | 403 | yes | `repeat_control_review` |
@@ -734,6 +745,7 @@ An expired replay cursor returns `409 event_cursor_expired` before the stream be
 - cancellation is cooperative, stops new steps, preserves accepted results, removes unattached partials, and releases unused reservation;
 - retry is permitted only from `failed_retryable`, creates a new Job Attempt inside the same Job, and reuses accepted child effects;
 - `waiting_for_source` and `waiting_for_user` resume only when the exact Source or Human input command satisfies the dependency; there is no generic resume endpoint;
+- `blocked/workspace_posture_changed` may use only the typed posture-recovery command after exact current-scope, dependency and deadline checks; old attempts remain fenced. Expired or changed work requires an explicit replacement Job/preview, with valid step reuse and compensation;
 - rerun is a new business command, Job, AI/Calculation Run or proposal, Idempotency-Key, authorization evaluation, and possible Usage Reservation, linked by `rerun_of_job_id`;
 - `failed_terminal` is not retryable.
 
@@ -932,9 +944,12 @@ Stripe redirect parameters and browser return URLs do not grant entitlement. Onl
 | `get_deal` | `GET /api/v1/deals/{deal_id}` | — | `200 Deal` |
 | `get_deal_overview` | `GET /api/v1/deals/{deal_id}/overview` | optional `Consistency-After` | `200 DealOverviewProjection` |
 | `get_deal_action_center` | `GET /api/v1/deals/{deal_id}/action-center` | owner/deadline/type filters | `200 ActionCenterProjection` preserving Needs Decision, Needs Source, Blocked, Jobs, and New Events as independent queues |
+| `search_deal` | `POST /api/v1/deals/{deal_id}/search-queries` | query max200 characters, allowed type/current-history filters, limit1–50, cursor; read-only, ordinary read quota, query excluded from logging | `200 DealSearchResult` with exact typed hits/locators, coverage watermark and exclusions |
+| `create_outcome_selection` | `POST /api/v1/deals/{deal_id}/outcome-selections` | `financial_review`, `marketing_draft` or `bid_review`, exact required content/ceiling, purpose, predecessor and reason; `If-Match` Deal | `201 OutcomeSelection`; previous selection preserved |
+| `get_current_outcome_selection` | `GET /api/v1/deals/{deal_id}/outcome-selections/current` | exact Deal | `200 OutcomeSelection` and server-derived milestone evidence |
 | `create_deal_event_attention_updates` | `POST /api/v1/deals/{deal_id}/event-attention-updates` | up to 100 exact Event IDs and viewed posture | `200 ItemOutcome[]` |
 | `create_deal_operation_preview` | `POST /api/v1/deals/{deal_id}/operation-previews` | exact proposed operation scope and dependencies; read-only | `200 OperationPreview` with allowance classification, capacity effect, price/block posture, and consent digest |
-| `create_deal_capacity_checkout_order` | `POST /api/v1/deals/{deal_id}/capacity-checkout-orders` | exact intensive-processing or archive Capacity Offer, Deal scope, current entitlement, effective term, and displayed consent | `201 CheckoutOrder` |
+| `create_deal_capacity_checkout_order` | `POST /api/v1/deals/{deal_id}/capacity-checkout-orders` | exact intensive-processing or retained-storage Capacity Offer, Deal scope, current entitlement, effective term, and displayed consent | `201 CheckoutOrder` |
 | `create_deal_setup_draft_save` | `POST /api/v1/deals/{deal_id}/setup/draft-saves` | `DealSetupDraftSave`; `If-Match` Draft when one exists; exact base Deal ETag | `200 Draft` |
 | `get_deal_setup` | `GET /api/v1/deals/{deal_id}/setup` | — | `200 DealSetupProjection` |
 | `create_deal_correction` | `POST /api/v1/deals/{deal_id}/corrections` | `DealCorrectionCreate`; `If-Match` Deal; identity-defining change prohibited | `201 DealCorrection` or linked-new-Deal requirement |
@@ -987,6 +1002,8 @@ The canonical hierarchy is `Source Material → immutable Source Record → immu
 
 ### 22.5 Classification, rights, reliance, Source Packets, and objectives
 
+Appending an assessment does not select it. The four typed current-selection queries and selection-change commands below implement [the CAS contract](control-consistency.md#4-append-only-assessments-and-current-selection); create-if-absent requires `If-None-Match: *`, replacement requires the selection `If-Match`.
+
 | Operation ID | Method and path | Request | Success |
 |---|---|---|---|
 | `list_classification_assessments` | `GET /api/v1/deals/{deal_id}/classification-assessments` | typed target/current/history filters | `200 MaterialClassificationAssessment[]` |
@@ -1001,6 +1018,14 @@ The canonical hierarchy is `Source Material → immutable Source Record → immu
 | `list_condition_assessments` | `GET /api/v1/deals/{deal_id}/condition-assessments` | Source Record/purpose/current/history | `200 SourceConditionAssessment[]` |
 | `create_condition_assessment` | `POST /api/v1/deals/{deal_id}/condition-assessments` | exact Source Record, purpose/use scope, freshness, conflict, disposition, basis, effective time, and optional superseded assessment | `201 SourceConditionAssessment` |
 | `get_condition_assessment` | `GET /api/v1/deals/{deal_id}/condition-assessments/{assessment_id}` | — | `200 SourceConditionAssessment` |
+| `get_classification_current_selection` | `GET /api/v1/deals/{deal_id}/source-records/{source_record_id}/classification-current-selection` | exact purpose where applicable | `200 CurrentSelection` and strong ETag, or authorized404 if absent |
+| `create_classification_selection_change` | `POST /api/v1/deals/{deal_id}/source-records/{source_record_id}/classification-selection-changes` | exact assessment/purpose/reason and required Human Decision; selection CAS | `201 SelectionChange` with updated selection; competing write412 |
+| `get_rights_current_selection` | `GET /api/v1/deals/{deal_id}/source-records/{source_record_id}/rights-current-selection` | exact purpose where applicable | `200 CurrentSelection` and strong ETag, or authorized404 if absent |
+| `create_rights_selection_change` | `POST /api/v1/deals/{deal_id}/source-records/{source_record_id}/rights-selection-changes` | exact assessment/purpose/reason and required Human Decision; selection CAS | `201 SelectionChange` with updated selection; competing write412 |
+| `get_reliance_current_selection` | `GET /api/v1/deals/{deal_id}/source-records/{source_record_id}/reliance-current-selection` | exact purpose where applicable | `200 CurrentSelection` and strong ETag, or authorized404 if absent |
+| `create_reliance_selection_change` | `POST /api/v1/deals/{deal_id}/source-records/{source_record_id}/reliance-selection-changes` | exact assessment/purpose/reason and required Human Decision; selection CAS | `201 SelectionChange` with updated selection; competing write412 |
+| `get_condition_current_selection` | `GET /api/v1/deals/{deal_id}/source-records/{source_record_id}/condition-current-selection` | exact purpose where applicable | `200 CurrentSelection` and strong ETag, or authorized404 if absent |
+| `create_condition_selection_change` | `POST /api/v1/deals/{deal_id}/source-records/{source_record_id}/condition-selection-changes` | exact assessment/purpose/reason and required Human Decision; selection CAS | `201 SelectionChange` with updated selection; competing write412 |
 | `list_source_packets` | `GET /api/v1/deals/{deal_id}/source-packets` | purpose/stage/current/history | `200 SourcePacketSummary[]` |
 | `create_source_packet` | `POST /api/v1/deals/{deal_id}/source-packets` | stable name, purpose, owner | `201 SourcePacket` |
 | `get_source_packet` | `GET /api/v1/deals/{deal_id}/source-packets/{source_packet_id}` | — | `200 SourcePacket` |
@@ -1045,6 +1070,7 @@ The canonical hierarchy is `Source Material → immutable Source Record → immu
 | `create_open_item` | `POST /api/v1/deals/{deal_id}/open-items` | exact controlled work item and basis | `201 OpenItem` |
 | `get_open_item` | `GET /api/v1/deals/{deal_id}/open-items/{item_id}` | — | `200 OpenItem` |
 | `create_open_item_transition` | `POST /api/v1/deals/{deal_id}/open-items/{item_id}/transitions` | closed transition, exact completion/reopen basis; `If-Match` Open Item | `201 OpenItemTransition` |
+| `create_external_correction_event` | `POST /api/v1/deals/{deal_id}/external-correction-events` | exact typed correction Open Item, recipient, old/new Revision, closed action, occurred time/channel and evidence/declaration; `If-Match` Open Item | `201 ProcessEvent` plus atomic Open Item transition; no message sent |
 | `list_ai_runs` | `GET /api/v1/deals/{deal_id}/ai-runs` | task/outcome/date/object filters | `200 AIRunSummary[]` without raw prompt/request/response |
 | `create_ai_run` | `POST /api/v1/deals/{deal_id}/work-objectives/{work_objective_id}/ai-runs` | exact enabled AI Task Definition, Source Packet Version, Context Plan inputs, intended use, and typed target | `202 Job`; result may link only AI Proposal, Evidence Candidate, or AI Abstention |
 | `get_ai_run` | `GET /api/v1/deals/{deal_id}/ai-runs/{ai_run_id}` | — | `200 AIRun` with versions, input perimeter, validation, usage, limitations, and result links |
@@ -1056,12 +1082,14 @@ The canonical hierarchy is `Source Material → immutable Source Record → immu
 | `create_ai_analysis_acceptance` | `POST /api/v1/deals/{deal_id}/ai-proposals/{proposal_id}/analysis-acceptances` | exact Analysis root, Proposal, dependencies, purpose, deterministic validation, corrections; `If-Match` Analysis | `201 AnalysisVersion` with AI Origin and Proposal Disposition |
 | `create_ai_recommendation_acceptance` | `POST /api/v1/deals/{deal_id}/ai-proposals/{proposal_id}/recommendation-acceptances` | exact proposal, alternatives, conditions, invalidation triggers, corrections | `201 Recommendation` with AI Origin and Proposal Disposition |
 | `create_ai_diligence_issue_acceptance` | `POST /api/v1/deals/{deal_id}/ai-proposals/{proposal_id}/diligence-issue-acceptances` | exact proposal, Evidence, materiality, resolution criteria, corrections | `201 DiligenceIssue` with AI Origin and Proposal Disposition |
-| `create_ai_deliverable_content_acceptance` | `POST /api/v1/deals/{deal_id}/ai-proposals/{proposal_id}/deliverable-content-acceptances` | exact Deliverable, content contract, citations, corrections, purpose/audience | `201 DeliverableRevisionContent` with AI Origin and Proposal Disposition |
+| `create_ai_deliverable_content_acceptance` | `POST /api/v1/deals/{deal_id}/ai-proposals/{proposal_id}/deliverable-content-acceptances` | exact Deliverable, closed content contract, basis, corrections, purpose/audience; `If-Match` Deliverable | `201 AcceptedContentVersion` with AI Origin and Proposal Disposition; no Revision required |
 | `create_ai_qc_finding_acceptance` | `POST /api/v1/deals/{deal_id}/ai-proposals/{proposal_id}/qc-finding-acceptances` | exact Review/QC Run target, location, Evidence, severity, corrections | `201 QCFinding` with AI Origin and Proposal Disposition |
 | `list_ai_abstentions` | `GET /api/v1/deals/{deal_id}/ai-abstentions` | run/reason/affected-scope filters | `200 AIAbstention[]` |
 | `get_ai_abstention` | `GET /api/v1/deals/{deal_id}/ai-abstentions/{abstention_id}` | — | `200 AIAbstention` |
 
 Accepting a Claim as a Fact, resolving a material conflict, and making another controlled judgment occur through typed Human Decisions. A generic “approve AI” endpoint does not exist.
+
+External correction uses `create_open_item` with the closed `external_correction` extension and exact typed recipient/Impact/Revision/use-event links. Event actions are `correction_sent`, `withdrawal_requested`, `acknowledgment_recorded`, `no_action_recorded`; no-action requires reason. CW-05 defines extension states and completion evidence. The transaction records the Event and transition atomically; duplicates replay the same event and stale item versions return412. Optional unknown-recipient use never creates a fabricated recipient.
 
 Correcting extraction creates the applicable human-authored Claim, Evidence acceptance, Calculation input, or other typed domain record with `corrects_ai_proposal_id`; it never edits the AI Proposal. Preparing a Decision saves or creates the typed Human Decision flow. A Job that uses AI ends with AI Proposal, Evidence Candidate, or AI Abstention links; it cannot directly commit a Fact, Human Decision, Process Event, external authorization, or accepted Deliverable content. Purely deterministic or explicitly human-authored Jobs may create their declared domain results without an AI-promotion command. Raw Prompt text, provider request/response, hidden reasoning, and provider credentials are never returned.
 
@@ -1168,9 +1196,12 @@ These APIs record the sell-side process; they do not send banker email, connect 
 |---|---|---|---|
 | `list_deliverables` | `GET /api/v1/deals/{deal_id}/deliverables` | type/state/readiness/current/history filters | `200 DeliverableSummary[]` |
 | `create_deliverable` | `POST /api/v1/deals/{deal_id}/deliverables` | type, purpose, intended use, owner, exact Work Objective | `201 Deliverable` |
+| `create_deliverable_content_version` | `POST /api/v1/deals/{deal_id}/deliverables/{deliverable_id}/content-versions` | human-authored closed content, exact basis and `If-Match` Deliverable | `201 AcceptedContentVersion` |
+| `list_deliverable_content_versions` | `GET /api/v1/deals/{deal_id}/deliverables/{deliverable_id}/content-versions` | collection query | `200 AcceptedContentVersion[]` |
+| `get_deliverable_content_version` | `GET /api/v1/deals/{deal_id}/deliverables/{deliverable_id}/content-versions/{content_version_id}` | exact version | `200 AcceptedContentVersion` |
 | `get_deliverable` | `GET /api/v1/deals/{deal_id}/deliverables/{deliverable_id}` | — | `200 Deliverable` |
 | `list_revisions` | `GET /api/v1/deals/{deal_id}/deliverables/{deliverable_id}/revisions` | state/current/history filters | `200 RevisionSummary[]` |
-| `create_revision` | `POST /api/v1/deals/{deal_id}/deliverables/{deliverable_id}/revisions` | exact accepted semantic content or workbook authority, dependency graph, rationale, requested outputs; `If-Match` Deliverable; no unaccepted AI payload | `202 Job`; successful result links immutable Revision |
+| `create_revision` | `POST /api/v1/deals/{deal_id}/deliverables/{deliverable_id}/revisions` | exact Accepted Content Version ID or workbook authority, complete dependency basis, rationale, requested outputs; `If-Match` Deliverable; no unaccepted AI payload | `202 Job`; successful result links immutable Revision |
 | `get_revision` | `GET /api/v1/deals/{deal_id}/deliverables/{deliverable_id}/revisions/{revision_id}` | — | `200 Revision` |
 | `create_revision_rerun` | `POST /api/v1/deals/{deal_id}/deliverables/{deliverable_id}/revisions/{revision_id}/reruns` | new dependency set and reason; `If-Match` Deliverable | `202 Job`; creates a new Revision |
 | `list_artifacts` | `GET /api/v1/deals/{deal_id}/artifacts` | deliverable/revision/format/state filters | `200 ArtifactSummary[]` |
@@ -1273,6 +1304,7 @@ The first successful protected stream for the frozen Reader Copy emits the exact
 | `get_job_events` | `GET /api/v1/jobs/{job_id}/events` | SSE; `Last-Event-ID` optional | `200 text/event-stream` |
 | `create_job_cancellation` | `POST /api/v1/jobs/{job_id}/cancellations` | cancellation reason; `If-Match` Job | `201 JobCancellation` |
 | `create_job_retry` | `POST /api/v1/jobs/{job_id}/retries` | failed-retryable Job and exact same logical inputs; `If-Match` Job | `200 Job` with a new Attempt in the same Job |
+| `create_job_posture_recovery` | `POST /api/v1/jobs/{job_id}/posture-recoveries` | exact `blocked/workspace_posture_changed`, current posture and dependency digest; `If-Match` Job | `200 Job` requeued under new scope epoch; changed basis409 requires explicit new scoped Job |
 | `get_deal_history` | `GET /api/v1/deals/{deal_id}/history` | event/object type, Actor/Principal, Origin, result, date, and current/history posture filters | `200 DealHistoryEvent[]` |
 | `get_account_audit_log` | `GET /api/v1/account/audit-events` | actor/action/object/date filters; current Supabase Passkey reauthentication gate for high-risk detail | `200 AuditEvent[]` |
 | `list_account_audit_checkpoints` | `GET /api/v1/account/audit-checkpoints` | date/key filters | `200 AuditCheckpoint[]` |
@@ -1283,9 +1315,13 @@ The first successful protected stream for the frozen Reader Copy emits the exact
 
 ### 22.14 Protected streams, integrity keys, and Webhooks
 
+Source/Representation grants, selection CAS, first narrative build and posture recovery use the exact schemas and transactions in [Control consistency](control-consistency.md).
+
 | Operation ID | Method and path | Request | Success |
 |---|---|---|---|
 | `create_artifact_object_grant` | `POST /api/v1/deals/{deal_id}/artifacts/{artifact_id}/object-grants` | exact artifact and intended operation | `201 ProtectedObjectStreamGrant` |
+| `create_source_record_object_grant` | `POST /api/v1/deals/{deal_id}/source-records/{source_record_id}/object-grants` | exact accepted original/digest, allowed inspect/download operation and purpose; download Sensitive Grant | `201 ProtectedObjectStreamGrant`, typed Source attachment |
+| `create_source_representation_object_grant` | `POST /api/v1/deals/{deal_id}/source-records/{source_record_id}/representations/{representation_id}/object-grants` | exact representation/digest, inspection operation and locator/range | `201 ProtectedObjectStreamGrant`, typed Representation attachment |
 | `stream_protected_object` | `GET /objects/{protected_object_id}` | `Authorization: ObjectGrant …`; optional single `Range` | `200` or `206` bytes |
 | `list_integrity_keys` | `GET /.well-known/integrity-keys.json` | optional `purpose`, `kid` | `200` purpose-separated JWK registry |
 | `receive_stripe_webhook` | `POST /webhooks/stripe` | raw signed Stripe payload | `200` after durable Inbox persist; otherwise `503` |
@@ -1294,6 +1330,10 @@ The first successful protected stream for the frozen Reader Copy emits the exact
 Object grants are short-lived, purpose-bound, principal-bound, object-bound, and operation-bound. They are not share links and cannot authorize JSON API calls.
 
 ## 23. Schema catalog
+
+Added closed contracts: `AcceptedContentVersion` and build binding; `OutcomeSelection` with purchased predicate version and exact required result set; `DealSearchResult` with typed hits, exact version/locator, coverage and cursor; four source selection-change bodies; Source/Representation stream attachment variants; `JobPostureRecovery`; and typed external-correction Open Item/Process Event links. Field invariants are defined in [Control consistency](control-consistency.md) and [Continuous workflows](../ux/continuous-workflows.md). Search POST is a read-only query to keep confidential query text out of URLs; no idempotency key or mutation allowance is required. It still uses CSRF/origin and ordinary authorization checks; request/response bodies are excluded from logs.
+
+Search cursors bind Account, Deal, normalized query digest, filters and index snapshot; changing any requires a new query. Each hit is reauthorized against current scope before return and on open. A coverage watermark lower than the Deal search head must be shown as incomplete; search projections never determine Impact completeness or permissions.
 
 The canonical implementation schemas are generated from TypeScript validators into OpenAPI. This section fixes the cross-boundary fields and invariants; the Data Model / ERD remains authoritative for storage layout.
 

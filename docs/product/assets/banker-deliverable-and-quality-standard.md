@@ -1,6 +1,6 @@
 # V1 Banker Deliverable Architecture and Quality Standard
 
-> 保留设计，待用户优化。此文保留重启前的产品设计内容；既往确认、任务措辞与实施结果仅为历史来源，本阶段没有启用任务队列或实现。
+> 2026-09-30 已修订相关现行设计。历史研究、日期与任务语境保留用于追溯；当前规范见[内容合同](../contracts/deliverable-content.md)、[容量与首次成果](../contracts/capacity-and-first-outcome.md)及[修订记录](../../reviews/design-revision-2026-09-30.md)。没有启用旧任务或实现。
 
 **Decision date:** 2026-07-31
 
@@ -495,7 +495,7 @@ Each case includes:
 - mutation suites: revised source, changed bid, corrected formula, stale/withdrawn source, external native edit, changed template, changed audience, and attempted gate bypass;
 - expected Revision/Impact/recalculation/regeneration/re-review history and reproducible archive package.
 
-Ground truth should be authored and adjudicated by people qualified for the relevant finance/model/presentation review during product development. The exact reviewer count, adjudication protocol, materiality bands, visual tolerances, and pass-rate thresholds are **later Product Design Decisions**; no unsupported “industry standard” percentages are asserted here.
+The [content contract](../contracts/deliverable-content.md) and [Harbor frozen packet](../reference-deals/harbor-components/README.md) supply authored product rubrics, deterministic numbers and positive/negative examples. Use the AI contract's three blinded judges for narrative usefulness, preserving zero-Critical/per-dimension gates and disagreement handling. This is not independent Banker adjudication. Broader native/render/source coverage remains implementation evidence; no advisor recruitment or customer-content pooling is introduced.
 
 ### 14.3 Evaluation dimensions
 
